@@ -1,0 +1,638 @@
+\documentclass[11pt]{article}
+%%%%%%%%% options for the file macros.tex
+
+\def\showauthornotes{1}
+\def\showkeys{0}
+\def\showdraftbox{0}
+% \allowdisplaybreaks[1]
+
+\input{macros}
+\allowdisplaybreaks
+
+\usepackage{tikz}
+
+\usepackage[
+    backend=biber,
+% giveninits=true,
+% natbib=true,
+    style=alphabetic,
+    url=false, 
+ %   doi=true,
+    hyperref,
+    backref=true,
+    backrefstyle=none,
+    maxbibnames=10,
+    sortcites
+]{biblatex}
+\addbibresource{papers.bib}
+
+%%%%%%%%% Authornotes
+\newcommand{\Snote}{\Authornote{S}}
+
+\newenvironment{tight_enumerate}{
+\begin{enumerate}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{enumerate}}
+\newenvironment{tight_itemize}{
+\begin{itemize}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{itemize}}
+
+
+
+\addbibresource{refs.bib}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\newcommand{\coursenum}{{CSC 2421H}}
+\newcommand{\coursename}{{Graphs, Matrices, and Optimization}}
+\newcommand{\courseprof}{Sushant Sachdeva}
+
+\lecturetitle{6}{Electrical Networks and their Applications to Random Walks}{Calum MacRury}{October 22, 2018}
+
+\section{Electrical Networks}
+
+Let us suppose that $G=(V,E)$ is an undirected graph, for which $|V|=n$ and $|E|=m$. It will be convenient
+to assume in this section that its edges are of the form $\{u,v\}$ for $u,v \in V$, highlighting
+the fact that they are undirected. We shall later replace each edge $e=\{u,v\} \in E$,
+with one of $(u,v)$ or $(v,u)$ to indicate the direction we wish to assign to $e$. In the
+former case, we say that $u$ is directed to $v$, and in the latter case, we say that $v$ is directed
+to $u$.
+
+If we additionally specify a pair of distinct vertices $s,t \in V$, then we may consider an \textit{electrical
+current} on $G$. Formally, this is a vector $\V{f} \in \rea^{E}$. Intuitively, the current assigned
+to an edge should also have a direction associated to it. In order to specify these directions, 
+we first assign an arbitrary orientation to the edges of $G$. If $\{u,v\} \in E$, then we can orient (direct) it from $u$ to $v$ by replacing it with the directed edge $(u,v)$,
+and by writing $u \rightarrow v$. We then adopt the following convention for determining the direction
+of the $|f_{e}|$ units of current for the (directed) edge $e=(u,v) \in \tilde{E}$:
+
+\begin{itemize}
+\item If $f_{u,v} >0$, then we say that $|f_{u,v}|$ units of current move from $u$ to $v$.
+\item If $f_{u,v} < 0$, then we that $|f_{u,v}|$ units of current move from $v$ to $u$.
+\item If $f_{u,v}=0$, then $0$ units of current move in either direction.
+
+\end{itemize}
+
+Using this convention, the vector $\V{f} \in \rea^{E}$ is sufficient to describe the directions of the electrical current 
+on $G$. 
+
+Now that we have formalized our notation for representing electrical currents, we consider a
+number of \textit{conservation conditions} known as Kirchoff's Laws. Intuitively, these laws
+say that for each \textit{internal node} (i.e $v \neq s,t$), the total amount of current entering
+$v$ is equal to the total amount of current leaving it. That is, formally we have
+
+\[
+	\sum_{u: v \rightarrow u} f_{u,v} - \sum_{w: w \rightarrow v} f_{w,v}=0,
+\]
+
+for each $v \in V$, $v \neq s,t$.
+
+Of course, if we consider $s$ to be the \textit{source} of the circuit, and
+$t$ to be its \textit{sink}, then we can generalize these constraints to include
+$s$ and $t$ as well. To do so, let us suppose that $\gamma \ge 0$ is the total
+external current entering the source $s$. In this case, we have that
+
+\[ \sum_{u: v \rightarrow u} f_{u,v} - \sum_{w: w \rightarrow v} f_{w,v}=
+ \begin{cases}
+ \gamma & \text{if $v = s$} 	\\
+-\gamma & \text{if $v=t$}		\\
+	0  & \text{otherwise}
+\end{cases}
+\]
+
+
+For our purposes, we shall normalize and assume that the amount of current 
+entering $s$ is $1$; that is, $\gamma=1$. In this case, there exists a 
+unique matrix $\V{B} \in \rea^{n \times m}$ encoding the constraints we
+impose on $\V{f}$. We have that $\V{f}$ satisfies the conservation laws, if and only
+if 
+
+\[
+	\V{B}\V{f} = \mathbbm{1}_{s} - \mathbbm{1}_{t}.
+\]
+
+It is easy to check that for $(u,v) \in E$, if $\V{b}_{u,v}:= \mathbbm{1}_{u} - \mathbbm{1}_{v}$,
+then 
+
+\[
+	\V{B} =[\V{b}_{e_1}\ldots \V{b}_{e_m}],
+\]
+
+provided $e_{1}, \ldots ,e_{m}$ are the (directed) edges of $G$.
+
+Let us now additionally associate a \textit{resistance} $r_{e}$ to each edge
+$e \in E$. If we consider the vector $\V{r}:=(r_{e})_{e \in E}$, then we 
+can define the diagonal matrix $\V{R} \in \rea^{m \times m}$, by setting
+$\diag{\V{R}}=\V{r}$.
+
+We can use $\V{R}$ to define the \textit{energy} of the current $\V{f}$.
+This is defined to be,
+
+\[
+	\sum_{e \in E} \frac{1}{2} r_{e} f_{e}^{2} = \frac{1}{2} \V{f}^{T} \V{R} \V{f}.
+\]
+
+With this definition, we can consider a natural optimization problem, in which
+$\V{b}$ is taken to be a fixed vector within $\rea^{V}$, and $\V{B}$ is the matrix
+defined above:
+
+\begin{equation}\label{eqn:energy_optimization}
+\begin{aligned}
+&{\text{minimize}} & \frac{1}{2} \V{f}^{T}\V{R}\V{f}\\
+& \text{subject to} &\V{B}\V{f}=\V{b} \\
+&                             & \V{f} \in \rea^E
+\end{aligned}
+\end{equation}
+
+We say that a current $\V{f}$ is an \textit{electrical current},
+provided it is an optimum solution to OP \ref{eqn:energy_optimization}.
+
+\begin{proposition}
+
+If $\V{f}$ is an optimum solution to OP \ref{eqn:energy_optimization}
+then $\V{R}\V{f}$ is orthogonal to $\Delta \in \rea^{m}$,
+provided $\V{B}\Delta=0$. 
+
+
+\end{proposition}
+
+
+\begin{proof}
+
+Given $\eps \ge 0$, we know that $\V{f} - \eps \Delta$ is a feasible
+solution to OP \ref{eqn:energy_optimization}, as 
+
+\[
+	\V{B}(\V{f} - \eps \Delta) = \V{B}\V{f} - \eps \V{B}\Delta= b,
+\]
+
+since $\Delta$ was assumed to be in the kernel of $\V{B}$. On the other
+hand, we know that $\V{f}$ is an optimum solution so,
+
+\[
+	\frac{1}{2}(\V{f} - \eps \Delta)^{T} \V{R} (\V{f} - \eps \Delta) \ge \frac{1}{2}\V{f}^{T} \V{R} \V{f}.
+\]
+
+After simplification, it follows that
+
+\begin{equation}\label{eqn:epsilon_addition}
+	- \eps( \Delta^{T} \V{R} \V{f} - \eps \frac{1}{2} \Delta^{T} \V{R} \Delta) \ge 0,
+\end{equation}
+for all $\eps \ge 0$. Dividing by $-\eps,$ we get
+\begin{equation}
+	\Delta^{T} \V{R} \V{f} - \eps \frac{1}{2} \Delta^{T} \V{R} \Delta \le 0,
+\end{equation}
+
+
+We know however that the entries of $\V{R}$ are nonnegative,
+so as a consequence, $\Delta^{T} \V{R} \Delta \ge 0$. This implies that $\Delta^{T} \V{R} \V{f} \le 0$,
+for otherwise the left-hand side of Equation \ref{eqn:epsilon_addition} is strictly positive for any $\eps > 0$.
+
+Let us now suppose that in fact $\Delta^{T} \V{R} \V{f} <0$. In this case, it is clear that 
+$\Delta^{T} \V{R} \Delta >0$, for otherwise Equation \ref{eqn:epsilon_addition} will not hold.
+Observe that if we set $\eps_0 := -2 \frac{\Delta^{T} \V{R} \V{f}}{ \Delta^{T} \V{R} \Delta}$, then
+$\eps_0 >0$, and for each $\eps > \eps_0$, we have that
+
+\[
+ 	\eps(\Delta^{T} \V{R} \V{f} + \eps \frac{1}{2} \Delta^{T} \V{R} \Delta) >0,
+\]
+
+which contradicts Equation \ref{eqn:epsilon_addition}.
+We may therefore conclude that $\Delta^{T} \V{R} \V{f} =0$, thus proving the orthogonality
+of $\Delta$ and $\V{Rf}$.
+
+
+\end{proof}
+
+
+Suppose that we now consider the subspace $C:= \{ \Delta \in \rea^E: \V{B}\Delta =0\}$. Clearly,
+$C$ is the kernel of the matrix $\V{B}$ (which is typically denoted by $\text{ker}(\V{B}))$. Moreover, as a corollary to the above proposition,
+we get the following result:
+
+\begin{corollary}
+
+If $\V{f}$ is an optimal solution to Equation \ref{eqn:epsilon_addition}, then $\V{Rf}$
+is orthogonal to the kernel of $\V{B}$; that is, $\V{f} \in C^{\perp}$ in the above
+notation.
+
+\end{corollary}
+
+We shall now consider some properties of the subspace $C$. Before doing so,
+let us observe a proposition regarding the matrix $\V{B}$.
+
+\begin{proposition}
+
+We have that $\text{rank}(\V{B})= n-1$ if and only if $G$ is connected (where
+we consider $G$ as an undirected graph).
+
+\end{proposition}
+
+\begin{proof}
+
+It is a standard result from linear algebra that both the row and column spaces of $\V{B}$
+have the same dimension. This integer is defined precisely as the value of $\text{rank}(\V{B})$.
+
+As a consequence of this result, we know that since $\V{B}^{T}$ is the transpose of $\V{B}$,
+each matrix must have the same rank. It is therefore sufficient to show that the result holds
+for the matrix $\V{B}^{T}$.
+
+Observe that for any vector $\V{x} \in \rea^V$, we have that 
+
+\[
+	(\V{B}^{T})_{e} = x_{u} -x_{v},
+\]
+
+for each directed edge $e=(u,v)$ of $G$. In particular, this shows that
+$\V{B}^{T} \mathbbm{1}_{V} =0$, and so the kernel of $\V{B}^{T}$
+has dimension greater or equal to $1$. 
+
+One can additionally show that if $G$ is connected,
+then provided $\V{B}^{T}\V{x}=0$, we must have that $\V{x} \in \text{span}\{ \mathbbm{1}_{V} \}$.
+In other words, the dimension of the kernel of $\V{B}^{T}$ is exactly $1$. In this case, 
+the rank theorem for matrices implies that $\text{rank}(\V{B}^{T})=n-1$.
+
+Generalizing the above results, we can prove that if $k(G) \ge 1$ is the number of components
+of $G$, then we have that $\text{rank}(\V{B}^{T})=n-k(G)$ (here the components are formed
+considering $G$ as an undirected graph). This completes both directions
+of the proposition.
+
+\end{proof}
+
+\begin{lemma}
+
+If $G$ is connected, then $\text{dim}(C)= m -(n-1)$.
+
+\end{lemma}
+
+\begin{proof}
+
+This lemma is an immediate corollary of the previous result, combined with the rank theorem
+for matrices.
+
+\end{proof}
+
+\begin{lemma}
+
+If $Im(\V{B}^{T}):=\{ \V{B}^{T}\V{x}: \V{x} \in \rea^{V}\}$, namely the image of the matrix $\V{B}^{T}$,
+then $Im(\V{B}^{T})=C^{\perp}=ker(B)^{\perp}$.
+
+
+\end{lemma}
+
+Before we prove this lemma, we remark that this statement is a property of all matrices - it is not
+specific to $\V{B}$.
+
+\begin{proof}
+
+
+Observe that $\text{Im}(\V{B}^{T})$ is spanned by the column vectors
+of $\V{B}^{T}$. As a result, a vector $\V{x} \in \rea^{E}$ is in $\text{Im}(\V{B})^{\perp}$
+if and only if it is orthogonal to all the column vectors of $\V{B}^{T}$. On the other hand,
+we know that $\V{x}$ satisfies this property if and only if
+it is in the kernel of $\V{B}$. We may therefore conclude that,
+
+\[
+ 	\text{Im}(\V{B}^{T})^{\perp} = C.
+\]
+
+Taking the orthogonal complement of both sides of the above equation, we may conclude that
+
+\[
+	\text{Im}(\V{B}^{T}) = C^{\perp},
+\]
+
+thus completing the proof.
+
+
+\end{proof}
+
+As a result of the preceding lemmas, we may conclude the following theorem:
+
+\begin{theorem}\label{thm:energy_characterization}
+
+If $\V{f}$ is an optimum solution to OP \ref{eqn:energy_optimization},
+then there exists some $\V{x} \in \rea^{E}$ such that $\V{f} = \V{R}^{-1}\V{B}^{T}\V{x}$.
+
+
+\end{theorem}
+
+\begin{proof}
+
+Observe that since $\V{f}$ is an optimum solution, we know that $\V{Rf}$ is orthogonal
+to $C$. On the other hand, we know that $\text{Im}(B^{T})= C^{T}$, so there exists
+some $\V{x} \in \rea^{E}$ for which $\V{Rf}= \V{R}^{-1}\V{B}^{T}\V{x}$.
+As the matrix $\V{R}$ is invertible, the result thus holds.
+
+
+\end{proof}
+
+We know that if $\V{f}$ is an optimum solution to OP \ref{eqn:energy_optimization},
+then we have that
+
+\[
+	\V{b} = \V{Bf}=\V{B}\V{R}^{-1}\V{B}^{T}\V{x},
+\]
+
+as $\V{Bf}=\V{b}$ and $\V{f}=\V{R}^{-1}\V{B}^{T}\V{x}$.
+We can interpret the vector $\V{x}$ as specifying a \textit{voltage} of $x_{v}$ units
+for each vertex $v \in V$. By applying $\V{R}^{-1}\V{B}^{T}$ to this vector $\V{x}$,
+we can then recover the electrical current $\V{f}$ on the edges $G$, given that the
+resistances are defined by $\V{R}$.
+
+In the next section, we shall characterize exactly what these voltage vectors look like.
+Before we discuss how this can be done, we first observe that the matrix $\V{B}\V{R}^{-1}\V{B}^{T}$
+correponds to the Laplacian of a specific weighted graph we now describe.
+
+\begin{lemma}
+
+The matrix $\V{B}\V{R}^{-1}\V{B}^{T}$ is the Laplacian of $G=(V,E,w)$,
+where $w_{e}:=\frac{1}{r_{e}}$ for each $e\in E$.
+
+
+\end{lemma}
+
+
+\begin{proof}
+
+Observe that if $R=I$, the identity matrix, then
+
+\begin{align*}
+	\V{B}\V{B}^{T} &= \sum_{e =(u,v) \in E}( \mathbbm{1}_{u}-\mathbbm{1}_{v})( \mathbbm{1}_{u} - \mathbbm{1}_{v})^{T}	\\
+			     &= \sum_{e = (u,v) \in E} L_{u,v},
+\end{align*}
+
+where $L_{u,v}$ is the Laplacian of the edge $e=(u,v) \in E$.
+
+If the matrix $R$ is not the identity, then a similar computation shows that
+
+\begin{align*}
+	\V{B} \V{R}^{-1}\V{B}^{T} &= \sum_{e =(u,v) \in E}\frac{1}{r_{e}}( \mathbbm{1}_{u}-\mathbbm{1}_{v})( \mathbbm{1}_{u} - \mathbbm{1}_{v})^{T}	\\
+			     &= \sum_{e = (u,v) \in E} \frac{1}{r_e} L_{u,v},
+\end{align*}
+
+where the matrix $\frac{1}{r_e} L_{u,v}$ is the Laplacian of the edge $e=(u,v)$ with weight $\frac{1}{r_{e}}$.
+
+
+
+\end{proof}
+
+
+\subsection{Moore-Pensoose Pseudo-Inverse}
+
+Suppose that we are given a symmetric $n \times n$ matrix $\V{A}$ together with an $n$-vector $\V{b}$,
+and we wish to solve the equation $\V{Ax} = \V{b}$ for solve variable $\V{x} \in \rea^{n}$. In the case in which $\V{A}$ is invertible, the vector $\V{x} = \V{A}^{-1}\V{b}$ is the unique solution to this equation.
+When the matrix $\V{A}$ is not invertible, then we can define the \textit{Moore-Pensoose Pseudo-Inverse}
+of $\V{A}$. If $\lambda_{1}, \ldots ,\lambda_{n}$ are the eigenvalues of $\V{A}$, then assume that
+$\psi_{1},\ldots ,\psi_{n}$ are orthonormal eigenvectors of $\V{A}$. Using the spectral decomposition of $\V{A}$, we know that
+
+\[
+	\V{A} = \sum_{i=1}^{n} \lambda_{i} \psi_{i} \psi_{i}^{T}.
+\]
+
+We then define
+
+\[
+	\V{A}^{+}:= \sum_{i=1: \lambda_{i} \neq 0}^{n} \frac{1}{\lambda_{i}} \psi_{i} \psi_{i}^{T},
+\]
+
+as the \textit{pseudo-inverse} of $\V{A}$.
+
+
+If we consider the specific case when we are given an undirected graph $G=(V,E)$,
+then we can consider the \textit{pseudo-inverse} $\V{L}^{+}$ of its Laplacian
+$\V{L}$. In this case, assuming that $\lambda_{1} \le \ldots \le \lambda_{n}$
+are the eigenvalues of $\V{L}$, then we have that
+
+\begin{equation}\label{eqn:pseudo_inverse_solver}
+	\V{L}(\V{L}^{+}\V{b})= \sum_{i=1: \lambda_{i} >0}^{n} \psi_{i} \psi_{i}^{T} \V{b},
+\end{equation}
+
+where $\psi_{1},\ldots ,\psi_{n}$ are orthonormal eigenvectors of $\lambda_{1}, \ldots ,\lambda_{n}$.
+Observe that if we define the matrix $\Pi:=\sum_{i=1: \lambda_{i} >0}^{n} \psi_{i} \psi_{i}^{T}$,
+then $\Pi \in \rea^{V \times V}$. Moreover, $\Pi$ is an \textit{orthogonal projection} onto the subspace
+spanned by $\beta:=\{\psi_{i}: \lambda_{i} >0 \; \text{and} \; 1\le i \le n\}$. That is, $\Pi^{2}=\Pi$,
+$\Pi^{T}=\Pi$ and $\text{Im}(\Pi)= \text{span}(\beta)$.
+
+
+For our purposes, we are particularly interested in the case when $G$ is connected.
+If this is true, then we know that the kernel of $\V{L}$ is spanned by $\mathbbm{1}_{V}$, and so
+$\lambda_{i} > 0$ for $i=2, \ldots ,n$. If we also assume that $\V{b}$ is orthogonal to $\mathbbm{1}_{V}$,
+then $\V{b}\in \text{span}(\beta)$, and so $\Pi(\V{b})=\V{b}$.
+
+Under these assumptions, observe that Equation \ref{eqn:pseudo_inverse_solver} simplifies to
+
+\[
+	\V{L}(\V{L}^{+}\V{b})= \V{b}.
+\]
+
+We may therefore conclude that $\V{x} = \V{L}^{+}\V{b}$ is a solution to the equation ``$\V{Lx}=\V{b}$''.
+
+\begin{lemma}\label{lem:Laplacian_solution_characterization}
+
+If $G=(V,E)$ is a connected graph, and $\V{b} \in \rea^{V}$ is orthogonal to $\mathbbm{1}_{V}$,
+then 
+
+\[
+	\{ \V{x} \in \rea^{V}: \V{Lx}=\V{b}\} = \{\V{L}^{+}\V{b}+ \alpha \mathbbm{1}_{V}: \alpha \in \rea\}.
+\]
+
+
+\end{lemma}
+
+\begin{remark}
+
+If we orient the edges of $G$ and consider currents on the edges of $G$, then the condition on $\V{b}$
+has a natural interpretation: We can think of the assumption $\V{b}^{T} \mathbbm{1}_{V}=0$ as enforcing
+the constraint that the net current into the circuit must be $0$. For example, in the case of a single source-sink pair $(s,t)$,
+the vector $\V{b}:=\mathbbm{1}_{s}-\mathbbm{1}_{t}$ has exactly one unit of current entering $s$ and one unit of current leaving
+$t$. Clearly, the orthogonality condition is satisfied in this case.
+
+
+
+\end{remark}
+
+
+\begin{proof}
+
+Observe that if $\alpha \in \rea$, then we have that
+
+\[
+	\V{L}(\V{L}^{+}\V{b}+\alpha \mathbbm{1}_{V})=\V{b},
+\]
+
+as $\mathbbm{1}_{V}$ is in the kernel of $\V{L}$. We may therefore
+conclude that
+
+\[
+ \{\V{L}^{+}\V{b}+ \alpha \mathbbm{1}_{V}: \alpha \in \rea\} \subseteq \{ \V{x} \in \rea^{V}: \V{Lx}=\V{b}\}.
+\]
+
+To see the other inclusion, assume that $\V{x} \in \rea^{V}$ is such that
+$\V{Lx}=\V{b}$. In this case, we have that $\V{Lx}=\V{b} = \V{L}(\V{L}^{+}\V{b})$.
+Thus,
+
+\[
+	\V{L}( \V{L}^{+}\V{b}-\V{x}) = 0,
+\]
+
+and so $\V{L}^{+}\V{b}-\V{x} \in \text{ker}(\V{L})$. But $G$ was assumed to be
+connected, so the kernel of $\V{L}$ is spanned by $\mathbbm{1}_{V}$. It follows that
+there exists some $\alpha_{0} \in \rea$ such that $\V{L}^{+}\V{b}-\V{x} = \alpha_{0} \mathbbm{1}_{V}$.
+Thus, $\V{x} = \V{L}^{+}\V{b}-\alpha_{0} \mathbbm{1}_{V}$, and so $\V{x} \in \{\V{L}^{+}\V{b}+ \alpha \mathbbm{1}_{V}: \alpha \in \rea\}$.
+This implies the other direction of the inclusion, and so the statement holds.
+
+\end{proof}
+
+We conclude this section by remarking that if we orient the graph $G$
+as in the previous section, and specify a resistance matrix $\V{R}$ on its edges,
+then we can consider the special matrix defined by $\V{L} = \V{B}\V{R}^{-1}\V{B}^{T}$,
+where the matrix $\V{B}$ is derived from the orientation on $G$. As we saw previously, $\V{L}$ is in fact a Laplacian matrix.
+If we set $\V{b}:= \mathbbm{1}_{s} - \mathbbm{1}_{t}$ for some source-sink pair $(s,t) \in V$, then we can interpret
+this vector as passing $1$ unit of current into $s$, and $1$ unit out of $t$. In particular, we know that $\mathbbm{1}^{T} \V{b}=0$.
+Thus, if we consider solutions to the equation ``$\V{Lx}=\V{b}$'', we know that 
+
+\[
+	\{ \V{x} \in \rea^{V}: \V{Lx}=\V{b}\} = \{\V{L}^{+}\V{b}+ \alpha \mathbbm{1}_{V}: \alpha \in \rea\},
+\]
+
+by Lemma \ref{lem:Laplacian_solution_characterization}. Observe that if $\V{x} := \V{L}^{+}\V{b}+ \alpha \mathbbm{1}_{V}$
+for some $\alpha \in \rea$, then $\V{x}$ specifies voltages on the vertices of $G$. Moreover, by applying $\V{R}^{-1}\V{B}^{T}$
+to $\V{x}$, we can recover the current 
+
+\[
+	\V{f} = \V{R}^{-1}\V{B}^{T}(\V{L}^{+}\V{b}+ \alpha \mathbbm{1}_{V}).
+\]
+
+Of course, $\V{B}^{T}\mathbbm{1}_{V}=0$, so this means that $\V{f}=\V{R}^{-1}\V{B}^{T}(\V{L}^{+}\V{b})$. 
+In particular, the current $\V{f}$ must be an optimum solution to OP \ref{eqn:energy_optimization} by Theorem
+\ref{thm:energy_characterization}. In other words, any voltage solution of the above form induces an electrical current
+through $G$; that is, a current whose energy is maximum.
+
+\subsection{Random Walks}
+
+Let us consider a weighted undirected graph $G=(V,E,\V{w})$, together with a pair of distinct
+nodes $s,t \in V$. If we assume that $G$ is connected, and start a (non-lazy) random walk
+at node $s$, then we can define $h(s,t)$ to be the expected number of steps
+for the walk to reach $t$ for the first time. One can show that this value is finite,
+no matter which nodes are chosen.
+
+If we fix the node $t$, then we can define the vector $\V{h}_{t} \in \rea^{V}$,
+where
+
+\[
+	\V{h}_{t}(s):=h(s,t),
+\]
+
+for each $s \in V(G)$. We first observe that for $x \neq t$,
+
+\[
+	\V{h}_{t}(x) = 1 + \sum_{y: \{x,y\} \in E} \frac{w_{x,y}}{\deg(x)} \V{h}_{t}(y),
+\]
+
+and $\V{h}_{t}(t)=0$. As a consequence, we know that for each $x \neq t$,
+
+\[
+	\deg(x) \V{h}_{t}(x) = \deg(x) + \sum_{y: \{x,y\} \in E} w_{x,y} \V{h}_{t}(y).
+\]
+
+In vector notation, provided $x\neq t$, we can express this as
+
+\[
+	(\V{D}\V{h}_{t})(x) = (\V{D}\mathbbm{1}_{V})(x) + (\V{A}\V{h}_{t})(x),
+\]
+
+provided $\V{A}$ is the adjacency matrix of $G$, and $\V{D}$ is its degree matrix. Observe then that
+
+\[
+	(\V{L}\V{h}_{t})(x)= (\V{D}\mathbbm{1}_{V})(x),
+\]
+
+for all $x\neq t$, where $\V{L}$ is the Laplacian of $G$. On the other hand, we know that
+
+\[
+	0 = \mathbbm{1}_{V}^{T} \V{L}\V{h}_{t}= \sum_{x \neq t}(\V{L}\V{h}_{t})(x) + (\V{L}\V{h}_{t})(t),
+\]
+
+as $\mathbbm{1}_{V}$ is in the kernel of $\V{L}$, and is thus orthogonal to $\V{L}\V{h}_{t}$ (check this). It follows that
+
+\[
+	(\V{L}\V{h}_{t})(t)= -\sum_{x\neq t}\deg(x) = \deg(t) - \mathbbm{1}^{T}\V{D}\mathbbm{1}.
+\]
+
+If we define $\V{b}:= \V{D}\mathbbm{1}_{V} - (\mathbbm{1}^{T}\V{D}\mathbbm{1})\mathbbm{1}_{t}$,
+then this implies that
+
+\[
+	\V{L}\V{h}_{t}= \V{b}.
+\]
+
+We may therefore use Lemma \ref{lem:Laplacian_solution_characterization} to conclude that
+
+\[
+	\V{h}_{t} = \V{L}^{+}(\V{D}\mathbbm{1} - (\mathbbm{1}^{T}\V{D}\mathbbm{1})\mathbbm{1}_{t}) + \alpha\mathbbm{1},
+\]
+
+for some $\alpha \in \rea$, as $\V{b}$ is orthogonal to $\mathbbm{1}$. Observing that
+$\V{h}_{t}(t)=0$, we may conclude that
+
+\[
+	\mathbbm{1}_{t}^{T}\V{h}_{t}= \mathbbm{1}_{t}^{T}( \V{L}^{+}\V{b}+\alpha \mathbbm{1})=0.
+\]
+
+Thus, $\alpha = -\mathbbm{1}_{t}^{T}\V{L}^{+}\V{b}$. If we fix some $s \in V$,
+then this implies that
+\begin{align*}
+h(s,t) =& \mathbbm{1}_{s}^{T}\V{h}_{t} 		\\
+	=& \mathbbm{1}_{s}^{T}\V{L}^{+}\V{b} + \alpha \mathbbm{1}_{s}^{T} \mathbbm{1}	\\
+	=& \mathbbm{1}_{s}^{T}\V{L}^{+}\V{b} - \mathbbm{1}_{t}^{T} \V{L}^{+} \V{b}		\\
+	=&(\mathbbm{1}_{s}-\mathbbm{1}_{t})^{T} \V{L}^{+}(\V{D}\mathbbm{1} - (\mathbbm{1}^{T}\V{D}\mathbbm{1})\mathbbm{1}_{t}),
+\end{align*}
+
+giving us a convenient expression for the hitting time vector $\V{h}_{t}$.
+
+\subsection{Commute Time}
+
+
+In addition to hitting times on undirected weighted graphs, we can also define commute
+times. If $G=(V,E,\V{w})$ is connected, then provided $s,t \in V$, we can define
+the commute time from $s$ to $t$ as
+
+\[
+	C(s,t):= h(s,t) +h(t,s).
+\]
+
+By our results from the previous section, we know that
+
+\[
+	h(s,t) = (\mathbbm{1}_{s}-\mathbbm{1}_{t})^{T} \V{L}^{+}(\V{D}\mathbbm{1} - (\mathbbm{1}^{T}\V{D}\mathbbm{1})\mathbbm{1}_{t})
+\]
+
+Thus, after simplification
+
+\[
+	C(s,t) = [(\mathbbm{1}_{s}-\mathbbm{1}_{t})^{T} \V{L}^{+} ( \mathbbm{1}_{s} - \mathbbm{1}_{t})](\mathbbm{1}^{T} \V{D}\mathbbm{1}).
+\]
+
+We remark that the vector  $\V{L}^{+} ( \mathbbm{1}_{s} - \mathbbm{1}_{t})$ can be interpreted as specifying voltages
+on the vertices of $G$. If $1$ unit of current enters $s$ and $1$ unit leaves $t$, then an electrical current can be derived
+from this vector (see the end of the previous section for details).
+
+
+
+
+
+
+\printbibliography
+\end{document}
+
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
