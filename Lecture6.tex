@@ -163,49 +163,46 @@ provided $\V{B}\Delta=0$.
 
 \begin{proof}
 
-Given $\eps \ge 0$, we know that $\V{f} - \eps \Delta$ is a feasible
+Assume $\V{B}\Delta = 0$. Given $\eps \in \rea$, we know that $\V{f} + \eps \Delta$ is a feasible
 solution to OP \ref{eqn:energy_optimization}, as 
 
 \[
-	\V{B}(\V{f} - \eps \Delta) = \V{B}\V{f} - \eps \V{B}\Delta= b,
+	\V{B}(\V{f} + \eps \Delta) = \V{B}\V{f} + \eps \V{B}\Delta = \V{B}\V{f} = b.
 \]
 
-since $\Delta$ was assumed to be in the kernel of $\V{B}$. On the other
+On the other
 hand, we know that $\V{f}$ is an optimum solution so,
 
 \[
-	\frac{1}{2}(\V{f} - \eps \Delta)^{T} \V{R} (\V{f} - \eps \Delta) \ge \frac{1}{2}\V{f}^{T} \V{R} \V{f}.
+	\frac{1}{2}(\V{f} + \eps \Delta)^{T} \V{R} (\V{f} + \eps \Delta) \ge \frac{1}{2}\V{f}^{T} \V{R} \V{f}.
 \]
 
 After simplification, it follows that
 
 \begin{equation}\label{eqn:epsilon_addition}
-	- \eps( \Delta^{T} \V{R} \V{f} - \eps \frac{1}{2} \Delta^{T} \V{R} \Delta) \ge 0,
+	\eps( \Delta^{T} \V{R} \V{f} + \eps \frac{1}{2} \Delta^{T} \V{R} \Delta) \ge 0,
 \end{equation}
-for all $\eps \ge 0$. Dividing by $-\eps,$ we get
+for all $\eps$. Notice also that the entries of $\V{R}$ are nonnegative, so $\Delta^{T} \V{R} \Delta \ge 0$. We consider two cases: $\eps > 0$ and $\eps < 0$. First, consider $\eps > 0$. Then,
 \begin{equation}
-	\Delta^{T} \V{R} \V{f} - \eps \frac{1}{2} \Delta^{T} \V{R} \Delta \le 0,
+	\Delta^{T} \V{R} \V{f} + \eps \frac{1}{2} \Delta^{T} \V{R} \Delta \ge 0.
 \end{equation}
-
-
-We know however that the entries of $\V{R}$ are nonnegative,
-so as a consequence, $\Delta^{T} \V{R} \Delta \ge 0$. This implies that $\Delta^{T} \V{R} \V{f} \le 0$,
-for otherwise the left-hand side of Equation \ref{eqn:epsilon_addition} is strictly positive for any $\eps > 0$.
-
-Let us now suppose that in fact $\Delta^{T} \V{R} \V{f} <0$. In this case, it is clear that 
-$\Delta^{T} \V{R} \Delta >0$, for otherwise Equation \ref{eqn:epsilon_addition} will not hold.
-Observe that if we set $\eps_0 := -2 \frac{\Delta^{T} \V{R} \V{f}}{ \Delta^{T} \V{R} \Delta}$, then
-$\eps_0 >0$, and for each $\eps > \eps_0$, we have that
-
+Now assume $\Delta^{T} \V{R} \V{f} < 0$. Then, let $\eps_0 = -\frac{2 \Delta^{T} \V{R} \V{f}}{\Delta^{T} \V{R} \Delta}$. Note that $\eps_0 > 0$ since $\Delta^{T} \V{R} \V{f} < 0$. This means that
 \[
- 	\eps(\Delta^{T} \V{R} \V{f} + \eps \frac{1}{2} \Delta^{T} \V{R} \Delta) >0,
+	\eps < \eps_0 \Rightarrow \Delta^{T} \V{R} \V{f} + \eps \frac{1}{2} \Delta^{T} \V{R} \Delta < 0,
 \]
+which is a contradiction. So, the assumption must be false and it must be true that $\Delta^{T} \V{R} \V{f} \ge 0$.
 
-which contradicts Equation \ref{eqn:epsilon_addition}.
-We may therefore conclude that $\Delta^{T} \V{R} \V{f} =0$, thus proving the orthogonality
-of $\Delta$ and $\V{Rf}$.
+Now consider the case where $\eps < 0$. Then,
+\begin{equation}
+	\Delta^{T} \V{R} \V{f} + \eps \frac{1}{2} \Delta^{T} \V{R} \Delta \le 0.
+\end{equation}
+Now assume $\Delta^{T} \V{R} \V{f} > 0$. Then, let $\eps_0 = -\frac{2 \Delta^{T} \V{R} \V{f}}{\Delta^{T} \V{R} \Delta}$. Note that $\eps_0 < 0$ since $\Delta^{T} \V{R} \V{f} > 0$. This means that
+\[
+	\eps > \eps_0 \Rightarrow \Delta^{T} \V{R} \V{f} + \eps \frac{1}{2} \Delta^{T} \V{R} \Delta > 0,
+\]
+which is a contradiction. So, the assumption must be false and it must be true that $\Delta^{T} \V{R} \V{f} \le 0$.
 
-
+From the above cases, the only valid possibility is that $\Delta^{T} \V{R} \V{f} = 0$, proving that $\V{R} \V{f}$ is indeed orthogonal to $\Delta$.
 \end{proof}
 
 
@@ -323,8 +320,8 @@ then there exists some $\V{x} \in \rea^{E}$ such that $\V{f} = \V{R}^{-1}\V{B}^{
 \begin{proof}
 
 Observe that since $\V{f}$ is an optimum solution, we know that $\V{Rf}$ is orthogonal
-to $C$. On the other hand, we know that $\text{Im}(B^{T})= C^{T}$, so there exists
-some $\V{x} \in \rea^{E}$ for which $\V{Rf}= \V{R}^{-1}\V{B}^{T}\V{x}$.
+to $C$. On the other hand, we know that $\text{Im}(B^{T})= C^{\perp}$, so there exists
+some $\V{x} \in \rea^{V}$ for which $\V{Rf}= \V{B}^{T}\V{x}$.
 As the matrix $\V{R}$ is invertible, the result thus holds.
 
 
@@ -510,7 +507,7 @@ to $\V{x}$, we can recover the current
 Of course, $\V{B}^{T}\mathbbm{1}_{V}=0$, so this means that $\V{f}=\V{R}^{-1}\V{B}^{T}(\V{L}^{+}\V{b})$. 
 In particular, the current $\V{f}$ must be an optimum solution to OP \ref{eqn:energy_optimization} by Theorem
 \ref{thm:energy_characterization}. In other words, any voltage solution of the above form induces an electrical current
-through $G$; that is, a current whose energy is maximum.
+through $G$; that is, a current whose energy is minimum.
 
 \subsection{Random Walks}
 
