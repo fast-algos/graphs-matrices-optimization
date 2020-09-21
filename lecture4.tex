@@ -1,0 +1,390 @@
+\documentclass[11pt]{article}
+%%%%%%%%% options for the file macros.tex
+\def\showauthornotes{1}
+\def\showkeys{0}
+\def\showdraftbox{0}
+% \allowdisplaybreaks[1]
+
+\input{macros}
+\allowdisplaybreaks
+
+\usepackage{tikz}
+
+\usepackage[
+    backend=biber,
+% giveninits=true,
+% natbib=true,
+    style=alphabetic,
+    url=false, 
+ %   doi=true,
+    hyperref,
+    backref=true,
+    backrefstyle=none,
+    maxbibnames=10,
+    sortcites
+]{biblatex}
+\addbibresource{papers.bib}
+
+%%%%%%%%% Authornotes
+\newcommand{\Snote}{\Authornote{S}}
+
+\newenvironment{tight_enumerate}{
+\begin{enumerate}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{enumerate}}
+\newenvironment{tight_itemize}{
+\begin{itemize}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{itemize}}
+
+
+
+\addbibresource{refs.bib}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+\newcommand{\coursenum}{{CSC 2421H}}
+\newcommand{\coursename}{{Graphs, Matrices, and Optimization}}
+\newcommand{\courseprof}{Sushant Sachdeva}
+
+\lecturetitle{4}{Random Walk}{Junwei Su}{10 1 2018}
+\textbf{HW:} The proof of statement is left as exercise for the student
+\section{Remark from last class}
+\label{sec:goal}
+
+If at step t, your distribution is given by $\mathbf{p}_{t}$, then the next distribution $\mathbf{p}_{t+1}$ is given by: 
+\begin{equation}
+    \mathbf{p}_{t+1} = \mathbf{AD}^{-1}\mathbf{p}_{t},
+\end{equation}
+where:\\
+\textbf{A}: weighted adjacency matrix\\
+\textbf{D}: diagonal weighted degree matrix\\\\
+The state transition can also be expressed as:
+\begin{equation*}
+    \mathbf{p}_{t+1}(x) = \sum_{y:(x,y) \in E} \frac{w(x,y)}{\mathbf{D}(y)}*\mathbf{p}_{t}(y)
+\end{equation*}
+
+\section{Stationary State}
+\begin{definition}
+    If distribution $\mathbf{\pi \in \rea^v}$ is said to be stationary distribution for G if $\mathbf{AD}^{-1}\pi = \pi$ 
+\end{definition}
+
+\begin{lemma}
+Any undirected graph has a stationary distribution
+\end{lemma}
+
+\begin{proof}
+Given any undirected graph G, let
+\begin{equation*}
+    \pi = \frac{1}{\mathbf{1D^\top1}}\mathbf{D1}
+\end{equation*}
+% $$\pi = \frac{1}{\mathbf{1D^\top1}}\mathbf{D1}$$.
+This is the stationary distribution for G since
+\begin{equation*}
+    \mathbf{AD}^{-1}\pi = \frac{1}{\mathbf{1^\top D1}}\mathbf{A1} = \frac{1}{\mathbf{1^\top D1}}\mathbf{D1 = \pi}
+\end{equation*}
+% $$\mathbf{AD}^{-1}\pi = \frac{1}{\mathbf{1^\top D1}}\mathbf{A1} = \frac{1}{\mathbf{1^\top D1}}\mathbf{D1 = \pi}$$
+\end{proof}
+\textbf{Claim:}
+If G is connected, $\pi$ is unique\\\\
+\textbf{Remark:}
+Even if G is connected, it is not true that for any $\mathbf{p_0}$, $\mathbf{p}_t \rightarrow \pi$\\
+
+\newpage
+
+\textbf{Example:}\\
+\begin {tikzpicture}[-latex ,auto ,node distance =4 cm and 5cm ,on grid ,
+semithick ,
+state/.style ={ circle ,top color =white,
+draw, text=blue , minimum width =1 cm}]
+\node[state] (C){$1$};
+\node[state] (A) [left=of C] {$0$};
+\path (C) edge [bend left =25] node[below =0.15 cm] {$\frac{1}{2}$} (A);
+\path (A) edge [bend right = -15] node[below =0.15 cm] {$\frac{1}{2}$} (C);
+\end{tikzpicture}
+
+The stationary state $\pi$ = ($\frac{1}{2}$,$\frac{1}{2}$) but the random walk will alternate between Vertex 0 and Vertex 1\\
+
+\section{Positive Semi-Definite(PSD)}
+
+\begin{definition}
+    A symmetric matrix \textbf{M} is positive semi-definite(psd) if $\forall$ \textbf{x}, $\mathbf{x^\top Mx \geq}$ 0
+\end{definition}
+
+\begin{theorem}
+     the following statements are equivalent:\\
+(1) \textbf{M} is psd\\
+(2) All eigenvalues of \textbf{M} are non-negative\\
+(3) There exist an matrix \textbf{A} such that $\mathbf{M = AA^\top}$\\
+\end{theorem}
+
+\begin{lemma}
+    If \textbf{M} is psd, then for all matrices \textbf{C}, $\mathbf{C^\top}$\textbf{MC} is psd\\
+\end{lemma} 
+\begin{proof}
+$\forall$ \textbf{x}, $\mathbf{x^\top C^\top MCx = (Cx)^\top M(Cx) \geq}$ 0 since \textbf{M} is psd\\
+\end{proof}
+\textbf{Notation:} \textbf{M} is psd $\Leftrightarrow \mathbf{M \succeq}$ 0
+\begin{lemma}
+    $\mathbf{\mathcal{L}} \succeq$ 0 where $\mathbf{\mathcal{L}}$ is the laplacian matrix of some graph
+\end{lemma}
+\textbf{Remark:} $\mathbf{\mathcal{L}} \succeq$ 0 implies $\mathbf{N} \succeq$ 0 since \textbf{N} = $\mathbf{D^{-\frac{1}{2}}\mathcal{L}D^{-\frac{1}{2}}}$
+\begin{lemma}
+    $\mathbf{\mathcal{L}} \preccurlyeq$ 2\textbf{D} $\Leftrightarrow$ \textbf{N} $\preccurlyeq$ 2\textbf{I} $\Leftrightarrow \lambda_i(\mathbf{N}), \nu_i \leq 2$ 
+\end{lemma} 
+\textbf{HW:} If \textbf{A} $\succeq$ \textbf{B}, then $\lambda_i(\mathbf{A}) \geq \lambda_i(\mathbf{B})$\\
+
+\section{Lazy random walk}
+\subsection{Lazy random walk matrix}
+At each step, the lazy random walk will do the following
+\[
+\begin{cases} 
+      $with probability$ \frac{1}{2} & $stay at the current vertex$ \\
+      $with probability$ \frac{1}{2} & $take a usual random step$ \\
+\end{cases}
+\]
+Lazy Random Walk Transition Matrix \textbf{W =  $\frac{1}{2}\mathbf{(I + AD^{-1})}$}\\
+We know that the normalized Laplacian(\textbf{N}) can be expressed as:\\
+\begin{equation*}
+\begin{split}
+ \mathbf{N} & = \mathbf{D}^{-\frac{1}{2}}\mathbf{\mathcal{L}D}^{-\frac{1}{2}}\\
+   & = \mathbf{D}^{-\frac{1}{2}}\mathbf{(D-A)D}^{-\frac{1}{2}}\\
+   & = \mathbf{I - D}^{-\frac{1}{2}}\mathbf{AD}^{-\frac{1}{2}}
+\end{split}    
+\end{equation*}
+applied this result to the lazy walk transition matrix\\
+\begin{equation*}
+\begin{split}
+ \mathbf{W} & =  \frac{1}{2}\mathbf{I} + \frac{1}{2}\mathbf{AD}^{-1} \\
+   & = \frac{1}{2}\mathbf{I} + \frac{1}{2}\mathbf{D}^{\frac{1}{2}}\mathbf{D}^{-\frac{1}{2}}\mathbf{AD}^{-\frac{1}{2}}\mathbf{D}^{-\frac{1}{2}}\\
+   & = \frac{1}{2}\mathbf{I} + \frac{1}{2}\mathbf{D}^{\frac{1}{2}}\mathbf{(I-N)D}^{-\frac{1}{2}}\\
+   & = \mathbf{I} - \frac{1}{2}\mathbf{D}^{\frac{1}{2}}\mathbf{ND}^{-\frac{1}{2}}
+\end{split}    
+\end{equation*}
+
+Thus,we can express the lazy random walk transition matrix as:\\
+\begin{equation}
+    \mathbf{W = I} - \frac{1}{2}\mathbf{D}^{\frac{1}{2}}\mathbf{ND}^{-\frac{1}{2}}
+\end{equation}
+
+\subsection{Eigenpair for lazy random walk matrix}
+
+\begin{lemma}
+    If$( \nu_i,\psi_i)$ is an eigenpair for \textbf{N}, i.e \textbf{N}$\psi_i$ = $ \nu_i\psi_i \Leftrightarrow$ $(1-\frac{1}{2} \nu_i,D^{\frac{1}{2}}\psi_i)$ is an eigenpair for \textbf{W}\\
+\end{lemma}
+\begin{proof}
+\begin{equation*}
+    \begin{split}
+     \mathbf{WD}^{\frac{1}{2}}\psi_i       
+     &=\mathbf{(I}-\frac{1}{2}\mathbf{D}^{\frac{1}{2}}\mathbf{ND}^{-\frac{1}{2}})\mathbf{D}^{\frac{1}{2}}\psi_i\\
+     &=\mathbf{D}^{\frac{1}{2}}\psi_i - \frac{1}{2} \mathbf{\nu_iD}^{\frac{1}{2}}\psi_i
+    \end{split}
+\end{equation*}
+\end{proof}
+
+Because of lamma 4.1 and lemma 3.5, we can obtain the following corollary\\
+\textbf{corollary:} 0$\leq \lambda_i(\textbf{W}) \leq$ 1\\
+\textbf{Warning:} W is not symmetric. Thus, its eigenvector need not be orthogonal\\
+
+\section{Convergence of Lazy Random Walk}
+\subsection{Finding an expression for $\mathbf{p}_t$}
+State transition from $\mathbf{p}_t$ to $\mathbf{p}_{t+1}$ in a lazy random is given by :\\
+$$\mathbf{p}_{t+1} = \mathbf{Wp}_t$$\\
+When t = 0:
+$$\mathbf{p}_1 = \mathbf{Wp}_0$$\\
+We know that\\
+$$\mathbf{D}^{-\frac{1}{2}}\mathbf{p}_0 = \sum_{i=1}^{n}\alpha_i\psi_i \Leftrightarrow \mathbf{p}_0 = \sum_{i=1}^{n}\alpha_i\mathbf{D}^{\frac{1}{2}}\psi_i$$\\
+Thus, we can express $\mathbf{p}_1$ as:\\
+$$\mathbf{p}_1 = \mathbf{Wp}_0 = \sum_{i=1}^{n}\alpha_i(\mathbf{WD}^{\frac{1}{2}}\psi_i) = \sum_{i=1}^{n}\alpha_i(1-\frac{\nu_i}{2})\mathbf{D}^{\frac{1}{2}}\psi_i$$\\
+Iterating the process above, we obtain:\\
+$$\mathbf{p}_t = \sum_{i=1}^{n}\alpha_i(1-\frac{\nu_i}{2})^\top \mathbf{D}^{\frac{1}{2}}\psi_i$$\\
+
+\textbf{Claim:} If G is connected $\Leftrightarrow \nu_2 >$ 0
+
+\textbf{Remark:} the claim above implies the following:\\
+$$\forall i \neq 1, 0\leq 1 - \frac{\nu_i}{2} < 1$$\\
+
+\subsection{Given $\epsilon$, finding step t such that $\mathbf{p}_t$ is $\epsilon$ closed to the stationary distribution}
+At arbitrary vertex u, we have the following:
+\begin{equation}
+\begin{split}
+ \mathbf{1_u^\top P_t - 1_u^\top \pi }& \mathbf{= 1_u^\top P_t - \frac{1^\top _uD1}{1^\top D1}}\\
+         &= \sum_{i=1}^{n}\alpha_i(1-\frac{\nu_i}{2})^\top \mathbf{1_u^\top D^{\frac{1}{2}}\psi_i-\frac{1^\top _uD1}{1^\top D1}}
+\end{split}
+\end{equation}
+We know that:\\
+\begin{equation*}
+    \begin{split}
+         \psi_1 = \frac{(\mathbf{D}^{\frac{1}{2}}\mathbf{1})}{||\mathbf{D}^{\frac{1}{2}}\mathbf{1}||} = \frac{(\mathbf{D}^{\frac{1}{2}}\mathbf{1})}{\sqrt{\mathbf{1}^\top \mathbf{D1}}}
+    \end{split}
+\end{equation*}
+multiplied both side with $\mathbf{1_u^\top D}^{\frac{1}{2}}$, we get
+\begin{equation}
+    \begin{split}
+         \mathbf{1_u^\top D}^{\frac{1}{2}}\psi_1 
+         &\mathbf{= 1_u^\top D}^{\frac{1}{2}}\frac{(\mathbf{D}^{\frac{1}{2}}\mathbf{1})}{||\mathbf{D}^{\frac{1}{2}}\mathbf{1||} }\\
+         &\mathbf{= \frac{(1_u^\top D1)}{\sqrt{1^\top D1}}}
+    \end{split}
+\end{equation}
+We can express $\mathbf{D}^{-\frac{1}{2}}\mathbf{p}_0$ as following
+\begin{equation*}
+    \begin{split}
+         \mathbf{D}^{-\frac{1}{2}}\mathbf{p}_0 &\mathbf{= \sum_{i=1}^{n}\alpha_i\psi_i}\\
+    \end{split}
+\end{equation*}
+multiply each side with $\psi^\top _1$\\
+\begin{equation*}
+    \begin{split}
+         \psi^\top _1\mathbf{D}^{-\frac{1}{2}}\mathbf{p}_0 &\mathbf{= \alpha_1} \\
+    \end{split}
+\end{equation*}
+This gives us:
+\begin{equation*}
+    \begin{split}
+        \alpha_1 &= \frac{\mathbf{(1^\top D}^{\frac{1}{2}})\mathbf{D}^{-\frac{1}{2}}\mathbf{p}_0}{\sqrt{\mathbf{1^\top D1}}} \\
+    \end{split}
+\end{equation*}
+because $\mathbf{p}_0$ is a probability vector and sum up to 1, we have,
+\begin{equation}
+    \begin{split}
+          &= \frac{1}{\mathbf{\sqrt{1^\top D1}}}
+    \end{split}
+\end{equation}
+
+Now, we can further simplify (3) as:
+\begin{equation*}
+    \begin{split}
+         \mathbf{1^\top _up_t - 1_u^\top \pi}
+         &= \alpha_1(1-\frac{\nu_1}{2})^\top \psi_1 +\sum_{i=2}^{n}\alpha_i(1-\frac{\nu_i}{2})^\top \mathbf{1_u^\top D}^{\frac{1}{2}}\psi_i -\mathbf{\frac{1^\top _uD1}{1^\top D1}}\\
+        %  $with equation(4) and (5) we obtained$\\
+         &= \sum_{i=2}^{n}\alpha_i(1-\frac{\nu_i}{2})^\top 1_u^\top \mathbf{D}^{\frac{1}{2}}\psi_i
+    \end{split}
+\end{equation*}
+Combining the result above, we have the following
+\begin{equation}
+    \begin{split}
+        \mathbf{|1_u^\top p}_t - \mathbf{1_u^\top \pi|} 
+        &\leq \sum_{i=2}^{n}|\alpha_i\mathbf{1_u^\top D}^{\frac{1}{2}}\psi_i|(1-\frac{\nu_i}{2})^\top\\
+        % $because \nu_2 \leq \nu_3 \leq ...$,we have \\
+        &\leq (1-\frac{\nu_2}{2})^\top \sum_{i=2}^{n}|\alpha_i\mathbf{1_u^\top D}^{\frac{1}{2}}\psi_i|\\
+        &\leq (1-\frac{\nu_2}{2})^\top \sqrt{\sum_{i=2}^{n}\alpha_i^2\sum_{i=2}^{n}(\mathbf{1_u^\top D}^{\frac{1}{2}}\psi_i)^2}
+    \end{split}
+\end{equation}
+Now let's try to simplify the term inside the square root, starting with $\sum_{i=2}^{n}\alpha_i^2$
+\begin{equation}
+    \begin{split}
+         \sum_{i=2}^{n}\alpha_i^2 
+         & \mathbf{\leq ||D}^{-\frac{1}{2}}\mathbf{p}_0||_2^2 \\
+        %  $Assuming we start at vertex v$\\
+         &\mathbf{\leq 1_v^\top D}^{-1}\mathbf{1_v}\\ 
+         &= \frac{1}{D(v)}
+    \end{split}
+\end{equation}
+Now let's simplify $\sum_{i=2}^{n}(1_u^\top D^{\frac{1}{2}}\psi_i)^2$\\
+We shall start with finding an expression for $\mathbf{D}^{\frac{1}{2}}\mathbf{1_u}$\\\\
+\textbf{Claim:} 
+\begin{equation*}
+    \mathbf{D}^{\frac{1}{2}}\mathbf{1_u} = \sum_{i=1}^{n}(\mathbf{1_u^\top D}^{\frac{1}{2}}\psi_i)\psi_j
+\end{equation*}
+
+
+\begin{proof}
+Let's express $\mathbf{D}^{\frac{1}{2}}\mathbf{1_u}$ with eigenvector and eigenvalue
+\begin{equation}
+    \begin{split}
+         \mathbf{D}^{\frac{1}{2}}\mathbf{1_u}
+         &\mathbf{= \sum_{i=1}^{n} \beta_i\psi_i}\\
+        %  $multiplied both sides with \psi_j$, we obtain\\
+         \mathbf{\psi_j^\top D}^{\frac{1}{2}}\mathbf{1_u}
+         &= \mathbf{\beta_j}\\
+        %  $take the transpose of left hand side$\\
+         \mathbf{(\psi_j^\top D}^{\frac{1}{2}}\mathbf{1_u)^\top } 
+         &\mathbf{= 1_u^\top D}^{\frac{1}{2}}\psi_j \\
+         \\
+         \mathbf{||D}^{\frac{1}{2}}\mathbf{1_u}||^2_2 
+         &\mathbf{= (D}^{\frac{1}{2}}\mathbf{1_u)^\top (D}^{\frac{1}{2}}\mathbf{1_u)}\\
+         &=(\sum_{i=1}^{n}\beta_i\psi_i)^\top (\sum_{j=1}^{n}\beta_j\psi_j)\\
+         &=\sum_{i=1}^{n}\beta_i^2 \\
+         &= \sum_{i=1}^{n}(\mathbf{1_u^\top D}^{\frac{1}{2}}\psi_i)^2
+    \end{split}
+\end{equation}    
+\end{proof}
+With the results above, (6) can be further simplified as following:
+\begin{equation}
+    \begin{split}
+        \mathbf{|1_u^\top p_t - 1_u^\top \pi|} 
+        &\leq (1-\nu_2)^\top \sqrt{||\mathbf{D}^{-\frac{1}{2}}\mathbf{p}_0||^2_2||\mathbf{D}^{\frac{1}{2}}\mathbf{1_u}||^2_2}\\
+        &\mathbf{=||D}^{\frac{1}{2}}\mathbf{1_u||\cdot||D}^{-\frac{1}{2}}\mathbf{p}_0||(1-\frac{\nu_2}{2})^\top \\
+        % $with (7) and assuming the walk starts at v, then$\\
+        &=\sqrt{\frac{D_u}{D_v}}(1-\frac{\nu_2}{2})^\top \\
+        % $Notice that$ \mathbf{(1-x) \leq e^{-x}}\\
+        &\leq \sqrt{\frac{D_u}{D_v}}e^{-\nu_2t/2}
+    \end{split}
+\end{equation}
+
+\begin{theorem}
+Given an undirected unweighted graph G and $\epsilon$, it suffices for the lazy random walk to take t steps to get $\epsilon$ closed to stationary distribution.\\
+In other word, if\\
+$$t \geq \frac{2}{\nu_2}\log(\frac{n}{\epsilon})$$ 
+then 
+$$\mathbf{|1_u^\top p}_t - \mathbf{1_u^\top }\pi| \leq \epsilon$$
+\end{theorem}
+
+\textbf{Interpretation:}
+On a graph with n vertex, if the lazy random walk want to be $\frac{\epsilon}{2}$ closed to the stationary distribution, then it would satisfy the following relation.\\
+\begin{equation*}
+    \begin{split}
+       T(\frac{\epsilon}{2})
+        &= \frac{2}{\nu_2}log(\frac{2n}{\epsilon})\\
+        &=\Theta(\frac{1}{\nu_2}) + T(\epsilon)
+    \end{split}
+\end{equation*}
+
+\subsection{Application of the theorem on some examples}
+$K_n$:complete graph with n vertices\\
+Lazy random walk mixes in $\Omega(\log n)$ steps\\
+\begin{equation*}
+    \begin{array}{cc}
+        \mathcal{L}_{K_n} = n\textbf{I} - \mathbf{11^\top}\\
+        \lambda_i(L) = 
+        \begin{cases} 
+        0 & i=1 \\
+        n & o/w \\
+        \end{cases}\\
+        \nu_2(N_{K_n}) =  1
+    \end{array}
+\end{equation*}
+the theorem gives that the lazy random walk would mix in $O(\log n)$. In this case, the bound given by the theorem is tight\\
+
+$R_n$:n-ring graph\\
+The second eigenvalue of n-ring graph is given by:\\
+$$\nu_2(N_{K_n}) = \theta(\frac{1}{n^2})$$
+thus, the theorem gives that the lazy random walk mixes in $O(n^2\log
+n)$ steps.\\
+the lazy random walk on the n-ring graph can be defined as following:\\
+\begin{equation*}
+    \begin{array}{cc}
+        x_{i+1} =
+        \begin{cases} 
+        x_{i} & $with probability$ \frac{1}{2} \\
+        x_{i}+1 & $with probability$ \frac{1}{4} \\
+        x_{i}-1 & $with probability$ \frac{1}{4}\\
+        \end{cases}\\
+    \end{array}
+\end{equation*}
+        $$E[x_{i+1}|x_{i}] = x_i$$
+        $$E[x_{i+1}^2|x_i] = x_i^2 + \frac{1}{2}$$\\
+thus, the Lazy Random Walk is mixed in $\Omega(n^2)$ steps. In this case, the bound given by the theorem is off up to $\log$n
+
+
+\printbibliography
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

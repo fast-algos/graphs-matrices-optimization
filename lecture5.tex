@@ -1,0 +1,287 @@
+\documentclass[11pt]{article}
+%%%%%%%%% options for the file macros.tex
+
+\def\showauthornotes{1}
+\def\showkeys{0}
+\def\showdraftbox{0}
+% \allowdisplaybreaks[1]
+
+\input{macros}
+\allowdisplaybreaks
+
+\usepackage{tikz}
+
+\usepackage[
+    backend=biber,
+% giveninits=true,
+% natbib=true,
+    style=alphabetic,
+    url=false, 
+ %   doi=true,
+    hyperref,
+    backref=true,
+    backrefstyle=none,
+    maxbibnames=10,
+    sortcites
+]{biblatex}
+\addbibresource{papers.bib}
+
+%%%%%%%%% Authornotes
+\newcommand{\Snote}{\Authornote{S}}
+
+\newenvironment{tight_enumerate}{
+\begin{enumerate}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{enumerate}}
+\newenvironment{tight_itemize}{
+\begin{itemize}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{itemize}}
+
+
+
+\addbibresource{refs.bib}
+
+% An extra command
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\newcommand{\coursenum}{{CSC 2421H}}
+\newcommand{\coursename}{{Graphs, Matrices, and Optimization}}
+\newcommand{\courseprof}{Sushant Sachdeva}
+
+\lecturetitle{5}{Lazy Random Walks \& Expanders}{Sara Tang}{15 Oct 2018}
+
+\begin{comment}
+\section{Lazy Random Walks}
+
+Recall from last week the following characterization of how quickly a lazy
+random walk beginning at $v \in V$ converges after $t$ steps:
+
+\[ \left| \ones_u^{\top} p_t - \ones_u^{\top} \pi \right| \le
+\sqrt{\frac{D_u}{D_v}} e^{-t \nu_2 / 2} \qquad \forall u \in V \]
+
+which implies the following, weaker bound:
+
+\[ T\left( \frac{\varepsilon}{2} \right) = O(\frac{1}{\nu_2}) T(\varepsilon). \]
+
+We will use this bound as intuition for the following example of finding
+$\nu_2$.
+
+\subsection{Finding $\nu_2$ of the Dumbbell Graph}
+\end{comment}
+
+\section{Finding $\nu_2$ of the Dumbbell Graph}
+\begin{definition}
+  Define a \textbf{dumbbell graph} of size $2n$ to be two complete graphs $K_n$
+  connected by a single edge: 
+
+  \begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/dumbbell_graph.png}
+    \caption{An example of a dumbbell graph.\label{dumbbell_graph}}
+  \end{figure}
+
+\end{definition}
+
+It is not hard to see that $\Phi = \Theta(1 / n^2)$, where $|V| = 2n$: simply
+cut along the edge connecting the complete graphs. By Cheeger's inequality, it
+follows that $\nu_2 \le \Theta(1 / n^2)$.
+
+We wish to show that this is a tight bound, ie. $\nu_2 = \Omega(1 / n^2)$.
+Intuitively, this is true, because we know from the main result of last week
+that the number of lazy random walk steps $t$ it takes to be close to the
+stationary distribution is directly proportional to $1 / \nu_2$. 
+
+Indeed, there is probability $1 / n$ to get to the spectral vertex (the vertex
+connecting the two complete graphs), and from the spectral vertex, there is
+probability $1 / n$ chance to cross to the other $K_n$. But let's do this
+rigorously.
+
+\begin{lemma}
+  Let $G = (V, E)$, $u, v \in V$. Suppose there exists a path $P(u, v)$ from $u$
+  to $v$ with length $3$, as demonstrated in Figure \ref{path_example}. (Note
+  that $(u, v)$ need not be an edge in $G$.) Let $L_{u, v}$ be the Laplacian of
+  the $(u, v)$-line graph, and $L_{P(u, v)}$ be the Laplacian of the $P(u,
+  v)$-path graph.
+
+  \begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{images/path_example.png}
+    \caption{$P(u, v)$ is a path of length $3$ via $(u, w, z,
+      v)$.\label{path_example}}
+  \end{figure}
+
+  Then 
+
+  \[ (\ones_u - \ones_v)(\ones_u - \ones_v)^{\top} = L_{u, v} \preceq 3 L_{P(u,
+  v)} \]
+\end{lemma}
+
+\begin{proof}
+  By Cauchy-Schwarz,
+
+  \begin{align*}
+    ((x_u - x_w) + (x_w - x_z) + (x_z - x_v))^2 &\le 3 ((x_u - x_w)^2 +
+    (x_w - x_z)^2 + (x_z - x_v)^2) \qquad &\forall x \\
+    (x_u - x_v)^2 &\le 3 ((x_u - x_w)^2 + (x_w - x_z)^2 + (x_z - x_v)^2) \qquad
+    &\forall x \\
+    L_{u, v} &\preceq 3 (L_{u, w} + L_{w, z} + L_{z, v}) = 3 L_{P(u, v)}
+  \end{align*}
+\end{proof}
+
+The following is a useful lemma that establishes a lower bound on $\nu_2$
+given $\lambda_2$ (and the maximum degree of a graph, $d_{\max}$).
+\begin{lemma}
+  \[ \nu_2 \ge \frac{\lambda_2}{d_{\max}}. \]
+\end{lemma}
+
+\begin{proof}
+  Recall by Courant-Fischer,
+
+  \begin{align*}
+  \nu_2 &= \min_{\V{x}^{\top} (\V{D}^{1/2} \ones) = 0}
+  \frac{\V{x^{\top} N x}}{\V{x^{\top} x}} = \min_{\substack{T \subset \rea^V\\
+  \dim(T) = 2}} \max_{x \in T} \frac{\V{x^{\top} N x}}{\V{x^{\top} x}} \\
+  \intertext{We can substitute $x = D^{1/2} y$. Since $x \in T$, it follows that
+  $y \in \V{D}^{1/2} T$:}
+  &= \min_{\substack{T \subset \rea^V\\ \dim(T) = 2}} \max_{y \in \V{D}^{1/2} T}
+  \frac{\V{y^{\top} L y}}{\V{y^{\top} D y}} \\
+  \intertext{Let $\hat{T} = \V{D}^{1/2} T$. Note that we can assume that $\V{D}$ is one-to-one and
+  onto, and hence $\dim(\hat{T}) = 2$. Otherwise, one of the vertices
+    has degree zero, and hence $\lambda_2 = 0.$ Thus,}
+  &= \min_{\substack{\hat{T} \subset \rea^V\\ \dim(\hat{T}) = 2}} \max_{y \in \hat{T}} \frac{\V{y^{\top} L y}}{\V{y^{\top} D y}} \\
+  &\ge \min_{\substack{\hat{T} \subset \rea^V\\ \dim(\hat{T}) = 2}} \max_{y \in \hat{T}} \frac{\V{y^{\top} L y}}{d_{\max} \V{y^{\top} y}} \\
+  &= \frac{1}{d_{\max}} \min_{\substack{\hat{T} \subset \rea^V\\ \dim(\hat{T}) = 2}} \max_{y \in \hat{T}} \frac{\V{y^{\top} L y}}{\V{y^{\top} y}} \\
+  &= \frac{\lambda_2}{d_{\max}}
+  \end{align*}
+\end{proof}
+
+\begin{theorem} 
+  $\nu_2 = \Omega(1 / n^2)$ for a dumbbell graph.
+\end{theorem}
+
+\begin{proof}
+  We begin by finding a bound on $\lambda_2(L_G)$, then apply the second lemma
+  to establish the relationship between $\lambda_2$ and $\nu_2$.
+
+  Observe that for any $u, v \in V$, there is a path $P(u, v)$ from $u$ to
+  $v$ of length $3$. Thus, we can apply our first lemma:
+
+  \[ L_{u, v} \preceq 3 L_{P(u, v)} \preceq 3 L_G \]
+
+  where the second $\preceq$ follows because we are simply adding more squares
+  to $L_{P(u, v)}$. By summing over all pairs $(u, v) \in V \times V$, $u \neq
+  v$, 
+
+  \begin{align*}
+    L_{K_{2n}} &\preceq 3 {2n \choose 2} L_G \\
+    \intertext{By a corollary of Courant-Fischer, we know that}
+    \lambda_2(L_{K_{2n}}) &\le \lambda_2\left( 3 {2n \choose 2} L_G \right) = 3
+    {2n \choose 2} \lambda(L_G)
+    \intertext{Recall $\lambda_2(L_{K_n}) = n$, so $\lambda_2(L_{K_{2n}}) = 2n$.
+    Furthermore, $3 {2n \choose 2} = \Theta(n^2)$. Thus,}
+    \lambda_2(L_G) &= \Omega \left( \frac{1}{n} \right)
+   \intertext{Applying the second lemma, and the fact that $d_{\max} = n$ for
+ the dumbbell graph,}
+  \nu_2(L_G) &\ge \frac{\lambda_2(L_G)}{n} = \Omega\left(
+  \frac{1}{n^2} \right)
+  \end{align*}
+\end{proof}
+
+\section{Expanders}
+
+To motivate the following section, we notice that it would be nice to have
+graphs that approximate cliques, in the sense that these graphs quickly approach
+their stationary distribution but that are also sparser than cliques.
+
+\begin{definition}
+  A $d$-regular, unweighted graph $G$ is said to be an
+  \textbf{$\varepsilon$-expander} if 
+
+  \begin{align*}
+  - \varepsilon d &\le \lambda_i(A) \le \varepsilon d \qquad &\forall i < n. \\
+  \intertext{Equivalently, because $L = dI - A$ and $N = \frac{1}{d} L$,}
+  (1 - \varepsilon) d &\le \lambda_j(L) \le (1 + \varepsilon) d \qquad &\forall
+  j \neq 1 \\
+  1 - \varepsilon &\le \lambda_j(N) \le 1 + \varepsilon \qquad &\forall j \neq 1 \\
+  (1 - \varepsilon) L_{K_n} &\preceq \frac{n}{d} L_G \preceq (1 + \varepsilon)
+  L_{K_n}
+  \end{align*}
+
+\end{definition}
+
+The last equivalence is not trivial, so we will demonstrate it below:
+
+\begin{lemma}
+  $G$ is a $d$-regular $\varepsilon$-expander iff
+
+  \[ (1 - \varepsilon) L_{K_n} \preceq \frac{n}{d} L_G \preceq (1 + \varepsilon)
+  L_{K_n} \]
+\end{lemma}
+
+\begin{proof}
+  This is equivalent to showing
+
+  \begin{align*}
+    (1 - \varepsilon) \V{x^{\top}} \V{L}_{K_n} \V{x} &\le \frac{n}{d}
+    \V{x^{\top}} \V{L}_G \V{x} \le (1 + \varepsilon) \V{x^{\top}} \V{L}_{K_n}
+    \V{x} &\qquad \forall \V{x} \\
+    \intertext{Any $\V{x}$ can be expressed as the linear combination of the
+    eigenvectors of $\V{L}_{K_n}$. Thus, $\V{x} = c \V{\ones} + \V{y}$, where
+      $\V{y^{\top} \ones} = 0$ and $\V{y}$ has eigenvalue $n$. Restrict the
+      inequality we are trying to prove to the space orthogonal to
+      $\text{span}\{\ones\}$:}
+    (1 - \varepsilon) n \V{y^{\top} y} &\le \frac{n}{d} \V{y^{\top} L_G y}
+    \le (1 + \varepsilon) n \V{y^{\top} L_{K_n} y} &\qquad \forall y \\
+    (1 - \varepsilon) d \V{y^{\top} y} &\le \V{y^{\top} L_G y} \le (1 +
+    \varepsilon) d \V{y^{\top} L_{K_n} y} &\qquad \forall y \\
+    (1 - \varepsilon) d &\le \frac{\V{y^{\top} L_G y}}{\V{y^{\top} y}} \le (1 +
+    \varepsilon) d &\qquad \forall y \\
+  \end{align*}
+
+  which is true by our second definition of the $d$-regular
+  $\varepsilon$-expander.
+\end{proof}
+
+In particular $d$-regular $\varepsilon$-expanders are nice because it would
+otherwise be difficult for such graphs to arise randomly:
+
+Let $\mathcal{G}(n, p)$ be a random graph model with $n$ vertices such that each
+edge $(u, v)$ occurs independently with probability $p$.
+
+Then $\av[\text{no. of edges}] = p {n \choose 2}$ and $\av[\text{deg } v] =
+(n - 1) p$. In other words, if we want $d_v$ to be constant (to mimic a
+$d$-regular graph), we would only need $p \sim \frac{1}{n}$. However, for the
+graph to also be connected we would have to take $p \sim \frac{\log n}{n}$.
+Therefore, a connected random graph will most likely be more dense than its
+$d$-regular counterpart.
+
+\begin{theorem}
+  $\forall \varepsilon > 0.\; \exists d(\varepsilon)$ such that there is a
+  ``family'' of $d$-regular $\varepsilon$-expanders, ie. an increasingly-sized
+  collection of $\varepsilon$-expanders.
+\end{theorem}
+
+\begin{corollary}
+  Let $G$ be a $d$-regular $\varepsilon$-expander. Then $\nu_2(G) \ge 1 -
+  \varepsilon = \Omega(1)$ implies we only need $\Theta(\log n)$ steps to get
+  close to stationary, and we only need $\log d$ bits of randomness to choose
+  the next vertex.
+
+  Compare this to $K_n$, which also takes $\Theta(\log n)$ steps to get close to
+  stationary, but would need $\log n$ bits of randomness to choose the next
+  vertex.
+\end{corollary}
+
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
