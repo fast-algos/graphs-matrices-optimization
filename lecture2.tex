@@ -1,0 +1,171 @@
+\documentclass[11pt]{article}
+%%%%%%%%% options for the file macros.tex
+
+\def\showauthornotes{1}
+\def\showkeys{0}
+\def\showdraftbox{0}
+% \allowdisplaybreaks[1]
+
+\input{macros}
+\allowdisplaybreaks
+
+\usepackage{tikz, mathtools}
+
+\usepackage[
+    backend=biber,
+% giveninits=true,
+% natbib=true,
+    style=alphabetic,
+    url=false, 
+ %   doi=true,
+    hyperref,
+    backref=true,
+    backrefstyle=none,
+    maxbibnames=10,
+    sortcites
+]{biblatex}
+\addbibresource{papers.bib}
+
+%%%%%%%%% Authornotes
+\newcommand{\Snote}{\Authornote{S}}
+
+\newenvironment{tight_enumerate}{
+\begin{enumerate}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{enumerate}}
+\newenvironment{tight_itemize}{
+\begin{itemize}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{itemize}}
+
+
+%\newcommand\eqdef{\stackrel{\mathclap{\normalfont\mbox{def}}}{=}}
+\newcommand\idenVec{\V{1}}
+% \DeclareMathOperator{\vol}{Vol}
+\newcommand\nuReq{y^\top\V{D}\V{1}=0}
+\newcommand\nuFrac{\frac{y^\top\V{L}y}{y^\top\V{D}y}}
+
+
+\addbibresource{refs.bib}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\newcommand{\coursenum}{{CSC 2421H}}
+\newcommand{\coursename}{{Graphs, Matrices, and Optimization}}
+\newcommand{\courseprof}{Sushant Sachdeva}
+
+\lecturetitle{2}{Clustering}{Liwen Lu}{17 Sep 2018}
+
+\section{Clustering of a Graph and Eigenvalue}
+
+Informally, ``clustering'' is grouping vertices such that there are more connectivity inside each group compare to between groups. 
+
+\subsection{Conductance}
+\begin{definition}
+\emph{Volume}: let $S \subseteq V$, $\vol(S)\defeq\sum\limits_{v \in S} d_v$ where $d_v = \deg(v) = \V{D}_{v, v}$
+\end{definition}
+
+\begin{lemma}
+Define the indicator of set $S$ as 
+\begin{align*}
+\idenVec_S (v)
+&=\begin{cases}1,&v\in S\\0,&\text{otherwise}\end{cases}\\
+\end{align*}
+Then $$\idenVec_S^T\V{D}\idenVec_S = \vol(S)$$
+\end{lemma}
+
+\begin{definition}
+Define \emph{Boundary of S} as $$E(S, \overline{S}) = \{(u,v) | (u,v) \in E, u\in S, v \in V\setminus S\},$$ where $\overline{S}$ is the complement set.
+\end{definition}
+
+\begin{definition}
+Define \emph{conductance of $S$ measured in graph $G$} to be $$\phi_G(S) \defeq\frac{|E(S, \overline{S})|}{min\{\vol(S), \vol(V\setminus S)\}},$$
+and define \emph{conductance of graph $G$} to be $$\phi(G) \defeq \min\limits_{\substack{S \subseteq V\\ S\neq \emptyset, V}}\phi_G(S).$$
+\end{definition}
+Computing $\phi(G)$ is called ``minimum conductance problem'', and it is famously NP hard. However, we can connect conductance and eigenvalues. 
+
+
+\subsection{Normalized Laplacian Matrix}
+Let $\nu_2=\min\limits_{\nuReq}\paren{\nuFrac}$. 
+
+Define $x = \V{D}^{\frac{1}{2}}y$ (note $\V{D}^{\frac{1}{2}}$ is replacing each of the diagonal entries in diagonal matrix $\V{D}$ with square root), we can write $y^\top\V{D}y = x^\top x$.
+\newpage
+Note we are assuming the graph $G$ is connected, then diagonal of $D$ is strictly non-negative, so the mapping between $x$ and $y$ is a bijection, which gives us $x = \V{D}^{\frac{1}{2}}y \iff y = \V{D}^{-\frac{1}{2}}x \implies y^\top\V{D}y = x^\top x$. Then we can rewrite $\nu_2$ as $$\nu_2 = \min\limits_{x^\top\paren{\V{D}^{\frac{1}{2}}\idenVec}=0}\frac{x^\top\V{D}^{-\frac{1}{2}}\V{L}\V{D}^{-\frac{1}{2}}x}{x^\top x}.$$
+
+\begin{definition}
+Define \emph{Normalized Laplacian Matrix} as 
+\begin{align*}
+\V{N} &\defeq \V{D}^{-\frac{1}{2}}\V{L}\V{D}^{-\frac{1}{2}}
+\intertext{We also claim that:}
+\lambda_1(\V{N}) &= 0 \\
+\psi_1 &= \V{D}^{\frac{1}{2}}\idenVec \\
+\nu_2 
+&= \min\limits_{x^\top
+\psi_1=0}\frac{x^\top\V{N}x}{x^\top x} \\
+&= \lambda_2(\V{N})
+\end{align*}
+\end{definition}
+
+\subsection{Cheeger's Inequality}
+\begin{theorem}
+$$\frac{\nu_2}{2} \leq \phi(G) \leq \sqrt{2\nu_2}, \nu_2 \leq 2$$
+\end{theorem}
+For example, if $\nu_2 = 0.01 \implies 0.005 \leq \phi(G) \leq 0.14$ \\ 
+We'll first prove the left hand side, $\frac{\nu_2}{2} \leq \phi(G)$.
+\begin{proof}
+By definition, we know $\exists S$ $s.t.$ $\phi(G) = \phi_G(S) = \frac{|E(S, \overline{S})|}{\vol(S)}$ and $\vol(S) \leq \vol(\overline{S})$. \\
+Recall $\nu_2=\min\limits_{\nuReq}\paren{\nuFrac}$ and $\idenVec_S^\top\V{D}\idenVec_S = \vol(S)$, we have 
+\begin{align*}
+\idenVec^\top_S\V{L}\idenVec_S &= \sum\limits_{(u,v)\in E}\paren{\idenVec_S(u) - \idenVec_S(v)}^2\\
+\intertext{note}
+\paren{\idenVec_S(u) - \idenVec_S(v)}^2 
+&= \begin{cases}1,&\idenVec_S(v)\neq\idenVec_S(v)\iff(u,v)\in E(S, \overline{S})\\0,&\text{otherwise}\end{cases}\\
+\intertext{therefore}
+\idenVec^\top_S\V{L}\idenVec_S 
+&= \sum_{(u,v)\in E}\idenVec[(u,v)\in E(S, \overline{S})] = |E(S, \overline{S})|
+\end{align*}
+
+If we set $y = \idenVec_S$, it would minimize $\nuFrac$, however it may not satisfy $\nuReq$. In order to make $y$ satisfy $\nuReq$, let $y = \idenVec_S + c\idenVec$, note we still have $y^\top\V{L}y = |E(S, \overline{S})|$.
+\begin{align*}
+y^\top\V{D}\idenVec = 0 &\iff c = \frac{-\idenVec^\top_S\V{D}\idenVec}{\idenVec^\top\V{D}\idenVec} = -\frac{\vol(S)}{\vol(V)} \tag{by previous lemma} \\ 
+y^\top\V{D}y 
+&= \idenVec_S^\top\V{D}\idenVec_S + 2c\idenVec_S^\top \V{D}\idenVec + c^2\idenVec^\top\V{D}\idenVec \\
+&= \idenVec_S^\top\V{D}\idenVec_S - \frac{\paren{\idenVec^\top_S\V{D}\idenVec}^2}{\idenVec^\top\V{D}\idenVec} \\ 
+&= \vol(S) - \frac{\vol(S)^2}{\vol(V)}\\
+&= \vol(S)\paren{1 - \frac{\vol(S)}{\vol(V)}} \\
+&\geq \frac{\vol(S)}{2} \tag{since $\vol(S) \leq \vol(\overline{S}$)}\\ 
+\intertext{Therefore}
+\nuFrac
+&= \frac{|E(S, \overline{S})|}{y^\top\V{D}y} \\ 
+&\leq \frac{2|E(S, \overline{S})|}{\vol(S)} \\ 
+&= 2\phi_G(S) \\ 
+&= 2\phi(G) \tag{by assumption} \\ 
+\implies \nu_2
+&= \min\limits_{\nuReq}\nuFrac \leq 2\phi(G) \\
+\implies \frac{\nu_2}{2} &\leq \phi(G)
+\end{align*}
+\end{proof}
+
+\begin{lemma}
+Given $y$ s.t. $\nuReq$, we can find a distribution on $t$ with $S_t \subseteq V$ s.t. $\vol(S_t) \leq\frac{\vol(V)}{2}$, and 
+$$\frac{\mathbb{E}_t|E(S_t, \overline{S_t})|}{\mathbb{E}_t\vol(S_t)} \leq \sqrt{\frac{2y^\top\V{L}y}{y^\top\V{D}y}}$$
+\end{lemma}
+
+Let $t$ be independent choices, $P_t$ be distribution of $t$, $X_t$, $Y_t$ are variables depend on $t$ with $Y_t \geq 0$. \\ 
+We can prove that $\exists t$ s.t. 
+$$ \frac{X_t}{Y_t} \leq \frac{\mathbb{E}_tX_t}{\mathbb{E}_tY_t} = \frac{\sum_tP_tX_t}{\sum_tP_tY_t}$$
+The proof is left as exercise. This implies that $\exists t$, s.t. $$\frac{|E(S_t, \overline{S_t})|}{\vol(S_t)} \leq \sqrt{\frac{2y^\top\V{L}y}{y^\top\V{D}y}}$$ \\ 
+Furthermore, if $y$ was the minimizing vector for $\nu_2$, then $$\phi_S(S_t) = \frac{|E(S_t, \overline{S_t})|}{\vol(S_t)} \leq \sqrt{2\nu_2}$$
+
+\printbibliography
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
