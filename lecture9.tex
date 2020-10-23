@@ -1,0 +1,394 @@
+\documentclass[11pt]{article}
+%%%%%%%%% options for the file macros.tex
+
+\def\showauthornotes{1}
+\def\showkeys{0}
+\def\showdraftbox{0}
+% \allowdisplaybreaks[1]
+
+\input{macros}
+\allowdisplaybreaks
+
+\usepackage{tikz}
+
+\usepackage{cite}
+
+%%%%%%%%% Authornotes
+\newcommand{\Snote}{\Authornote{S}}
+%%%%%%%% graph stuff
+\newcommand{\specApp}[3]{#1 \thickapprox_#2 #3}
+\renewcommand{\tr}[1]{\ensuremath{{#1}}^{\top}}
+
+
+\newenvironment{tight_enumerate}{
+\begin{enumerate}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{enumerate}}
+\newenvironment{tight_itemize}{
+\begin{itemize}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{itemize}}
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\newcommand{\coursenum}{{CSC 2421H}}
+\newcommand{\coursename}{{Graphs, Matrices, and Optimization}}
+\newcommand{\courseprof}{Sushant Sachdeva}
+
+\lecturetitle{ 9 }{Approximate Gaussian Elimination for Laplacians}{Yasaman Mahdaviyeh}{19 November 2018}
+
+\section{Introduction}
+
+Recall sparsifiers from last lecture. Given graph $G$ we wanted to construct graph $H$ such that $\specApp {G}{\eps}{H}$. We sampled edges of $G$  with probability proportional to
+\[p_e = w_e R_{eff}(e) = w_e  {(\ones_u - \ones_v)}^{\top} \mathbf{L}_G^+ (\ones_u - \ones_v),\]
+where $e = (u,v)$. Computing $\LL_G^+$ naively takes $O(n^3)$ operation. In this lecture we see that we can compute an approximation of the pseudoinverse of Laplacian much faster.
+
+
+\subsection{Laplacian Linear systems}
+We have the system $\LL \mathbf{x} = \mathbf{b}$ where $\mathbf{b}$ is demands and we want to compute $\mathbf{x}$. This is a Laplacian linear system. It would be nice if we had an algorithm, let's call it LapInv($G$, $b$), that computed $\LL^+ \mathbf{b} = \mathbf{x}$. This would have a wide range of applications, especially in scientific computing. There has been some work where $\mathbf{x}$ is approximated. Let $\mathbf{x}^\star = \LL^+ \mathbf{b}$ be the exact solution, and let $\mathbf{x}$ be output of the algorithm, then $\mathbf{x}^\star$ can be approximated in following sense
+\[\norm {\mathbf{x} - \mathbf{x}^\star}_{\LL} \le \eps \norm {\mathbf{x}^\star}_{\LL}, \]
+
+where $\norm {\mathbf{a}}_L = \sqrt {\tr {\mathbf{a}} \LL \mathbf{a}}$. All of the solvers discussed in next section give solutions in this norm.  Note that this is only polynomially different from 2 norm because for all $x$ such that $\tr {\mathbf{x}} \ones = 0$
+\[\lambda_2 (\LL) \norm{\mathbf{x}} \le \norm{\mathbf{x}}_{\LL} \le \lambda_{max}(\LL) \norm{\mathbf{x}}\]
+and 
+\[\frac{\lambda_2 (\LL)}{\lambda_{max}(\LL)} \in O(n^3).
+\]
+
+\subsection{Relevant Work}
+Here $m$ is number of edges, and $n$ is number of vertices as usual.\newline
+[Spielman-Teng `04]~\cite{SpielmanT04} showed that we can do this approximation in O($m \log ^ {O(1)}{n} \log {\frac {1}{\eps}}$) .\newline
+[KMP' 11]~\cite{KoutisMP11} O($m \log^{1+o( n )} n \log {\frac{1}{\eps}}$)\newline
+[Cohen et al. `14]~\cite{CohenKMPPRX14}  $O( m \sqrt {\log n} \log {\frac{1}{\eps}})$\newline
+We will discuss following result which is much simpler and doesn't use graph theoretic constructions:\newline
+[Kyng-Sachdeva `16]~\cite{KyngS16} O($m \log^3 n \log {\frac{1}{\eps}}$)\newline
+ First let's review guassian elimination.
+\subsection{ Review of Gaussian Elimination}
+Suppose we want to solve this system of linear equations
+\begin{align*}
+16x_1 - 4x_2 -8x_3 -4x_4 &= 16 \\
+-4x_1 + 5x_2           - x_4 &= -6 \\
+-8x_1             + 9x_3  -x4 &= 19 \\
+-4x_1 -x_2  - x_3 +7x_4 &= 11.
+\end{align*}
+
+One way of solving this system is to use the first equation to cancel out all $x_1$s in the rest and so on
+\begin{align*}
+16x_1 - 4x_2 -8x_3 -4x_4 &= 16\\
+            + 4x_2 -2x_3 -2 x_4 &= -2\\
+           -2x_2  + 5x_3  -3x4 &= -11\\
+            2x_2  -3 x_3 +6x_4 &= 15.
+\end{align*}
+We could write the coefficients in a matrix  and do the same thing. After one step, we can write the original matrix as
+\begin{equation*}
+\left[
+\begin{matrix}
+16 & -4 & -8 & -4 \\
+-4 & 5 & 0 & -1 \\
+-8 & 0 & 9 & -1\\
+-4 & -1 & -1 & 7\\
+\end{matrix}
+\right] = 
+\left[
+\begin{matrix}
+0\\
+\frac{-1}{4}\\
+\frac{-1}{2}\\
+\frac{-1}{4}\\
+\end{matrix}
+\right]
+\left[
+\begin{matrix}
+16& -4 & -8 & -4\\
+\end{matrix}
+\right] + 
+\left[
+\begin{matrix}
+16 & -4 & -8 & -4 \\
+0 & 4 & -2 & -2 \\
+0 & -2 & 5 & -3\\
+0 & 2 & -3 & 6\\
+\end{matrix}
+\right],
+\end{equation*}
+
+or equivalently, first row could be moved to the first term
+\begin{equation*}
+\left[
+\begin{matrix}
+16 & -4 & -8 & -4 \\
+-4 & 5 & 0 & -1 \\
+-8 & 0 & 9 & -1\\
+-4 & -1 & -1 & 7\\
+\end{matrix}
+\right] = 
+\left[
+\begin{matrix}
+1\\
+\frac{-1}{4}\\
+\frac{-1}{2}\\
+\frac{-1}{4}\\
+\end{matrix}
+\right]
+\left[
+\begin{matrix}
+16& -4 & -8 & -4\\
+\end{matrix}
+\right] + 
+\left[
+\begin{matrix}
+0 & 0 & 0 & 0 \\
+0 & 4 & -2 & -2 \\
+0 & -2 & 5 & -3\\
+0 & 2 & -3 & 6\\
+\end{matrix}
+\right].
+\end{equation*}
+Note that since the original matrix was symmetric, first term can be written as outer product of a rank 1 term with itself
+\begin{equation*}
+\left[
+\begin{matrix}
+1\\
+\frac{-1}{4}\\
+\frac{-1}{2}\\
+\frac{-1}{4}\\
+\end{matrix}
+\right]
+\left[
+\begin{matrix}
+16& -4 & -8 & -4\\
+\end{matrix}
+\right]
+ = 
+ \left[
+ \begin{matrix}
+4\\
+-1\\
+-2\\
+-1\
+\end{matrix}
+\right]
+\left[
+\begin{matrix}
+4& -1 & -2 & -1\\
+\end{matrix}
+\right].
+\end{equation*}
+
+
+\section{Cholesky Factorization}
+Note that if we started with a matrix that was Laplacian (change 7 to 6), we would have the general form
+\begin{equation*}
+\left[
+\begin{matrix}
+d & \tr {-\mathbf{b}}\\
+-\mathbf{b} & \mathbf{M}\\
+\end{matrix}
+\right]
+= 
+\left[
+\begin{matrix}
+\sqrt {d} \\
+\frac {-\mathbf{b}}{\sqrt{d}}\\
+\end{matrix}
+\right]
+\tr {
+\left[
+\begin{matrix}
+\sqrt {d} \\
+\frac {-\mathbf{b}}{\sqrt{d}}\\
+\end{matrix}
+\right]} +
+\left[
+\begin{matrix}
+0 & 0\\
+0 & \mathbf{M} - \frac {\mathbf{b}\tr {\mathbf{b}}}{d}\\
+\end{matrix}
+\right].
+\end{equation*}
+The submatrix $\mathbf{M} - \frac {\mathbf{b}\tr {\mathbf{b}}}{d}$ is $schur(\LL_1,\{1\})$, where first vertex is eliminated. So as we saw in midterm question 5, Laplacian can be written as
+Laplacian = symmetric rank 1 + schur complement(Laplacian).\newline
+\[\LL = \mathbf{v}_1 \tr{\mathbf{v}_1} + \mathbf{S}^{(1)} = \mathbf{v}_1 \tr{\mathbf{v}_1} + \mathbf{v}_2 \tr{\mathbf{v}_2} + \mathbf{S}^{(2)} = ...\] where $\mathbf{S}^{(i)}$ is schur complement of graph when first $i$ vertices are eliminated. 
+Note that $\mathbf{v}_2$ is zero in its first coordinate, similarly $\mathbf{v}_i$ has 0 in its first $i-1$ coordinates. Also, the order in which we eliminate vertices does not matter. 
+\[\LL = \mathbf{v}_1 \tr{\mathbf{v}_1} + \mathbf{v}_2 \tr{\mathbf{v}_2} + ... + \mathbf{v}_n \tr{\mathbf{v}_n}\] 
+Writing it in matrix form we get
+\begin{equation*}
+\LL = 
+\left[
+\begin{matrix}
+\mathbf{v}_1 & \mathbf{v}_2& ...&\mathbf{v}_n\\
+\end{matrix}
+\right]
+\left[
+\begin{matrix}
+\tr {\mathbf{v}_1}\\
+\tr {\mathbf{v}_2}\\
+...\\
+\end{matrix}
+\right] = 
+\tr{\mathbf{U}} \mathbf{U},
+\end{equation*}
+where $\mathbf{U}$ is an upper triangular matrix.\newline
+This symmetric factorization is called Cholesky factorization. Here we showed it for Laplacians, but in general it works for all positive semidefinite matrices.
+This is still expensive: O($n^3$). In fact, it can be shown that for any Cholesky factorization (regardless of the order in which we eliminate vertices) of O(1) degree expanders we need $\Omega (n^3)$ steps. 
+Why is Cholesky factorization useful ? Because it's easy to multiply by inverse of an upper triangular matrix
+\[\LL \mathbf{x} = \mathbf{b} \iff \tr{\mathbf{U}} \mathbf{U} \mathbf{x} = \mathbf{b} \iff \mathbf{x} = (\mathbf{U}^{-1})(\tr {\mathbf{U}})^{-1} \mathbf{b}.\]
+We can easily get $\mathbf{x}$ by forward substitution. The cost of this operation would be O( number of non zero entries in $\mathbf{U}$) = O($n^2$).
+We cannot compute the upper triangular matrix $\mathbf{U}$ cheaply, so we will approximate it.
+
+\subsection{Introduction to Approximate Cholesky Factorization}
+
+\begin{theorem}
+[Kyng-Sachdeva `16 ~\cite{KyngS16}] In O($m \log^3 n$)  time, we can return upper triangular matrix $\mathbf{U}$ such that $ \specApp {\tr {\mathbf{U}}\mathbf{U}} {{1/3}} {\LL}$, that is $ \frac {2}{3} \LL \preceq \tr{\mathbf{U}} \mathbf{U} \preceq \frac {4}{3} \LL$. Moreover, $\mathbf{U}$ has O($m\log^3n$) non zero entries.
+\end{theorem}
+Here for simplicity we fixed $\epsilon = 1/3$. There is a factor of $\frac {1}{\eps^2}$ in the running time if we hadn't fixed $\eps$. We don't need high accuracy, we could always boost it. This will be presented in next section. \newline 
+If we had an algorithm for fast approximate Cholesky factorization, then we could get a fast (approximate) Laplacian solver using following algorithm:
+\begin{corollary}
+Following algorithm, called iterative refinement or Richardson iteration, returns $\mathbf{x}$ such that:
+\[\norm{\mathbf{x} - \LL^+ \mathbf{b}}_{\LL} \le \eps \norm{\LL^+ \mathbf{b}}_{\LL}\]
+for $t=O(\log \frac{1}{\eps})$.
+\end{corollary}
+
+\begin{algorithm}
+\caption{Richardson Iteration}\label{RI}
+\begin{algorithmic}[1]
+\State $\mathbf{x}^{(0)}\gets 0$ \Comment {initial guess}
+\State $\tilde {\mathbf{A}} \gets (\tr{\mathbf{U}} \mathbf{U})^{-1} \LL$ 
+\State $(\tr{\mathbf{U}} \mathbf{U})^{-1} \mathbf{b} \gets \tilde {\mathbf{b}}$
+\Comment{instead of solving $\LL \mathbf{x} = \mathbf{b} $ , multiply both sides by $(\tr{\mathbf{U}}\mathbf{U})^{-1}$, and try to solve $(\tr{\mathbf{U}} \mathbf{U})^{-1} \LL \mathbf{x} = (\tr{\mathbf{U}} \mathbf{U})^{-1} \mathbf{b}$}
+
+\For{$i \gets 1 \dots t$}
+\State $\mathbf{x}^{(i)} \gets  \mathbf{x}^{(i-1)} - (\tilde {\mathbf{A}} \mathbf{x}^{(i-1)} - \tilde {\mathbf{b}})$ \Comment { $\tilde {\mathbf{A}}$ can be multiplied cheaply}
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+
+Note that $\tr {\mathbf{U}}\mathbf{U}$ is not invertible, but has the same kernel as $L$ (think pseudoinverse). For simplicity, we will hide those details here.
+Cost of each iteration = multiplication by $L$ (O(m)) + multiplication by $\mathbf{U}^{-1}$ (O($m \log^3n$)) + multiplication by $(\tr {\mathbf{U}})^{-1}$ O($m \log^3n$)
+
+Proof of this corollary is left as an exercise, but here is a hint:\newline
+if $\mathbf{A}$ is symmetric and $ \frac{2}{3} \eye \preceq \mathbf{A} \preceq \frac {4}{3} \eye$, then we saw in midterm:
+\[\mathbf{A}^{-1} = \eye + (\eye - \mathbf{A}) + (\eye - \mathbf{A})^2 + ...\]
+We can get an approximation to $A^{-1}$  if we only consider the first $k$ terms of the sum. Specifically consider $k = 3 \log \frac {1}{\epsilon}$.
+
+
+\subsection{Graph Interpretation of Cholesky Factorization}
+Consider one step of Cholesky factorization, where we are removing vertex 1:
+\[\LL = \frac {1}{d} \left[
+\begin{matrix}
+d \\
+{-\mathbf{b}}\\
+\end{matrix}
+\right]
+\tr {
+\left[
+\begin{matrix}
+d \\
+ {-\mathbf{b}}\\
+\end{matrix}
+\right]} + \mathbf{S}^{(1)}\]
+Let's think about what is happening to edges of the graph. \newline
+If $(i, j)$ was such that $i,j \ne 1$, then $(i, j)$ remains unchanged.
+Otherwise, we are removing all edges incident to vertex 1 and adding a clique to neighbours of vertex 1 (denoted by $N(1)$)
+\[\mathbf{S}^{(i)} = \LL -\frac {1}{d} \left[
+\begin{matrix}
+d \\
+{-\mathbf{b}}\\
+\end{matrix}
+\right]
+\tr {
+\left[
+\begin{matrix}
+d \\
+ {-\mathbf{b}}\\
+\end{matrix}
+\right]}\]
+\[\mathbf{S}^{(1)}_{i,j} =  - w_{i,j} (\mathrm{in\; L}) + \frac {1}{deg(1)} w(1,i)w(1,j).\]
+Here is how we will approximate Cholesky Factorization: instead of adding a clique, we would add an approximation of a clique ( we will sample a clique). The caveat is that we cannot have constant error in each iteration. 
+
+\subsection{Sparse Approximate Cholesky Factorization}
+Consider following algorithm for Cholesky factorization
+\begin{algorithm}[H]
+\caption{Exact Cholesky Factorization}
+\begin{algorithmic}[1]
+\For{$k \gets 1 \dots n$}
+	 \State $\mathbf{c}_k \gets \frac {1}{\sqrt{d_k}}\left[\begin{matrix}d_k 
+-\mathbf{b}_k\\ 
+\end{matrix}\right]$ \Comment {Record $k^{th}$ column}
+	\State Eliminate vertex k\\
+	\State Add a clique on $N(k)$.
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+
+Now we can modify this to add an approximation of the clique, but to control the error, we cannot eliminate the vertices in arbitrary order, so we will pick one uniformly random at each iteration.
+
+\begin{algorithm}
+\caption {Sparse Approximate Cholesky Factorization}
+\begin{algorithmic}[0]
+\item Replace each edge e by $\rho$ parallel edges each with weight $\frac {1}{\rho} w_e$ \Comment{Preprocessing}
+\For {$k \gets \dots n$}
+\State Sample a vertex $\pi (k)$ uniformly random from remaining vertices\\
+\State Record $\mathbf{c}_k = \frac {1}{\sqrt{d_{\pi(k)}}} 
+\left[\begin{matrix}d_{\pi(k)}\\
+-\mathbf{b}_{\pi(k)}\\ 
+\end{matrix}\right]$\\
+\State Add Sample\_Clique($N(k), k$) to $N(k)$ (where $N(k)$ denotes set of neighbours of vertex $k$)\\
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+The preprocessing step is necessary because we want samples to have small norm so that we can use matrix concentration bounds. In the original graph norm of each sample is
+\[\norm{w_e \LL^{+/2} \LL_e \LL^{+/2}} \le 1\] 
+So scaling weight of each edge by $\frac{1}{\rho}$ will scale down norm of each sample to at most $\frac{1}{\rho}$. In next section we will see how the clique is sampled.
+
+
+\subsection{Sampling a Clique}
+
+\begin{algorithm}[H]
+\caption{Sample\_Clique}
+\begin{algorithmic}[0]
+\Procedure {Sample\_Clique}{$N(k), k$}
+\For {every edge $(k, a) \in N(k)$}
+\State Sample $(k,b) \in N(k)$ with probability $\frac {w(k,b)}{w\_deg(k)}$\\
+\State Add the edge $(a, b)$ with weight $\frac {w(k,a)w(k,b)}{w(k,a)+w(k,b)}$ if $a \ne b$\\
+\EndFor\\
+\Return sampled edges
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\begin{proposition}
+ $\av$ Laplacian of Sample\_Clique ($N(k), k$) = Laplacian of the weighted clique on  neighbours of k in original graph.
+ \end{proposition}
+ \begin{proof}
+ Let $\mathbf{Y}_a$ be laplacian of an added edge  we get after we remove $(k,a)$,
+ \[\av \mathbf{Y}_a =  \sum_b  \frac {w(k,b)}{deg(k)} \frac {w(k,a)w(k,b)}{w(k,a) + w(k,b)} \LL_{a,b}\] 
+ \[ \sum_a \av \mathbf{Y}_a = \sum_{a,b, a<b} \frac {w(a,k) + w(b,k)}{deg(k)}  \frac {w(a,k) w(b,k)}{w(k,a) + w(k,b)} \LL_{a,b} = \sum_{a,b, a<b} \frac {w(k,a) + w(k,b)}{deg(k)} \LL_{a,b} = Cl_k.\]
+ Note in the final term, we are adding Laplacians of all pairs of vertices adjacent to $k$, thus getting a clique.  
+ \end{proof}
+ 
+ \subsection{Expected Run Time}
+ At each iteration, sampling vertex $k$ costs $deg(k)$. So expected cost at step $k$ is
+ \[\av_{\pi (k)} deg(k) = \frac {2m^{(k)}}{n-k+1} \le \frac {2m\rho}{n-k+1},\]
+ where $m^{(k)}$ is number of edges at step $k$. The inequality holds because total number of edges is bounded by $m\rho$ and at each step number of edges does not increase.
+Therefore, total expected cost is $\le 2m \rho (1 + \frac  {1}{2} + ... + \frac {1}{n})  \le 2m\rho \log n$.
+ 
+\bibliography{papers}
+\bibliographystyle{alpha}
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

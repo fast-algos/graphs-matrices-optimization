@@ -4,7 +4,8 @@
 % \usepackage[active,tightpage]{preview}
 % \renewcommand{\PreviewBorder}{1in}
 \usepackage{hyperref}
-\usepackage{amsmath,amssymb,amsthm,amstext,amsfonts,bbm,algorithm,algorithmicx,xspace,nicefrac}
+\usepackage{amsmath,amssymb,amsthm,amstext,amsfonts,bbm,algorithm,algorithmicx,xspace,nicefrac,
+  algpseudocode}
 \usepackage{color,stmaryrd,enumerate,latexsym,bm,amsfonts,
   subfigure,wrapfig,verbatim,tabularx,textcomp}
 \usepackage[small]{caption}
@@ -63,10 +64,13 @@
 \newcommand\plusminus{\{\pm 1\}}
 \newcommand\Bs{\{0,1\}^*}   % B star use in math mode
 \newcommand{\ones}{\mathbbm{1}}
+\newcommand{\eye}{\mathbbm{I}}
+
 
 
 \newcommand{\V}[1]{\mathbf{#1}\ignorespaces}
 \renewcommand\AA{\boldsymbol{\mathit{A}}}
+\newcommand\LL{\boldsymbol{\mathit{L}}}
 
 % Used to denote bold commands
                                 % e.g. vectors, matrices
@@ -300,7 +304,6 @@ Proof Sketch:~~}}
 %  \sublabel{#1}{(a)}
 %  \sublabel{#2}{(b)}
   \end{figure*}}
-
 
 \newcounter{fignum}
 
