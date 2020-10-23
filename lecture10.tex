@@ -1,0 +1,290 @@
+\documentclass[11pt]{article}
+%%%%%%%%% options for the file macros.tex
+
+\def\showauthornotes{1}
+\def\showkeys{0}
+\def\showdraftbox{0}
+% \allowdisplaybreaks[1]
+
+\input{macros}
+\allowdisplaybreaks
+
+\usepackage{algpseudocode}
+
+\usepackage[
+    backend=biber,
+% giveninits=true,
+% natbib=true,
+    style=alphabetic,
+    url=false, 
+ %   doi=true,
+    hyperref,
+    backref=true,
+    backrefstyle=none,
+    maxbibnames=10,
+    sortcites
+]{biblatex}
+\addbibresource{papers.bib}
+
+%%%%%%%%% Authornotes
+\newcommand{\Snote}{\Authornote{S}}
+
+\newenvironment{tight_enumerate}{
+\begin{enumerate}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{enumerate}}
+\newenvironment{tight_itemize}{
+\begin{itemize}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{itemize}}
+
+
+\addbibresource{refs.bib}
+
+\newcommand{\CExp}[1]{\mathbb{E}_{|#1}}
+\newcommand{\ind}[1]{\mathbbm{1}_{#1}}
+\newcommand{\naL}[1]{\overline{\widehat{L}}^{(#1)}}
+\newcommand{\naCL}[1]{\overline{\widehat{Cl}}_{#1}}
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\newcommand{\coursenum}{{CSC 2421H}}
+\newcommand{\coursename}{{Graphs, Matrices, and Optimization}}
+\newcommand{\courseprof}{Sushant Sachdeva}
+
+\lecturetitle{10}{Approxinate Cholesky Factorization}{Maxim Goukhshtein}{26 Nov. 2018}
+
+\section{Notation}
+We introduce the following notation:
+\begin{tight_itemize}
+	\item $ S^{(k)} $: Schur complement at $ k $ i.e., $ S^{(k)}  = S^{(k-1)} + c_{k}c_{k}^{T} $ 
+	where $ c_{k} = \frac{1}{\sqrt{S^{(k-1)}_{\pi(k),\pi(k)}}}S^{(k-1)}_{:,\pi(k)} $.
+	\item $ Cl_{k} $: Clique at $ k $.
+	\item $ (L)_{v} $: Laplacian of a star graph incident on $ v $ with all edges belonging to the graph whose Laplacian is $ L $. Therefore, we can write $ S^{(k)} = S^{(k-1)} + \paren{S^{(k-1)}}_{\pi(k)} + Cl_{k} $.
+	\item For a matrix $ M $, $ \overline{M} = L^{-\frac{1}{2}}ML^{-\frac{1}{2} }$, where $ L $ is the Laplacian of the original graph.
+	\item We use $ \mathbb{E}_{|k-1}[\cdot] $ to denote the expectation conditioned on everything that happened in the first $ k-1 $ iterations. 
+\end{tight_itemize}
+
+
+\section{Clique Sampling}
+In the previous lecture, the following clique sampling algorithm was introduced.
+
+\begin{algorithm}
+	\caption{CliqueSample(G,v)}\label{alg:clq_smpl}
+	\begin{algorithmic}[1]
+		\For{every edge $ e=\paren{v,u_{1}}\in E $} 
+			\State Sample another edge $ \paren{v,u_{2}} $ with probability $ \frac{w\paren{v,u_{2}}}{deg\paren{v}} $ 
+			\If{$ u_{1} \neq u_{2} $}
+%				\State Add edge $ \paren{u_{1},u_{2}} $ to $ \widehat{C} $ with weight $ \frac{w\paren{v,u_{1}}w\paren{v,u_{2}}}{w\paren{v,u_{1}} + w\paren{v,u_{2}}} $
+				\State $ Y_{e} \gets \frac{w\paren{v,u_{1}}w\paren{v,u_{2}}}{w\paren{v,u_{1}} + w\paren{v,u_{2}}}L_{\paren{u_{1},u_{2}}} $
+			\EndIf
+		\EndFor
+		\State \textbf{Return} $\widehat{Cl} = \sum_{e}Y_{e} $.
+	\end{algorithmic}
+\end{algorithm}
+
+\section{Approximate Cholesky Factorization Algorithm}
+Algorithm \ref{alg:apprx_Cholesky} is used for obtaining the approximate Cholesky factorization.
+
+\begin{algorithm}
+	\caption{ApproximateCholesky(G)}\label{alg:apprx_Cholesky}
+	\begin{algorithmic}[1]
+		\State Replace each edge $ e $ with $ \rho $ parallel copies, each with weight $ \frac{w(e)}{\rho} $.
+		\State Pick a random permutation $ \pi $ on $ V $.
+		\For{$ k=1 \textbf{ to } n $}  
+			\State ``Record column": $ c_{k} \gets \frac{1}{\sqrt{S^{\paren{k-1}}_{\pi(k),\pi(k)}}}S^{(k-1)}_{:,\pi(k)} $.
+			\State ``Eliminate and Sample": $ \widehat{Cl}_{k} \gets $ CliqueSample$ \paren{S^{\paren{k-1}},\pi\paren{k}} $, 
+			\State \-\hspace{4.25cm} $ \widehat{S}^{(k)} \gets \widehat{S}^{(k-1)} + (\widehat{S}^{(k-1)})_{\pi(k)} + \widehat{Cl}_{k} $.
+		\EndFor
+		\State \textbf{Return} $[c_{1}, c_{2}, \cdots, c_{n}]$.
+	\end{algorithmic}
+\end{algorithm}
+
+\section{Proof of Algorithm Approximation Result}
+Our goal is to show that the returned approximate normalized Laplacian satisfies the target approximation $ \widehat{L}^{n} \approx_{\frac{1}{3}} L $, or equivalently 
+
+\begin{align*}
+&~~~~~~~ \frac{2}{3}L \preccurlyeq \widehat{L}^{n} \preccurlyeq \frac{4}{3}L \\
+& \Leftrightarrow -\frac{1}{3}L \preccurlyeq \widehat{L}^{n} - L \preccurlyeq \frac{1}{3}L \\
+& \Leftrightarrow -\frac{1}{3}\Pi \preccurlyeq \overline{\widehat{L}}^{n} - \overline{L} \preccurlyeq \frac{1}{3}\Pi \\
+& \Leftrightarrow \lVert \overline{\widehat{L}}^{n} - \overline{L} \rVert \leq \frac{1}{3}.
+\end{align*}
+
+In order to show this result, we first introduce a number of useful lemmas.
+
+\begin{lemma}\label{lem:lem1}
+	$ \CExp{k-1}\left[\widehat{Cl}_{k}\right] = Cl_{k}$
+\end{lemma}
+
+\begin{proof}
+\begin{align*}
+\CExp{k-1}[\widehat{Cl}_{k}] &= \CExp{k-1}\left[\sum_{e}Y_{e}\right] \\
+&= \sum_{e}\CExp{k-1}[Y_{e}] \\
+&= \sum_{u_{1}}\sum_{u_{2}}\frac{w\paren{v,u_{2}}}{deg(v)}\frac{w\paren{v,u_{1}}w\paren{v,u_{2}}}{w\paren{v,u_{1}} + w\paren{v,u_{2}}}L_{\paren{u_{1},u_{2}}} \\
+&= \sum_{u_{1}<u_{2}}\frac{w\paren{v,u_{1}}w\paren{v,u_{2}}}{deg(v)}\frac{w\paren{v,u_{1}}+w\paren{v,u_{2}}}{w\paren{v,u_{1}} + w\paren{v,u_{2}}}L_{\paren{u_{1},u_{2}}} \\
+&= Cl_{k}
+\end{align*}
+\end{proof} 
+
+Consider the difference of the resulting Laplacians in two consecutive iterations:
+
+\begin{align*}
+\widehat{L}^{(k)} - \widehat{L}^{(k-1)} &= \widehat{S}^{(k)} - \widehat{S}^{(k-1)} + c_{k}c_{k}^{T} \\
+&= -\paren{\widehat{S}^{(k-1)}}_{\pi(k)} + \widehat{Cl}_{k} + c_{k}c_{k}^{T} \\
+&= -c_{k}c_{k}^{T} - Cl_{k} + \widehat{Cl}_{k} + c_{k}c_{k}^{T} \\
+&=  \widehat{Cl}_{k} - Cl_{k}.
+\end{align*}
+Therefore, it follows from Lemma \ref{lem:lem1}, that $ \CExp{k-1}\left[\widehat{L}^{(k)}\right] = \widehat{L}^{(k-1)} $ (hence, $ \{\widehat{L}^{(k)}\}_{k \geq 0} $ is a matrix martingale). \\
+
+The following Lemma concerning a distance property of the effective resistance will prove useful.
+\begin{lemma}[Triangle Inequality for Effective Resistance]\label{lem:lem2}
+	$ \forall a,b,c \in V $, $ \textrm{Reff}(a,b) \leq \textrm{Reff}(a,c) + \textrm{Reff}(c,b) $, or equivalently, $ \lVert \bar{L}_{a,b} \rVert \leq \lVert \bar{L}_{a,c} \rVert + \lVert \bar{L}_{c,b} \rVert$.
+\end{lemma}
+
+\begin{proof}
+	\begin{align*}
+	\textrm{Reff}(a,b) &= \paren{\ind{a}-\ind{b}}^{T}L^{\dagger}\paren{\ind{a}-\ind{b}} \\
+	&= \paren{\ind{a}-\ind{c}+\ind{c}-\ind{b}}^{T}L^{\dagger}\paren{\ind{a}-\ind{c}+\ind{c}-\ind{b}} \\
+	&= \paren{\ind{a}-\ind{c}}^{T}L^{\dagger}\paren{\ind{a}-\ind{c}} + \paren{\ind{c}-\ind{b}}^{T}L^{\dagger}\paren{\ind{c}-\ind{b}} + 2\paren{\ind{a}-\ind{c}}^{T}L^{\dagger}\paren{\ind{c}-\ind{b}} \\
+	&= \textrm{Reff}(a,c) + \textrm{Reff}(c,b) + 2\paren{\ind{a}-\ind{c}}^{T}L^{\dagger}\paren{\ind{c}-\ind{b}} \\
+	&\leq \textrm{Reff}(a,c) + \textrm{Reff}(c,b),  
+	\end{align*}
+where the inequality holds since $ \paren{\ind{a}-\ind{c}}^{T}L^{\dagger}\paren{\ind{c}-\ind{b}} \leq 0 $. This is true since $ L^{\dagger}\paren{\ind{c}-\ind{b}} $ corresponds to the voltage drops in a resistor network where an external current of one unit is sent from $ c $ to $ b $, hence $ \paren{\ind{a}-\ind{c}}^{T}L^{\dagger}\paren{\ind{c}-\ind{b}} $ is the voltage drop from $ a $ to $ c$, that is $ v(a) - v(c) $. Since $ c $ is the source in this network, it has the highest potential in the network, therefore $ v(c) \geq v(a) $.
+\end{proof}
+
+\begin{lemma}\label{lem:lem3}
+Any edge $ e $ added in Algorithm \ref{alg:apprx_Cholesky} to $ \widehat{S}^{k} $, satisfies $ \lVert Y_{e} \rVert = \lVert w(e)\bar{L}_{e} \rVert = w(e) \lVert L^{-\frac{1}{2}}{L}_{e}L^{-\frac{1}{2}} \rVert \leq \frac{1}{\rho} $.	
+\end{lemma}
+
+\begin{proof}
+We prove the lemma by induction. At $ k = 0 $, before ``splitting" $ w(e)\bar{L}_{e} \leq \Pi $, therefore after ``splitting"  $  \lVert \frac{w(e)}{\rho}\bar{L}_{e} \rVert \leq  \frac{1}{\rho} $. Now, suppose that the lemma holds for step $ k-1 $. Suppose edge $ \paren{u_{1}, u_{2}} $ is added at step $ k $, then
+	\begin{align*}
+	\frac{w\paren{v,u_{1}}w\paren{v,u_{2}}}{w\paren{v,u_{1}} + w\paren{v,u_{2}}}\lVert \bar{L}_{u_{1}, u_{2}} \rVert &\leq \frac{w\paren{v,u_{1}}w\paren{v,u_{2}}}{w\paren{v,u_{1}} + w\paren{v,u_{2}}}\paren{\lVert \bar{L}_{v, u_{1}} \rVert + \lVert \bar{L}_{v, u_{2}} \rVert } \\ 
+	&= \frac{w\paren{v,u_{2}}}{w\paren{v,u_{1}} + w\paren{v,u_{2}}}\paren{w\paren{v,u_{1}}\lVert \bar{L}_{v, u_{1}} \rVert} \notag \\ &{}+ \frac{w\paren{v,u_{1}}}{w\paren{v,u_{1}} + w\paren{v,u_{2}}}\paren{w\paren{v,u_{2}}\lVert \bar{L}_{v, u_{2}} \rVert} \\
+	&\leq \frac{w\paren{v,u_{2}}}{w\paren{v,u_{1}} + w\paren{v,u_{2}}}\frac{1}{\rho} + \frac{w\paren{v,u_{1}}}{w\paren{v,u_{1}} + w\paren{v,u_{2}}}\frac{1}{\rho} \\
+	&= \frac{1}{\rho},
+	\end{align*}
+where the first inequality follows from Lemma \ref{lem:lem2} and the second from the inductive hypothesis.
+\end{proof}
+
+Finally, in order to prove the approximation result, we will make use of the following matrix concentration result.
+
+\begin{theorem}[Matrix Freedman Inequality]\label{th:freedman}
+Consider a matrix martingale $ \{Y_{k}\in\mathbb{R}^{n \times n}\}_{k \geq 0} $ with $ Y_{0} = 0 $ (i.e., a random process satisfying $ \CExp{k-1}[Y_{k}] = Y_{k-1} $). Define $ X_{k} = Y_{k} - Y_{k-1} $ such that $ \lambda_{\text{max}}(X_{k}) \leq R $ for all $ k $. Further, define the ``predictable quadratic variation" $ W_{k} = \sum_{i=1}^{k}\CExp{i-1}[X_{i}^{2}] $. Then, $ \forall t, \sigma^{2} \geq 0 $, 
+\begin{equation*}
+\mathrm{Pr}\paren{\exists j : \lambda_{\text{max}}(Y_{j}) \geq t \mathrm{~and~} \lambda_{\text{max}}(W_{k}) \leq \sigma^{2}} \leq n\exp\left\{-\frac{\frac{t^{2}}{2}}{\sigma^{2} + \frac{tR}{3}}\right\}.
+\end{equation*}
+\end{theorem}
+
+\begin{proof}[Proof of Algorithm Approximation Result]
+In the following we will consider each edge sampling individually. We introduce a notation to indicate the call index to CliqueSample and sampled edge index. For example, $ Y_{e}^{(k)} $ is the Laplacian of the edge $ e $ sampled at the $ k^{th} $ call to CliqueSample. We will use $ e - 1 $ to indicate the edge sampled before $ e $ (i.e., $ Y_{e-1}^{(k)} $ is the Laplacian of the edge $ e - 1 $ sampled just before edge $ e $, whose Laplacian is $ Y_{e}^{(k)} $).
+
+We had previously shown that 
+\begin{align*}
+\naL{k} - \naL{k-1} &= \overline{\widehat{Cl}}_{k} - \overline{Cl}_{k} \\
+&= \sum_{e}\overline{Y}_{e} + \sum_{e}\CExp{k-1}\left[\overline{Y}_{e}\right] \\
+&= \sum_{e}\overline{Y}_{e} + \CExp{k-1}\left[\overline{Y}_{e}\right], 
+\end{align*}
+from which it follows that 
+\begin{equation}\label{eq:eq1}
+\naL{k} - \naL{0} = \sum_{i=1}^{k}\sum_{e}\overline{Y}_{e}^{(i)} + \CExp{i-1}\left[\overline{Y}_{e}^{(i)}\right],
+\end{equation}
+where the summation of the edges is over \textbf{all} the edges in the each $ i^{th} $ call of CliqueSample (i.e., in the $ j^{th} $ call to CliqueSample we consider all the edges incident on vertex $ v $ in Algorithm \ref{alg:clq_smpl}).
+
+
+Consider the random matrix $ T_{k,e'} $ sequence defined as
+\begin{equation}\label{eq:eq2}
+T_{k,e'} = \left(\sum_{i=1}^{k-1}\sum_{e}\overline{Y}_{e}^{(i)} + \CExp{i-1}\left[\overline{Y}_{e}^{(i)}\right]\right) + \left(\sum_{e \leq e'}Y_{e}^{(k)} - \CExp{k-1}\left[\overline{Y}_{e}^{(k)}\right]\right),
+\end{equation}
+where the summation over edges in the $ k^{th} $ call to CliqueSample is over all the edges up to and including edge $ e' $. To reiterate, the difference between equations \ref{eq:eq1} and \ref{eq:eq2} is that in equation \ref{eq:eq1} we consider the summation over all the edges in each of the calls of CliqueSample, whereas in equation \ref{eq:eq2} we consider all the sampled edges in the first $ k-1 $ calls and the sum of all the edges sampled ``\textbf{so far}'' in the $ k^{th} $ call to CliqueSample.
+
+To simplify notation, we let $ X_{e}^{(k)} = \overline{Y}_{e}^{(k)} - \CExp{i-1}\left[\overline{Y}_{e}^{(k)}\right] $ and write $ T_{k,e'} = \sum_{(i,e) \leq (k,e')}X_{e}^{(i)} $. Furthermore, we use $ \CExp{<(k,e')}[\cdot] $ to denote the expectation conditioned on all edge samplings until (and including) the sampling of edge $ e' $ in the $ k^{th} $ call to CliqueSample.
+
+Note that $ \lVert T_{k,e'} \rVert \leq \frac{1}{3} $ for all $ k $ and $ e' $ implies $ \lVert \overline{\widehat{L}}^{k} - \overline{L} \rVert \leq \frac{1}{3} $. Therefore, we will use $ T_{k,e'} $ to prove the algorithm approximation result. First note that $ T_{k,e'} $ is a martingale of the form described in Theorem \ref{th:freedman}, since trivially $ T_{0,0} = 0 $ and 
+
+\begin{align*}
+\CExp{<(k,e')}[T_{k,e'}] &= \CExp{<(k,e')}\left[\sum_{(i,e) \leq (k,e')}X_{e}^{(i)}\right] \\
+&= \CExp{<(k,e')}\left[\sum_{(i,e) < (k,e')}X_{e}^{(i)}\right] - \CExp{<(k,e')}\left[X_{e'}^{(k)}\right] \\
+&= \sum_{(i,e) < (k,e')}X_{e}^{(i)} + \CExp{<(k,e')}\left[\overline{Y}_{e'}^{(k)} - \CExp{k-1}\left[\overline{Y}_{e'}^{(k)}\right]\right] \\ 
+&\stackrel{(*)}{=} \sum_{(i,e) < (k,e')}X_{e}^{(i)} + \CExp{k-1}\left[\overline{Y}_{e'}^{(k)}\right] - \CExp{k-1}\left[\overline{Y}_{e'}^{(k)}\right] \\
+&= \sum_{(i,e) < (k,e')}X_{e}^{(i)} \\
+&= T_{k,e-1},
+\end{align*}
+where $ \CExp{<(k,e')}\left[\overline{Y}_{e'}^{(k)}\right] = \CExp{k-1}\left[\overline{Y}_{e'}^{(k)}\right] $ in $ (*) $ follows from the fact that sampling of each edge within a call to CliqueSample is independent of any other edge sampling in the same call.
+
+Now, note that $ T_{k,e'} - T_{k,e'-1} = X_{e'}^{(k)} $, then
+
+
+\begin{align*}
+\lVert X_{e'}^{(k)} \rVert &= \lVert Y_{e'}^{(k)} - \CExp{k-1}\left[Y_{e'}^{(k)}\right] \rVert \\
+&\leq \lVert Y_{e'}^{(k)} \rVert \\
+&\leq \frac{1}{\rho},
+\end{align*}
+where the last inequality follows from Lemma \ref{lem:lem3}. Therefore, when can bound the maximum eigenvalue of $ X_{k,e'} $ as per Theorem \ref{th:freedman}, $ \lambda_{\text{max}}(X_{e'}^{(k)}) \leq R = \frac{1}{\rho} $.
+
+Next, we wish to bound $ W_{k,e'} = \sum_{(i,e) \leq (k,e')}\CExp{<(i,e)}\left[\left(X_{e'}^{(k)}\right)^{2}\right] $, 
+\begin{align*}
+W_{k,e'} &\preccurlyeq \sum_{i=1}^{n}\sum_{e}\CExp{i-1}\left[\left(X_{e}^{(k)}\right)^{2}\right] \\
+&= \sum_{i=1}^{n}\sum_{e}\CExp{i-1}\left[\overline{(Y_{e}^{(i)})}^{2}-\left(\CExp{i-1}\left[\overline{Y_{e}^{(i)}}\right]\right)^{2}\right] \\
+&\preccurlyeq \sum_{i=1}^{n}\sum_{e}\CExp{i-1}\left[(\overline{Y_{e}^{(i)}})^{2}\right] \\
+&\preccurlyeq \frac{1}{\rho}\sum_{i=1}^{n}\sum_{e}\CExp{i-1}\left[\overline{Y_{e}^{(i)}}\right] \\
+&= \frac{1}{\rho}\sum_{i=1}^{n}\overline{Cl}_{i}.
+\end{align*}
+
+We know construct a new martingale to bound $ W_{k,e'} $ by applying Theorem \ref{th:freedman} a second time. Let $ Z_{j} = \frac{1}{\rho}\sum_{i=1}^{j}\overline{Cl}_{i} $ and 
+\begin{align*}
+A_{j} &= \left(Z_{j} - \CExp{j-1}\left[Z_{j}\right]\right) + A_{j-1} \\
+&= \frac{1}{\rho}\sum_{i=1}^{j}\overline{Cl}_{i} - \frac{1}{\rho}\sum_{i=1}^{j-1}\overline{Cl}_{i} - \frac{1}{\rho}\CExp{j-1}\left[\overline{Cl}_{j}\right] + A_{j-1} \\
+&= \frac{1}{\rho}\left(\overline{Cl}_{j} - \CExp{j-1}\left[\overline{Cl}_{j}\right]\right) + A_{j-1}.
+\end{align*}
+
+$ A_{j} $ is a martingale of the type used in Theorem \ref{th:freedman}, since $ A_{0} = 0 $ and 
+\begin{align*}
+\CExp{j-1}\left[A_{j}\right] =  \frac{1}{\rho}\left(\CExp{j-1}\left[\overline{Cl}_{j}\right] - \CExp{j-1}\left[\overline{Cl}_{j}\right]\right) +  \CExp{j-1}\left[A_{j-1}\right] = A_{j-1}.
+\end{align*}
+
+Since $ \overline{Cl}_{j} \preccurlyeq \left(\overline{L}\right)_{j} \preccurlyeq \overline{\widehat{L^{j-1}}} \preccurlyeq \frac{4}{3}\Pi $, 
+we have $ 0 \preccurlyeq \frac{1}{\rho}\overline{Cl}_{j} \preccurlyeq \frac{4}{3\rho}\Pi $ and similarly $ 0 \preccurlyeq \CExp{j-1}\left[\frac{1}{\rho}\overline{Cl}_{j}\right] \preccurlyeq \frac{4}{3\rho}\Pi $. Therefore, $ -\frac{4}{3\rho}\Pi \preccurlyeq \frac{1}{\rho}\overline{Cl}_{j} - \CExp{j-1}\left[\frac{1}{\rho}\overline{Cl}_{j}\right] \preccurlyeq \frac{4}{3\rho}\Pi $. Hence, 
+\begin{align*}
+\lVert A_{j} - A_{j-1} \rVert = \frac{1}{\rho}\lVert\overline{Cl}_{j} - \CExp{j-1}\left[\overline{Cl}_{j}\right] \rVert \leq \frac{4}{3\rho},
+\end{align*}
+so we choose $ \lambda_{\text{max}}(A_{j} - A_{j-1}) \leq \frac{4}{3\rho} = R $.
+
+Now we find a value for the bound $ \sigma^{2} $,
+\begin{align*}
+\sum_{j=1}^{n}\CExp{j-1}\left[\left(A_{j}-A_{j-1}\right)^2\right] &= \sum_{j=1}^{n}\CExp{j-1}\left[\left(\frac{1}{\rho}\left(\overline{Cl}_{j} - \CExp{j-1}\left[\overline{Cl}_{j}\right]\right)\right)^2\right] \\
+&\preccurlyeq \sum_{j=1}^{n}\CExp{j-1}\left[\frac{4}{3\rho^{2}}\overline{Cl}_{j}\right] \\
+&\preccurlyeq \frac{4}{3\rho^{2}}\sum_{j=1}^{n}\CExp{j-1}\left(\overline{L}\right)_{j} \\
+&= \frac{4}{3\rho^{2}}\sum_{j=1}^{n}\frac{1}{n-j+1}2\overline{\widehat{L^{(j-1)}}} \\
+&\preccurlyeq \frac{4}{3\rho^{2}} \frac{4}{3} \sum_{j=1}^{n}\frac{2}{n-j+1}\Pi \\
+&\preccurlyeq \frac{64}{9\rho^{2}}\log{n} \Pi.
+\end{align*}
+Hence, we can choose $ \sigma^{2} = \frac{64}{9\rho^{2}}\log{n} $ (and, as stated above, $ R = \frac{4}{3\rho} $) giving us according to Theorem \ref{th:freedman} that $ \lambda_{\text{max}}(A_{j}) \geq t $ with probability $ \leq n\exp\left\{-\frac{\frac{t^{2}}{2}}{\sigma^{2} + \frac{tR}{3}}\right\} $. We let $ n\exp\left\{-\frac{\frac{t^{2}}{2}}{\sigma^{2} + \frac{tR}{3}}\right\} \leq \frac{1}{n^{3}}$, which implies that we need $ \frac{t^{2}}{\sigma^{2} + \frac{tR}{3}} \geq 8\log{n} $. This in turn implies that we need to choose $ t \geq  \max\{\sqrt{\sigma^{2}8\log{n}}, \frac{R}{3}8\log{n}\} = \max\{\frac{16}{3\rho}\sqrt{2\log{n}},\frac{32}{9\rho}\log{n}\}$. By choosing $ t = \frac{32}{3\rho}\log{n} $, we get that $ \lambda_{\text{max}}(A_{j}) \leq t $ with high probability. Therefore, by induction $ \lambda_{\text{max}}(A_{n}) \leq \frac{32}{3\rho}\log{n} $.
+
+Furthermore,
+\begin{align*}
+A_{n} &= \frac{1}{\rho}\left(\sum_{j=1}^{n}\overline{Cl}_{j} - \sum_{j=1}^{n}\CExp{j-1}\left[\overline{Cl}_{j}\right]\right) \\
+&\succcurlyeq \frac{1}{\rho}\left(\sum_{j=1}^{n}\overline{Cl}_{j} - \sum_{j=1}^{n}\CExp{j-1}\left[\left(\overline{L}\right)_{j}\right]\right) \\
+&= \frac{1}{\rho}\left(\sum_{j=1}^{n}\overline{Cl}_{j} - \sum_{j=1}^{n}\frac{1}{n-j+1}2\overline{\widehat{L^{(j-1)}}}\right) \\
+&\succcurlyeq \frac{1}{\rho}\sum_{j=1}^{n}\overline{Cl}_{j} - \frac{1}{\rho}\frac{4}{3}4\log{n}\Pi \\
+&= Z_{n} - \frac{16}{3\rho}\log{n}\Pi,
+\end{align*}
+
+Going back to the first application of Theorem \ref{th:freedman} we find
+\begin{align*}
+W_{k,e'} &\preccurlyeq Z_{n} \preccurlyeq A_{n} + \frac{16}{3\rho}\log{n}\Pi \preccurlyeq \frac{16}{\rho}\log{n}\Pi.
+\end{align*}
+Therefore, to apply Theorem \ref{th:freedman} on the original martingale we have (from before) $ R = \frac{1}{\rho} $ and $ \sigma^{2} = \frac{16}{\rho}\log{n} $. As before, we need to choose $ t \geq \max\{\sqrt{\sigma^{2}8\log{n}}, \frac{R}{3}8\log{n}\} = \max\{\sqrt{\frac{2}{\rho}}8\log{n}, \frac{1}{3\rho}8\log{n}\}$.
+
+By choosing $ t = \frac{16}{3\rho}\log{n} $, $\lambda_{\text{max}}(T_{k,e'}) \leq t $. To get our result, we want to choose $ t \leq \frac{1}{3} $. And so by choosing $ \rho = \frac{16}{9}\log{n} $, we get that $ \lVert T_{k,e'} \rVert \leq \frac{1}{3} $ implying $ \lVert \overline{\widehat{L}}^{k} - \overline{L} \rVert \leq \frac{1}{3} $. Using induction, we find $ \lVert \overline{\widehat{L}}^{n} - \overline{L} \rVert \leq \frac{1}{3} $, that is $ \frac{2}{3}L \preccurlyeq \widehat{L}^{n} \preccurlyeq\frac{4}{3}L $.
+\end{proof}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
