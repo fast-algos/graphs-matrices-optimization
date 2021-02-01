@@ -160,7 +160,7 @@ One of $\V{z^+}, \V{z^-}$ achieves a ratio $\leq \frac{\V{y}^{\top}\V{L}\V{y}}{\
 %Number line figure
 \begin{wrapfigure}{r}{0.25\textwidth}
 \centering
-\includegraphics[width=0.22\textwidth]{lemma2}
+\includegraphics[width=0.22\textwidth]{images/lemma2}
 \caption{Sampling $t$ and the corresponding $S_t$}
 \label{fig.lemma2}
 \end{wrapfigure}
@@ -196,18 +196,32 @@ Therefore,
 
 %Proof of Lemma 3
 \subsection{Lemma \ref{lem3}} \label{sec.lem3}
-Assuming the collection of $X_t, Y_t$ is finite,
+Assuming the collection of $X_t, Y_t$ is finite, let $r$ denote the
+minimum ratio, and without loss of generality, assume that it is
+achieved for $t=0.$
 \begin{align*}
-r &= \min_t \dfrac{X_t}{Y_t} \qquad \text{\underline{s.t.}} \, Y_t>0, \\
+r & \defeq \min_t \dfrac{X_t}{Y_t} \qquad \text{\underline{s.t.}} \, Y_t>0, \\
 &= \dfrac{X_0}{Y_0}.
 \end{align*}
 
-The fact that $r$ is a minimum means that
-\begin{align*}
-\dfrac{X_t}{Y_t} &\geq r, \\
-X_t &\geq rY_t, \\
-\mathbb{E}_t[X_t] &\geq r\mathbb{E}_t[Y_t]
-\end{align*}
+% \noindent We want to prove that
+% \[\frac{X_0}{Y_0} = r \le \frac{\av_t[X_t]}{\av_t[Y_t]}.\]
+% \noindent We assume to the contrary that $r > $ that $r < $
+
+The fact that $r$ is a minimum means that for all $t,$ we
+have $r \le \frac{X_t}{Y_t},$ and hence $ r Y_t \le X_t$ (since $Y_t >
+0$). Taking
+expectation over $t,$ we get that
+\[r \av_t [Y_t] \le \av_t[X_t],\]
+or equivalently,
+\[r \le \frac{\av_t[X_t]}{\av_t[Y_t]}.\]
+(Note that $Y_t > 0$ for all $t,$ and hence $\av_t[Y_t] > 0.$)
+Since $r = \frac{X_0}{Y_0},$ this proves the claim.
+% \begin{align*}
+% \dfrac{X_t}{Y_t} &\geq r, \\
+% X_t &\geq rY_t, \\
+% \mathbb{E}_t[X_t] &\geq r\mathbb{E}_t[Y_t]
+% \end{align*}
 
 %Examples
 \section{Examples}
