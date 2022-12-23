@@ -2,6 +2,7 @@
 %%%%%%%%% options for the file macros.tex
 \usepackage[utf8]{inputenc}
 \usepackage{savesym}
+\usepackage{wrapfig}
 % \usepackage{times}
 \usepackage[dvipsnames]{xcolor}
 \usepackage[ruled,vlined,linesnumbered, algo2e]{algorithm2e}
@@ -165,19 +166,19 @@ In the single source standard shortest path problem (SSSP), we are given a graph
     \end{definition}
 
 In this lecture, we will explore the main ideas behind an algorithm proposed by \cite{bernstein2022negative} for finding shortest paths in a graph with negative edge weights. The existence of negative edges precludes the use of a greedy algorithm such as Dijkstra's which assumes that the distance to a vertex cannot be decreased by adding edges. 
-In addition, reachable negative cost cycles can cause the shortest path to a vertex to be arbitrarily low, rendering the concept of a shortest path meaningless.
-Therefore, a good algorithm for negative weight shortest path should also be able to detect the presence of negative cycles. The well-known Bellman-Ford algorithm is able to solve this problem in $O(nm)$ time, but the algorithm we will discuss in this lecture has a time complexity of $O\big( m  \cdot \log^8 n \cdot \log W ) \big)$ where $W$ is the weight of the most negative edge in the graph.
+Additionally, the existence of negative cost cycles can cause the shortest path to a vertex to be arbitrarily low cost, rendering the concept of a shortest path meaningless.
+The well-known Bellman-Ford algorithm is able to solve this problem in $O(nm)$ time, but the algorithm we will discuss in this lecture has a time complexity of $O\big( m  \cdot \log^8 n \cdot \log W ) \big)$ where $W$ is the weight of the most negative edge in the graph.
 
 \section{Simplifying Assumptions}
-Throughout this lecture, we will make the following assumptions so that we can focus on the most important ideas:
-\begin{enumerate}
+Throughout this lecture, we will make some simplifying assumptions so that we can focus on the most important ideas. The algorithm we will describe will work on graphs $G = (V, E)$ such that:
+\begin{tight_enumerate}
     \item $G$ has no negative cycles
-    \item $G$ has constant out-degree
     \item $G$ has $w(u,v) \geq -1$ for all edges $(u,v) \in E$
-    
-\end{enumerate}
+    \item $G$ has constant out-degree
+\end{tight_enumerate}
 
-
+The main ideas of the algorithm we will describe here are the same as those used in the more general setting.
+However, the algorithm we will describe will have a runtime of $O \left(m \log^5 n \right)$, where a $\log ^3 n$ has been dropped due to the assumption that $G$ has no negative cycles, and a $\log W$ is dropped due to assumption that $w(u,v) \geq -1$.
 
    %  \subsection{Dijkstra's (Greedy)}
    %  \begin{itemize}
@@ -215,7 +216,7 @@ The first idea we need was actually introduced in 1977 by \cite{Johnson77}, and 
 without changing the shortest paths between any of the vertices.
 
 \begin{definition}{Price Function}
-   Consider a graph $G = (V,E,w)$ and let $\phi$ be \textbf{any} function: $V \rightarrow \mathbb{Z}$. Then, we define $w_\phi$ to be the weight function: $$w_\phi(u,v) = w(u,v) + \textcolor{ForestGreen}{\phi(u)} - \textcolor{red}{\phi(v)}$$ %and we define $G_\phi = (V,E,w_\phi)$. We will refer to $\phi$ as a \emph{price} function on $V$. %Note that $(G_{\phi})_{\psi} = G_{\phi + \psi}$.
+   Consider a graph $G = (V,E,w)$ and let $\phi$ be \textbf{any} function: $V \rightarrow \mathbb{Z}$. Then, we define $w_\phi$ to be the weight function: $$w_\phi(u,v) = w(u,v) + \textcolor{ForestGreen}{\phi(u)} - \textcolor{black}{\phi(v)}$$ %and we define $G_\phi = (V,E,w_\phi)$. We will refer to $\phi$ as a \emph{price} function on $V$. %Note that $(G_{\phi})_{\psi} = G_{\phi + \psi}$.
 \end{definition}
 
 \begin{lemma}
@@ -240,7 +241,7 @@ $$w_\phi(P) = w(P) + \phi(s) - \phi(t)$$
 Since all paths between any two vertices $s$ and $t$ are shifted up by the same constant $\phi(s) - \phi(t)$, the shortest paths in the graph remain unchanged! This leads very naturally to the question: \emph{can we use price functions to make all the weights nonnegative, and then just use Dijkstra's?}
 \section{Graphs With Only a Few Negative Edges}
 \label{sec:fewneg}
-The second idea is that if a graph has only a few negative edges on any shortest path between two vertices, then we can efficiently compute a price function that makes all the weights in the graph nonnegative.
+The second idea is that if a graph has only \emph{a few} negative edges on any shortest path between two vertices, then we can efficiently compute a price function that makes all the weights in the graph nonnegative.
 
 \begin{definition}[$\eneg(G)$]
     For any weighted graph $G=(V, E, w)$, define
@@ -249,7 +250,7 @@ The second idea is that if a graph has only a few negative edges on any shortest
 
 \begin{definition}[$G_s$]
     Given any graph $G=(V, E, w)$,
-    $$G_s = (V \cup \{s\}, E \cup \{(s, v)\}_{v \in V}, w_s)$$ refer to the graph $G$ with a dummy source $s$ added, where there is an edge of weight 0 from $s$ to $v$ for every $v \in V$ and edges into $s$.
+    $$G_s = (V \cup \{s\}, E \cup \{(s, v)\}_{v \in V}, w_s)$$ refer to the graph $G$ with a dummy source $s$ added, where there is an edge of weight 0 from $s$ to $v$ for every $v \in V$ and no edges into $s$.
 \end{definition}
 
 \begin{definition}[$\eta_G(v), \eta(G)$] \label{def:numberofnegedges}
@@ -323,7 +324,7 @@ The priority queue Q is implemented as a binary heap, supporting each queue oper
     After any execution of the Dijkstra Phase, all edges of $E \backslash \eneg(G)$ are inactive.
 \end{lemma}
 \begin{proof}
-    For iteration i = 0, we run Dijkstra's algorithm on $E \backslash \eneg(G)$, so all edges in $E \backslash \eneg(G)$ become inactive. For iteration i > 0, we assume that the lemma is true for iteration $i - 1$. At the end of the Dijkstra phase of iteration $i - 1$, all edges in $E \backslash \eneg(G)$ are inactive. The Bellman Ford phase of iteration $i - 1$ might decrease some of $d(v)$, which will cause some edges in $E \backslash \eneg(G)$ become active. We add these vertex v to Q and execute the Dijkstra phase of iteration $i$, then all edges in $E \backslash \eneg(G)$ will be inactive.
+    For iteration i = 0, we run Dijkstra's algorithm on $E \backslash \eneg(G)$, so all edges in $E \backslash \eneg(G)$ become inactive. For iteration $i > 0$, we assume that the lemma is true for iteration $i - 1$. At the end of the Dijkstra phase of iteration $i - 1$, all edges in $E \backslash \eneg(G)$ are inactive. The Bellman Ford phase of iteration $i - 1$ might decrease some of $d(v)$, which will cause some edges in $E \backslash \eneg(G)$ become active. We add these vertex v to Q and execute the Dijkstra phase of iteration $i$, then all edges in $E \backslash \eneg(G)$ will be inactive.
 \end{proof}
 
 \begin{lemma}
@@ -362,6 +363,7 @@ By assumption, all vertices in G have constant out-degree. For vertex extracted 
 Each vertex $v$ is added to Q at most once in each of Dijkstra and Bellman Ford phrase per iteration. If $dist(s, v) = dist_i(s, v)$, v is added to Q $O(i+1)$ times and $d(v) = dist(s, v)$ after the Dijkstra Phase of the $(i+1)$th iteration. After that, $d(v)$ will not change and vertex $v$ will not be added to Q. Here we know $dist(s, v) = dist_{\eta_{G}(v)}(s, v)$, so v is added to Q $O(\eta_G(v) + 1)$ times. For all $v \in V$, the overall time added to Q is $O(\sum_{v \in V}(\eta_G(v)+1)) = O(n + \sum_{v \in V}\eta_G(v))$. In addition, the number of extractions from Q cannot exceed the number of insertions. The priority queue Q is implemented as a binary heap, so each queue operation takes $O(\log n)$ time. Therefore, the running time of the algorithm is $O(\log(n) \cdot (n + \sum_{u \in V}\eta_G(v)))$.
 
 \section{Low Diameter Decomposition (LDD)}
+\label{sec:ldd}
 In section \ref{sec:fewneg} we saw how we can efficiently compute price functions if the graph we are given has a constant number of negative edges on any shortest path. But it is not yet clear how to deal with the general case where there might be $O(n)$ negative edges along any shortest path. The third main idea we will discuss in this lecture is a decomposition for directed graphs which partitions the vertices into subsets each of which have low `weak diameter'. 
 
 \begin{definition}{Weak Diameter}
@@ -373,7 +375,7 @@ In section \ref{sec:fewneg} we saw how we can efficiently compute price function
 \begin{definition}{Low Diameter Decomposition (LDD)}
          \begin{tight_itemize}
              \item \textbf{Input:} A graph $G$ with non-negative edge weights, and a \emph{non-negative} integer $D$
-             \item \textbf{Output:} A set of edges \textcolor{red}{$\esep$} such that the strongly connected components (SCCs) $V_1, \dots, V_k$ of $G - \esep$ have weak diameter $D$ in $G$
+             \item \textbf{Output:} A set of edges \textcolor{black}{$\esep$} such that the strongly connected components (SCCs) $V_1, \dots, V_k$ of $G - \esep$ have weak diameter $D$ in $G$
          \end{tight_itemize}
 \end{definition}
 \begin{figure}[ht]
@@ -385,16 +387,16 @@ In section \ref{sec:fewneg} we saw how we can efficiently compute price function
 
 \begin{lemma} \label{lem:ldd}
     There exists an algorithm $\LowDiamDecomposition(G, D)$ which computes the LDD in  $O(m\log^2 n+n\log^3 n)$ time and guarantees that:
-    $$\forall e \in E, \Pr[e \in \textcolor{red}{\esep}] = O\left(\frac{w(e) \cdot \log^2 n}{D} + n^{-10}\right)$$
+    $$\forall e \in E, \Pr[e \in \textcolor{black}{\esep}] = O\left(\frac{w(e) \cdot \log^2 n}{D} + n^{-10}\right)$$
 \end{lemma}
 
- We will not prove lemma \ref{lem:ldd} in this lecture. The basic mechanism of $\LowDiamDecomposition(G, D)$ is to recursively carve out fixed diameter balls around each vertex until the balls become singletons or have low diameter. In addition to the algorithm and proofs given in the paper, we refer the reader to these additional notes by one of authors \cite{LDD}.
+ We will not prove lemma \ref{lem:ldd} in this lecture. The basic mechanism of $\LowDiamDecomposition(G, D)$ is to recursively carve out balls around each vertex until the balls become singletons or have low diameter. In addition to the algorithm and proofs given in the paper, we refer the reader to these additional notes by one of authors \cite{LDD}.
 
 \section{Overview of $\ScaleDown$ Algorithm}
 We now have most of the tools we need to describe the main workhorse of the approach, which is a recursive algorithm called $\ScaleDown$ that takes
 a graph with edge weights $w(u,v) \geq -2B$ for some positive integer $B$ and returns a price function $\phi$ such that $w_\phi(u,v) \geq -B$.
 
-Given a graph $G$, $\ScaleDown$ operates on a slightly modified version of the graph, denoted $\GB$, in which all the negative weights are shifted up by the constant $B$. Note $\GB$ may still have negative, so we also define $\GB_{\geq 0}$ in which any weights that remain negative are rounded up to 0.
+Given a graph $G$, $\ScaleDown$ operates on a slightly modified version of the graph, denoted $\GB$, in which all the negative weights are shifted up by the constant $B$. Note $\GB$ may still have negative edges, so we also define $\GB_{\geq 0}$ in which any weights that remain negative are rounded up to 0.
 \begin{definition}{$\GB, \GB_{\geq 0}, \GB_s$}
 
     $\GB:=(V, E, \wB)$  where $\wB(e) := w(e) + B$ if $w(e) < 0$
@@ -487,13 +489,11 @@ $\phi_3 \gets \phi_2+\SPaverage(\GB_{\phi_2})$ % \tcp*[f]{(\Cref{thm:ScaleDown:m
 \label{sec:scaledownruntime}
 ScaleDown operates recursively, using $\Delta$ as its recursion parameter. When $\Delta \leq 2$, it simply calls $\SPaverage$, which we already analyzed in section \ref{sec:fewneg}. Since $\Delta \leq 2$ this base case is $O(n \cdot \log(n))$.
 
-Before the recursion, we first compute LDD on the graph in $\GB_{\geq 0}$ in $O(m\log^2 n+n\log^3 n)$ time, and after the recursion, we call $\FixAlmostDag$ which we will see later takes $O(m + n)$ time.
+Before the recursion, we compute LDD as described in section {sec:ldd} on the graph in $\GB_{\geq 0}$ in $O(m\log^2 n+n\log^3 n)$ time, and after the recursion, we call $\FixAlmostDag$ which we will see later takes $O(m + n)$ time.
 
 Before returning, we call $\SPaverage$ to fix the edges in $\esep$. Since those are the only edges that remain negative after the previous two steps, and because the probability that any edge in the graph is in $\esep$ is bounded (from the low diameter decomposition), we will show that this step has expected runtime $O(m \log^3 m)$.
 
-From the pseudocode, we see that the recursive step halves the value of the $\Delta$ at each level (we will see why in the next section), so there can only be $\log(\Delta)$ levels to this recursion.
-
-Putting this all together, we get a total runtime of $O\left(m \log^3 (m) \log \Delta \right)$.
+From the pseudocode, we see that the recursive step halves the value of $\Delta$ at each level (we will see why in the next section), so there can only be $\log(\Delta)$ levels to this recursion. Putting this all together, we get a total runtime of $O\left(m \log^3 (m) \log \Delta \right)$.
 
 \section{Phase 1: Pricing Edges Inside SCCs}
 By the input requirements of $\ScaleDown$, the graph $\GB$ is guaranteed to have at most $\Delta$ negative edges along any sv shortest path.
@@ -503,24 +503,33 @@ Note that this is necessary for the correctness of the algorithm, since Phase 1 
 \begin{lemma}
     For all $v \in V_i$, we have \textbf{at most $\frac{\Delta}{2}$ negative edges} on the shortest $sv$-path in $G[V_i]^B_s$.
 \end{lemma}
-\begin{proof}
-Consider one of the SCCs, $V_i$. Let $P(s,v)$ be the shortest $sv$-path in $G[V_i]^B_s$. Let $u$ be the first vertex along $P(s,v)$. We know that
-$$w_B(\textcolor{red}{P(u,v)}) \leq 0$$
 
-Let $k$ be the number of negative edges in $\textcolor{red}{P(u,v)}$ Then
-$$w(\textcolor{red}{P(u,v)}) \leq w_B(\textcolor{red}{P(u,v)}) -B \cdot k \leq  -B \cdot k$$
+\begin{wrapfigure}{r}{5cm}
+    \includegraphics[width=5cm]{images/phase1-2.pdf}
+\end{wrapfigure}
+\textit{Proof.} Consider one of the SCCs, $V_i$. Let $P(s,v)$ be the shortest $sv$-path in $G[V_i]^B_s$.
 
-From LDD, we have $d_{\GB} (u, v) \leq  \frac{\Delta B}{2}$
+Let $u$ be the first vertex along $P(s,v)$. If there is no such $u$, then the path $P(s,v)$ contains a single zero weight edge from $s$ to $v$ and the claim is trivially true. On the other hand, if there is such a $u$, then we know that the path from u to v $P(u,v)$ must have non-positive weight.
 
-   $$d_G(u,v) \leq d_{\GB} (u, v) \leq  \frac{\Delta B}{2}$$
+$$w_B(\textcolor{black}{P(u,v)}) \leq 0$$
 
-Since we know there are no negative cycles, we must have:
-  $$0 \leq d_G(u,v) + w(\textcolor{red}{P(u,v)})$$
+Let $k$ be the number of negative edges in $\textcolor{black}{P(u,v)}$. If we compare the weight in $\GB$ to the weight in $G$, we must have: 
 
- $$0 \leq d_G(u,v) + w(\textcolor{red}{P(u,v)}) \leq  \frac{\Delta B}{2} -B \cdot k$$
+$$w(\textcolor{black}{P(u,v)}) \leq w_B(\textcolor{black}{P(u,v)}) -B \cdot k \leq  -B \cdot k$$
+
+From LDD, we have $d_{\GB} (v, u) \leq  \frac{\Delta B}{2}$. This is depicted as the dotted arrow in the figure on the right.
+
+    $$d_G(u,v) \leq d_{\GB} (v, u) \leq  \frac{\Delta B}{2}$$
+
+Since these two paths form a cycle, and we know there are no negative cycles, we must have:
+    $$0 \leq d_G(v,u) + w(\textcolor{black}{P(u,v)})$$
+
+    $$0 \leq d_G(v,u) + w(\textcolor{black}{P(u,v)}) \leq  \frac{\Delta B}{2} -B \cdot k$$
 $$k \leq \frac{\Delta}{2} $$
 
-\end{proof}
+
+
+
 
     
 \section{Phase 2: Pricing DAG Edges}
