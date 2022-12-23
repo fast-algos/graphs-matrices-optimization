@@ -1,0 +1,22 @@
+Consider linear regression. We want to find a vector $w^* \in \rea^d$ such that 
+\begin{align}
+    w^* =  \argmin \norm{Aw - b}^2.
+\end{align}
+With $A \in \rea^{n \times d}$ being the data matrix (n observations of $d$ features), 
+and $n \ggreater d$.
+The solution has a closed form expression, 
+$w^* = (A^TA)^{-1}(A^Tb)$. 
+This solution requires roughly
+$\calO(nd^2)$ time for the $A^TA$ multiplication,
+$\calO(nd)$ time for the $A^Tb$ multiplication,
+and $\calO(d^3)$ time to solve the remaining linear system. 
+% Discussion \href{https://math.stackexchange.com/questions/84495/computational-complexity-of-least-square-regression-operation}{here}.
+
+Since we assume $n \ggreater d$, this is dominated by $\calO(nd^2)$.
+It would therefore be very interesting to reduce $n$ in $A$,
+at the expense of obtaining an inexact solution $\tilde{w}$,
+so long as we could bound the relative error of the approximation.
+An obvious way to reduce $n$ is to simply sub-sample the rows of $A$, i.e., 
+the observations.
+But it is unclear whether we can sub-sample those rows with guarantees on the error 
+any faster than just solving the original problem \cite{sarlos2006improved}.

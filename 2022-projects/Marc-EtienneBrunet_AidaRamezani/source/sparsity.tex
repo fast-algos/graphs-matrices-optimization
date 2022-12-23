@@ -1,0 +1,15 @@
+At a high level, we are interested in sparse subspace embeddings because the procedure for sampling a dense embedding matrix $\Pi$, then multiplying it through to embed the problem, 
+may offset the computational benefit of embedding the problem in the first place. 
+
+For example, remember that in the Least Squares Regression problem, using subspace embedding matrix $\Pi \in \rea^{m \times n}$, reduces the dimension to $\calO({m d ^2})$. If we use a dense Gaussian matrix from JL-lemma of dimension $\calO(\epsilon ^ {-2}d\log(d))$ for $\Pi$, it would still take $\calO({n d^2 \log(d)})$ to compute $\Pi A$. Therefore, if $n \ggreater d$, our running time is still dominated by $n$, which counteracts the computational benefit of solving the linear system in a smaller dimension. 
+
+
+We can speed up this process by working with a \textbf{sparse} random matrix $\Pi$. Such matrix would have exactly $s$ non-zero entries on each column. Multiplying $\Pi$ by any matrix, such as $A \in \rea^{n \times d}$, takes $\calO(snd)$ time. If $A$ is also a sparse matrix, it would only take $\calO(s \times Non-zero(A))$ to compute $\Pi A$, where $Non-zero(A)$ is the number of non-zero entries in $A$. 
+
+To construct such matrix $\Pi$, one needs to randomly pick $s$ entries per column and set them to $\pm \frac{1}{\sqrt{s}}$, randomly and uniformly as well. The rest of the entries should be zero. In fact, there is a trade-off between the sparsity $s$ and the row count $m$. In the next section, we will show how matrix trace inequalities can give us an almost tight bound for $(d, \epsilon, \delta)$-OSE, where for any $B > 2$
+$$m = \calO(\epsilon^{-2}Bd\log(d/\delta))$$ and $$s = \calO(\epsilon^{-1}\log_B(d/\delta)).$$ Note, that here the parameter $B$ controls the trade-off between $s$ and $m$. If $s$ is small, then the time complexity to compute $\Pi A$ depends only on the non-zero entries of the matrix $A$. However, the reduced dimension $m$ could get so large that storing and working with any vector in this dimension becomes inefficient and costly.  
+
+% When $s = 1$, $m = \calO(\epsilon^{-2}d^2/\delta)$. Given the dependence on $d^2$ and $1/\delta$, decreasing the probability of failure, referred to as $\delta$, becomes costly.
+
+% {\color{red} ADD PROOF from~\cite{nelson2013osnap} for sparse matrices}
+
