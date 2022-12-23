@@ -1,0 +1,208 @@
+\section{Regularization-Based Learners}
+
+Because the vanilla learner usually leads to catastrophic forgetting, regularization-based learners introduce a regularization term in the loss to counter “forgetting”. Therefore, the loss is composed of 1) the fitting loss for the new task; 2) the regularization loss for the previous tasks. 
+\begin{align}
+    \textit{loss} = \textit{fitting loss} + \textit{regularization loss},
+\end{align}
+I denote all previous datasets by $\data = \cup_{i=1}^{t-1} \data_{i}  = \{(\bx_i, y_i, t_i)\}_{i=1}^{n}$, where $n = \sum_{i=1}^{t-1} n_i$. Then regularization-based approaches can be categorized along two dimensions,
+\begin{itemize}
+\item Whether the predictor is \emph{deterministic} or \emph{distributional}. A deterministic predictor updates a singleton of weight $\bw$ for the predictor $f(\cdot; \bw)$. In comparison, a distributional predictor updates a weight distribution $q(\bw)$ leading to a stochastic $f(\cdot; \bw), \bw \sim q$.  Examples include the contrast between a neural network and a Bayesian neural network \citep{neal1995bayesian}. Because of the discrepancy in predictors, their fitting loss can be computed by $\sum_{i=1}^{n_t} l(y_i^t, f(\bx_i^t; \bw); t)$ and $\sum_{i=1}^{n_t} \expect_{\bw \sim q} [l(y_i^t, f(\bx_i^t; \bw); t)]$, respectively.
+\item Whether the regularization is over the \emph{weight-space} or the \emph{function-space}. For example, given previous parameters $\bw_0$, the $\ell^2$ distance $\rho_w(\bw, \bw') \defas \frac{1}{2}\|\bw - \bw_0\|_2^2$ prevents $\bw$ from changing too much in the weight-space. In comparison, the function-space distance $\rho_f(f(\bX; \bw), f(\bX; \bw_0)) \defas \frac{1}{2}\|f(\bX; \bw)-f(\bX; \bw_0)\|_2^2$ attempts to preserve the previous  predictions. 
+\end{itemize}
+Now we dive into deep introducing representative approaches in each category, by investigating the regularization losses.
+
+\subsection{Deterministic + Function-Space} 
+The continual learning problem is different with standard learning problems in terms of the sequential tasks and the limited memory budget. Therefore, the golden-standard CL performance can be achieved if we could store all previously seen examples and keep optimizing the predictor on these examples. Specifically, the exact function-space distance (E-FSD) regularization can be computed via,
+\begin{align}
+   \sum_{i=1}^{n} \rho_f(f(\bx_i; \bw), f(\bx_i; \bw_0)),
+\end{align}
+where $\{\bx_i\}_{i=1}^n$ represents all previous inputs and $\rho_f$ is a function-space distance \footnote{$\rho_f$ might not be a rigorous “distance” in the mathematical definition.}. To overcome the unrealistic storage requirement in E-FSD, we can store a small representative subset $\{\bz_i\}_{i=1}^m \subset \{\bx_i\}_{i=1}^n$, and compute the function-space distance over the subset. The resulting regularization is termed the subsampling function-space distance (S-FSD) \citep{benjamin2018measuring, buzzega2020dark, rebuffi2017icarl},
+\begin{align}
+   \sum_{i=1}^{m} \rho_f(f(\bz_i; \bw), f(\bz_i; \bw_0)),
+\end{align}
+One commonly-used function-space distance is the KL divergence, $\rho_f(\bbf, \bbf') = \KL{r(\cdot|\bbf')}{r(\cdot|\bbf)}$. For example, Gaussians correspond to the squared Euclidean distance: $\frac{1}{2}\|f(\bx_i; \bw)- f(\bx_i; \bw_0)\|_2^2$; the $K$-wise softmax corresponds to $\sum_{k=1}^K p_k^0 \log \frac{p_k^0}{p_k}$, where $p_k, p_k^0$ are the probabilities of class $k$ for the logits $f(\bx_i; \bw), f(\bx_i; \bw_0)$, respectively.
+
+
+\subsection{Deterministic + Weight-Space}\label{subsec:dete-weight}
+Instead of regularizing the predictors over the function-space, one can as well regularize the predictors over the weight-space using a distance $\rho_w(\bw, \bw_0)$. However, commonly-used metrics defined over the weight-space might not encourage continual learning well enough. For example, the $\ell^2$ Euclidean distance $\rho_w(\bw, \bw_0) = \frac{1}{2} \|\bw - \bw_0\|_2^2$ either forgets old tasks or fails new tasks because of the same weights \citep{kirkpatrick2017overcoming}. Therefore, a good CL learner requires more meaningful weight-space metrics.
+
+One can derive meaningful weight-space metrics by approximating the function-space distance. By taking a second-order Taylor approximation around $\bw_0$, the E-FSD can be approximated by $\frac{1}{2} \left(\bw - \bw_0\right)^{\top} \bH \left(\bw - \bw_0\right)$, where $\bH$ is the Hessian matrix of the E-FSD. Because the Hessian matrix is not guaranteed positive semi-definite, it is usually approximated by the Gauss-Newton matrix \citep{schraudolph2002fast}, which also equals the Fisher information matrix \citep{amari2001information} for exponential families. In consequence, we obtain a quadratic weight-space distance using \emph{the Fisher information matrix} $\bG$ (F-WSD),
+\begin{align}
+    \frac{1}{2}(\bw - \bw_0)^{\top} \bG (\bw - \bw_0),
+\end{align}
+where $\bG = \sum_{i=1}^n \bJ_{\bbf_i\bw_0}^{\top}\bG_{\bbf_i}\bJ_{\bbf_i\bw_0}$ summarizes the contribution of all past inputs. The Jacobian $\bJ_{\bbf_i\bw_0} = \frac{\partial f(\bx_i; \bw_0)}{\partial \bw_0}$ and the function-space Hessian $\bG_{\bbf_i} = \nabla_{\bbf}^2 \rho_f\left(\bbf, f(\bx_i; \bw_0)\right)\vert_{\bbf=f(\bx_i; \bw_0)}$. Storing the whole $\bG$ requires a quadratic order of memory of the network size, which is generally infeasible. Instead, we can use a structured approximation of $\bG$, such as a diagonal structure \citep{kirkpatrick2017overcoming} or a Kronecker-factored structure \citep{ritter2018online}.
+
+Instead of approximating the function-space distance, other approaches propose the weight-space distance $\frac{1}{2}(\bw - \bw_0)^{\top} \diag(\bpi) (\bw - \bw_0) $ by designing importance scores $\bpi$ for the weights $\bw_0$. For example, weights associated to larger gradient norms are assigned larger regularization coefficients : $\bpi_j = \frac{1}{n} \sum_{i=1}^n \| \frac{\partial f(\bx_i; \bw_0)}{(\bw_0)_j} \|$ \citep{aljundi2018memory}. The Synaptic Intelligence (SI) \citep{zenke2017continual} tracks the contribution of each weight for decreasing the loss along training, and they show that the resulting $\bpi$ approximates the Hessian of the loss function in special situations. Finally, the empirical Fisher matrix \citep{martens2020new} can also be applied to approximate the Hessian matrix. The empirical Fisher matrix can be computed as $\bG_{emp} = \sum_{i=1}^n \bJ_{l(y_i, f(\bx_i; \bw); t_i)\bw}^{\top} \bJ_{l(y_i, f(\bx_i; \bw); t_i)\bw}$, which is contrasted with the true Fisher matrix $\bG = \sum_{i=1}^n  \expect_{r(y|f(\bx_i; \bw))} \left[\bJ_{l(y, f(\bx_i; \bw); t_i)\bw}^{\top} \bJ_{l(y, f(\bx_i; \bw); t_i)\bw}\right]$.
+
+\subsection{Distributional + Weight-Space}
+Instead of keeping a singleton of weight $\bw$, one can keep a distribution $q(\bw)$ of weights to capture the uncertainty in the predictor. Let $q_0(\bw)$ be the distribution before the current task, then the regularization usually be a distance metric between the updated distribution $q$ and the old distribution $q_0$. The KL divergence $\KL{q(\bw)}{q_0(\bw)}$ is commonly-used. If the fitting loss function can be represented as minus the log likelihood, i.e., $l(y, f(\bx; \bw); t) = -\log p(y|f(\bx; \bw); t)$, then the overall loss can be written as,
+\begin{align}
+    \min_{q} \sum_{i=1}^{n_t} \expect_{\bw \sim q} [ -\log p(y_i^t|f(\bx_i^t; \bw); t) ] + \KL{q(\bw)}{q_0(\bw)},
+\end{align}
+We note this loss coincides with the variational objective \citep{wainwright2008graphical}, thus the optimum is obtained by the posterior with respect to the prior $q_0$, the likelihood $p(y|f; t)$ and the dataset $\data_t$. Thus the KL regularizers promote online posterior inference, where the distribution of the current task is the prior in the next task. Let the initial prior before all tasks be $p(\bw)$. If the optimum can be obtained for each task, then the distribution in task $t$ is $q^{\star}(\bw) = p(\bw | \cup_{i=1}^t \data_i)$, which totally fixes the catastrophic forgetting problem. However, the true posterior is usually intractable, which motivates using the variational posterior $q \in \mathcal{Q}$, where $\mathcal{Q}$ is a variational family which usually has tractable densities and is easy to sample from. For example, the variational continual learning \citep{nguyen2017variational, swaroop2019improving} adopts fully factorized Gaussians for the variational posterior in Bayesian neural networks. 
+
+Because the KL regularizer actually incurs approximate posterior inference, other techniques for approximating the posterior might also be adopted, such as the Renyi-divergence variational inference \citep{li2016renyi}, moment matching \citep{lee2017overcoming}, and $f$-divergence variational inference \citep{wan2020f}, though they usually go beyond regularization-based approaches. 
+
+
+\subsection{Distributional + Function-Space}
+Distributional predictors can also be combined with the function-space regularizer. Let $q_0(f)$ be the function-space distribution before the current task, and $q(f)$ be the distribution to be optimized. We can similarly adopt the KL divergence regularization for the approximate posterior inference,
+\begin{align}
+    \min_{q} \sum_{i=1}^{n_t} \expect_{f \sim q} [ -\log p(y_i^t|f(\bx_i^t); t) ] + \KL{q(f)}{q_0(f)},
+\end{align}
+However, function-space distributions $q$ are more difficult to specify or parameterize, compared to the weight-space distributions. One can define $q(f)$ as the push forward distribution of the weight-space distribution $q_w(\bw)$ through the predictor $f(\cdot; \bw)$. However, the KL divergence $\KL{q(f)}{q_0(f)}$ usually becomes intractable due to the complicated mapping of $f(\cdot; \bw)$. Instead of seeking for parameterized models, non-parameterized models directly deal with the function-space. In particular, a Gaussian process  (GP) $\GP(0, k)$ defines the distribution of functions directly though its marginal distributions \citep{rasmussen2006gaussian}. Specifically, let $\bx'_1, ..., \bx'_s$ be arbitrary $s$ locations, their function values $\bbf = [f(\bx'_1), ..., f(\bx'_s)]^{\top}$ satisfy a multivariate Gaussian distribution $\normal(0, \bK)$, where $\bK_{ij}=k(\bx'_i, \bx'_j)$. 
+
+The variational posteriors for GPs are usually in an augmented form $q(f, \bu) = p(f | \bu)q(\bu; \bZ)$ \citep{titsias2009variational} where $p$ is the Gaussian process, $\bZ \in \xdomain^m$ are $m$ inducing points, and $\bu = f(\bZ)$. Because the prior $q_0$ is also obtained from similar inference procedures in the previous task, we assume it is in the similar form: $q_0(f, \bu_0) = p(f | \bu_0)q_0(\bu_0; \bZ_0)$. Then KL divergence can be explicitly computed:
+\begin{align}
+    \KL{q(f)}{q_0(f)}=\KL{ p(\bu_0 | \bu)q(\bu; \bZ)}{p(\bu|\bu_0)q_0(\bu_0, \bZ_0)} ,
+\end{align}
+One can optimize both the inducing points $\bZ$ and the variational posterior $q(\bu; \bZ)$ to minimize the overall loss. Intuitively, using more inducing points leads to a better posterior approximation, but incurs a larger memory overhead. To obtain a good balance between the performance and the memory, the variational posterior $q(\bu; \bZ)$ is usually carefully designed  \citep{bui2017streaming, kapoor2020variational}.
+
+Besides using Gaussian processes for function-space distributions, \citet{titsias2019functional} proposes to use a Bayesian linear regression model over a non-linear feature map,
+\begin{align}
+    f(\bx) = \ba^{\top}\phi_{\theta}(\bx), \; \ba \sim \normal(\mu_a, \bSigma_a),
+\end{align}
+where $\phi_{\theta}$ is the feature map parameterized by $\theta$. In consequence, this distribution combines the flexibility of $\phi_{\theta}$ and the explicit density of the Bayesian linear regression. However, to make sure that $\KL{q(f)}{q_0(f)}$ can be computed, the feature map must be shared by both $q$ and $q_0$, which renders $\theta$ as model parameters. Optimizing $\phi_{\theta}$ might lead to the performance drop of $q_0$ over previous tasks. To tackle this problem, they further propose a regularizer $\KL{q_0(\bu_0)}{p_{\theta}(\bu_0)}$, where $p_{\theta}$ represents the model parameterized by the feature map $\phi_{\theta}$. Such regularization forces the prior distribution on $\bu_0$ to be close to $q_0(\bu_0)$, so that optimizing the feature map is attempting to obtain a new prior close to the posterior $q_0(f)$. Then the variational parameters $\mu_a, \bSigma_a$ can be optimized using the KL divergence regularization $\KL{\normal(\mu_a, \bSigma_a)}{p_{\theta}(\bu)}$. Overall, the regularization loss is computed as,
+\begin{align}
+    \KL{\normal(\mu_a, \bSigma_a)}{p_{\theta}(\bu)} + \KL{q_0(\bu_0)}{p_{\theta}(\bu_0)}.
+\end{align}
+
+
+
+\section{Connections between Regularization-based Learners}
+We have introduced four categories of regularization-based learners based on whether the network is deterministic or stochastic, and whether the regularization is over the weight-space or the function-space. In this section, we study the connections between these learners, and we demonstrate that each approach can be transformed from one category to another one. For simplicity, we assume the output space is one-dimensional $f(\bx) \in \Reals$.
+
+\subsection{Deterministic: Function-Space to Weight-Space}
+In Sec~\ref{subsec:dete-weight} we derived the quadratic weight-space distance F-FSD weighted by the Fisher information matrix , which showcases the connections between the function-space and the weight-space. Specifically, for arbitrary function-space distance $\rho_f$, we can obtain the corresponding weight-space distance,
+\begin{align}
+    \frac{1}{2} (\bw - \bw_0)^{\top} \underbrace{\left[\bJ_{f(\bX; \bw_0) \bw_0}^{\top} \bG_{f(\bX; \bw_0)} \bJ_{f(\bX; \bw_0) \bw_0}\right]}_{\bG_w(\bX, \bw_0)} (\bw - \bw_0),
+\end{align}
+where $\bG_\bbf \defas \nabla_{\bbf'}^2 \rho_f\left(\bbf', \bbf  \right) |_{\bbf'=\bbf}$ is the Hessian of the function-space distance and $\bJ_{f(\bX; \bw_0) \bw_0} = \frac{\partial f(\bX; \bw_0) }{\partial \bw_0}$ is the Jacobian matrix of the network. In other words, the approximation is taking the quadratic approximation of the function-space and linearizing the network at $\bw_0$. 
+
+By mapping from the function-space to weight-space, the learner avoids storing all past data points $\bX$ but only stores the matrix $\bG_w(\bX, \bw_0)$. However, the quadratic approximation might only be accurate near $\bw_0$, since it assumes the linearity of the network.
+For further reducing the memory consumption and the computational costs, the learner can adopt different structural approximations of $\bG_w(\bX, \bw_0)$. 
+
+\subsection{Weight-Space: Deterministic to Distributional}\label{subsec:dete-to-dist}
+For a weight-space regularization, we assume it is in the following form,
+\begin{align}
+ {\color{red}\lambda}\frac{1}{2}(\bw - \bw_0)^{\top} \bG_{w}(\bX, \bw_0) (\bw - \bw_0),
+\end{align}
+where $\bG_{w}(\bX, \bw_0)$ is the regularization matrix computed from $\bX$ and $\bw_0$. We observe that the quadratic form corresponds to the mean term in a KL divergence between multivariate Gaussians,
+\begin{align}
+    \KL{\normal(\bw, \bSigma)}{\normal(\bw_0, \bSigma_0)} = \frac{1}{2}\log \frac{\abs{\bSigma_0}}{\abs{\bSigma}} - \frac{d_{w}}{2} + \frac{1}{2}\tr(\bSigma_0^{-1}\bSigma) + \frac{1}{2}(\bw - \bw_0)^{\top} \bSigma_0^{-1} (\bw-\bw_0), \notag
+\end{align}
+Naturally, we can replace the quadratic regularization with the KL divergence. Then we transform the deterministic regularization into a distributional variational optimization problem,
+\begin{align}
+    \min_{q = \normal(\bmu, \bLambda^{-1})} \sum_{i=1}^{n_t} \expect_{\bw \sim q}[l(y_i^t, f(\bx_i^t; \bw), t)] + {\color{red}\lambda} \KL{q}{\normal(\bw_0, (\bG_{w}^0)^{-1})},
+\end{align}
+where we denote $\bG_{w}^0 \defas \bG_{w}(\bX, \bw_0)$ and we parameterize the Gaussian variational posterior $q$ by its mean $\bmu$ and precision $\bLambda$. In practice, we cannot guarantee to find the global optimum of the problem. Therefore, the choices to solve this problem make differences. We consider the Noisy Natural Gradients (NNG) framework \citep{zhang2017noisy}, which optimizes variational Gaussian posteriors by natural gradients.  In each iteration, NNG sample $i$ from $1,...,n_t$ and sample $\bw \sim q$, the update rules are,
+\begin{align}
+    \bmu &\leftarrow \bmu - \alpha \bLambda^{-1}\left[\nabla_{\bw} l(y_i^t, f(\bx_i^t; \bw); t) + {\color{red}\lambda}\frac{1}{n_t} \bG_{w}^0 (\bw - \bw_0) \right], \\
+     \bLambda &\leftarrow  (1 - {\color{red}\lambda}\frac{\beta}{n_t}) \bLambda + \beta\left[\nabla_{\bw}^2 l(y_i^t, f(\bx_i^t; \bw); t_i) + {\color{red}\lambda}\frac{1} {n_t} \bG_{w}^0 \right].
+\end{align}
+However, the Hessian of the loss $\nabla_{\bw}^2 l(y_i^t, f(\bx_i^t; \bw), t)$ is not necessarily positive semi-definite (PSD), which might cause the updated $\bLambda$ to be not PSD. The typical solution is to approximate the Hessian using a PSD matrix. 
+For the weight-space approach using the regularization matrix $\bG_{w}(\bX, \bw_0)$, we propose to use $\bG_{w}(\bx_i^t, \bw)$ to approximate the Hessian $\nabla_{\bw}^2 l(y_i^t, f(\bx_i^t; \bw), t)$. Then the update rule for the precision is,
+ \begin{align}
+     \bLambda &\leftarrow  (1 - {\color{red}\lambda}\frac{\beta}{n_t}) \bLambda + \beta\left[\bG_{w}(\bx_i^t, \bw)+ {\color{red}\lambda}\frac{1} {n_t} \bG_{w}^0 \right].
+\end{align}
+In consequence, we transform the deterministic weight-space approach to its distribution counterpart. For example, \citet{zhang2017noisy} approximates the Hessian using the Fisher matrix. By using the diagonal Gaussian posterior, their Noisy-Adam is the distributional counterpart of the EWC \citep{kirkpatrick2017overcoming}; by using the Kronecker-factored Gaussian posterior, their Noisy-KFAC is the distributional counterpart of \citet{ritter2018online}. This transformation can also be applied to Synaptic Intelligence \citep{zenke2017continual} and Memory aware Synapses \citep{aljundi2018memory} to propose new approaches.
+
+Since the output-space distribution is an exponential family, the gradient of the the loss function is natural connected to the KL divergence,
+\begin{align}
+    \bmu &\leftarrow \bmu - \alpha \bLambda^{-1}\left[\nabla_{\bw} {\color{red}\rho_f}(y_i^t, f(\bx_i^t; \bw); t) + \frac{\lambda}{n_t} \bG_{w}^0 (\bw - \bw_0) \right], \\
+     \bLambda &\leftarrow  (1 - \frac{\lambda \beta}{n_t}) \bLambda + \beta\left[\nabla_{\bw}^2 {\color{red}\rho_g}(\tilde{y}_i^t, f(\bx_i^t; \bw); t_i) +\frac{\lambda} {n_t} \bG_{w}^0 \right].
+\end{align}
+
+
+%We use $\bF$ to keep the moving average of $\bG_w$, 
+%\begin{align}
+%    \bF &= (1 - \frac{\beta}{N})\bF + \frac{\beta}{N}\bG_{w}(\bx_i, \bw_0) \notag \\
+%    \bLambda &= N \bF + \bG_w^0,
+%\end{align}
+%Therefore, we develop a general method to transform a weight-space deterministic approach to a distributional counterpart. This method can be applied to EWC \citep{kirkpatrick2017overcoming}, Synaptic Intelligence \citep{zenke2017continual}, Memory aware Synapses \citep{aljundi2018memory}. \ssy{If we can directly find the optimum of the variational approximation, then we do not need these techniques of course.}
+
+
+\subsection{Distributional: Weight-Space to Function-Space}
+Apparently all operations in the weight-space can be equivalently done in the function-space. For example, one can simply replace the weight-space $\KL{q(\bw)}{p(\bw)}$ as the function-space $\KL{q(f)}{p(f)}$ and obtain an equivalent model. However, instead of considering the equivalent function-space approach, we turn to approximations.
+
+For deterministic learners, the function-space and the weight-space are related by linearizing the networks. Similarly, for a weight-space Gaussian $\normal(\bw, \bSigma)$, we can approximate it using a Gaussian process $\GP(f(\cdot; \bw), k_{\bSigma}(\cdot, \cdot))$. The kernel function is computed through linearizing the network at $\bw_0$,
+\begin{align}
+    k_{\bSigma}(\bx, \bx') = \bJ_{f(\bx; \bw_0) \bw_0} \bSigma \bJ_{f(\bx'; \bw_0) \bw_0}^{\top},
+\end{align}
+Notably we use the Jacobian matrix at $\bw_0$, universally for any $\bw$. For two multivariate Gaussians $\normal(\bw, \bSigma)$ and $\normal(\bw_0, \bSigma_0)$ in the weight-space, the KL divergence between their function-space counterparts can then be computed as,
+\begin{align}
+    \mathrm{KL}_f\left({\normal(\bw, \bSigma)}\|{\normal(\bw_0, \bSigma_0)}\right) & := \frac{1}{2}\log \frac{\abs{\bSigma_0}}{\abs{\bSigma}} - \frac{d_{w}}{2} + \frac{1}{2}\tr(\bSigma_0^{-1}\bSigma)  + \frac{1}{2}df(\bX; \bw)^{\top} \bK_{\bSigma_0}(\bX, \bX)^{-1} df(\bX; \bw), \notag
+\end{align}
+where $df(\bX; \bw)\defas f(\bX; \bw) - f(\bX; \bw_0)$.
+Thus we can optimize the variational objective,
+\begin{align}\label{eq:eq-kl-f}
+    \min_{q = \normal(\bmu, \bLambda^{-1})} \sum_{i=1}^{n_t} \expect_{\bw \sim q}[l(y_i^t, f(\bx_i^t; \bw), t)] + 
+    \mathrm{KL}_f\left({q}\|{\normal(\bw_0, (\bG_{w}^0)^{-1})}\right).
+\end{align}
+To optimize the variational bound, we can adopt the NNG introduced in Sec~\ref{subsec:dete-to-dist}. Compared to the weight-space approach, the objective differs only in the mean term: $\frac{1}{2}df(\bX; \bw)^{\top} \bK_{(\bG_{w}^0)^{-1}}(\bX, \bX)^{-1} df(\bX; \bw) $ versus $\frac{1}{2}(\bw-\bw_0) \bG_{w}^0 (\bw - \bw_0)$. If the network is indeed linear, the two expressions are equivalent; if the network is nonlinear, the weight-space formula is usually meaningful only when $\bw$ is close to $\bw_0$ while the function-space formula can provide reasonable regularizations even when $\bw$ and $\bw_0$ are far apart.
+
+\subsection{Function-Space: Distributional to Deterministic}
+In Sec~\ref{subsec:dete-to-dist} we transform the deterministic approach to the distributional counterpart by expanding the singleton $\bw$ to a distribution with the mean $\bw$. In turn, we can transform the distributional approach to a deterministic approach by preserving only its mean. We assume the function-space distribution of $f(\bX)$ is a multivariate Gaussian distribution with the mean $f(\bX; \bw_0)$ and the covariance $\bK(\bX, \bX)$. We keep only the mean-relevant formula and obtain,
+\begin{align}
+    \frac{1}{2}df(\bX; \bw)^{\top} \bK(\bX, \bX)^{-1} df(\bX; \bw),
+\end{align}
+The resulting regularization is a weighted quadratic distance over the function-space. Because of the memory budget, \citet{pan2020continual} proposes to store a small coreset $\bZ = [\bz_1, ..., \bz_m]^{\top} \subset \bX$ and use,
+\begin{align}
+    \frac{1}{2}df(\bZ; \bw)^{\top} \bK(\bZ, \bZ)^{-1} df(\bZ; \bw).
+\end{align}
+
+
+%For example, if the function-space distribution is parameterized as the GP by linearizing the network, as did in Sec~\ref{}, we can keep only the mean-related regularization,
+%\begin{align}
+%    \frac{1}{2}df(\bX; \bw)^{\top} \bK_0(\bX, \bX)^{-1} df(\bX; \bw),
+%\end{align}
+%
+%A function-space distributional regularization is the KL divergence between distributions of function values. We can directly transform it to a deterministic counterpart by preserving only the mean term in the KL divergence, i.e.,
+%\begin{align}
+%    \frac{1}{2}df(\bX^0; \bw)^{\top} \bK_0(\bX^0, \bX^0)^{-1} df(\bX^0; \bw),
+%\end{align}
+%Where $ \bK_0(\bX^0, \bX^0) $ is the covariance matrix of the prior distribution.
+
+%\subsubsection{Overall}
+%A graphical visualization for the connections between categories is shown in the figure. In particular, starting at any category, we can transform it to an arbitrary category following the figure.
+%\begin{figure}[h]
+%\centering
+%\includegraphics[width=\textwidth]{figures/category.png}
+%\end{figure}
+
+%\subsection{Connections between Categories}
+%In this subsection we demonstrate close connections between these categories of regularization approaches. Previously we introduced the Quadratic FSD by linearizing the network to approximate E-FSD. Thus we can see that the weight-space and the function-space are associated by linearizations. In this subsection, we demonstrate that each approach can be transformed between categories.
+%
+%We characterize these connections with more detail in the below. 
+%
+%For simplicity, we assume the output space is one-dimensional $f(\bx) \in \Reals$ and the output space distance is the L2 distance $\rho_f(f, f') = \frac{1}{2}(f - f')^2$. We note that we can generalize our results to an arbitrary distance $\rho_f$ by taking its second-order Taylor expansions to obtain a quadratic form. By linearizing the network, the E-FSD can be approximated by the Q-FSD,
+%\begin{align}
+%    \frac{1}{2}\|f(\bX^0; \bw) - f(\bX^0; \bw_0)\|_2^2 \approx \frac{1}{2} (\bw - \bw_0)^{\top} \underbrace{\bJ_{\bbf\bw_0}^{\top}\bJ_{\bbf\bw_0}}_{\bG_0} (\bw - \bw_0),
+%\end{align}
+%Therefore, the weight-space Q-FSD and the function-space E-FSD are a respected (linear, nonlinear) pair for the same objective. The Fisher information matrix $\bG_0$ (up to adding $\tau \bI$) has been used as the precison matrix for a Laplace approximation or a Gaussian variational posterior. Let $\bSigma_0 = (\bG_0 + \tau \bI)^{-1}$ be the covariance matrix, then the Q-FSD can further be identified as one term in a KL divergence,
+%\begin{align}
+%    \KL{\normal(\bw, \bSigma)}{\normal(\bw_0, \bSigma_0)} = \frac{1}{2}\log \frac{\abs{\bSigma_0}}{\abs{\bSigma}} - \frac{d_{w}}{2} + \frac{1}{2}\tr(\bSigma_0^{-1}\bSigma) + \frac{1}{2}(\bw - \bw_0)^{\top} \bSigma_0^{-1} (\bw-\bw_0), \notag
+%\end{align}
+%where $d_w$ is the dimension of the parameters and $\bSigma$ is the covariance of the variational posterior. We observe the last term in the KL divergence coincides with the Q-FSD (up to adding $\tau \bI$). Therefore, deterministic weight-space regularization can be regarded as the mean regularizer of a Gaussian weigh-space regularization. 
+%
+%Furthermore, the weight-space distribution further implies a function-space distribution. In particular, the weight-space Gaussian distribution can be approximated by a function-space Gaussian process $\GP(f(\cdot; \bw_0), k_0(\cdot, \cdot))$. The kernel function is computed through linearizing the network,
+%\begin{align}
+%    k_0(\bx, \bx') = \bJ_{f(\bx) \bw_0} \bSigma_0\bJ_{f(\bx') \bw_0}^{\top},
+%\end{align}
+%Thus in the function-space, the regularization is in the form $\KL{q}{\GP(f(\cdot; \bw_0), k_0(\cdot, \cdot))}$. We can transform the KL divergence so that it is between finite dimensional multivariate Gaussians by focusing only on the previous examples $\bX^0$, 
+%\begin{align}
+%    \KL{\normal(f(\bX^0; \bw), \bSigma(\bX^0, \bX^0))}{\normal(f(\bX^0; \bw_0), \bK_0(\bX^0, \bX^0))},
+%\end{align}
+%By focusing on the mean regularization, the distributional regularization can become deterministic again, in the following expression,
+%\begin{align}
+%   \text{KL-FSD: }  \frac{1}{2} (f(\bX^0; \bw) - f(\bX^0; \bw_0))^{\top} \bK_0(\bX^0, \bX^0)^{-1} (f(\bX^0; \bw) - f(\bX^0; \bw_0)),
+%\end{align}
+%Interesting we observe this turns out to be different with the E-FSD, but they become equivalent when the predictor is exactly linear. % To analyze the discrepancy, we use a linear model $f(\bx; \bw) = \bw^{\top}\bx$. Then $\bK_0(\bX^0, \bX^0) = \bX^0 \left(\left(\bX^0\right)^{\top} \bX^0\right)^{+} \left(\bX^0\right)^{\top}$, where we used the pseudo inverse $\cdot^+$ to ensure a proper inversion.
+%
+%\begin{figure}[h]
+%\centering
+%\includegraphics[width=\textwidth]{figures/category.png}
+%\end{figure}
+%
+%A graphical visualization for the connections is shown in the figure. In particular, starting at any category, we can transform it to arbitrary category following the figure.
+
+

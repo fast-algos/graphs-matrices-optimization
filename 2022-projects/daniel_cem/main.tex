@@ -1,0 +1,376 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ total={170mm,243mm},
+ left=20mm,
+ right=20mm,
+ top=30mm,
+ }
+ 
+\usepackage{setspace}
+\doublespacing
+ 
+ 
+%  \input{math_commands}
+\input{tex/headers}
+% \input{tex/defs}
+\input{math_commands}
+\input{macros.tex}
+
+
+\usepackage[section]{placeins}
+
+\lhead{Learning DAGs}
+\rhead{Daniel Severo, Cem Anil}
+
+\newcommand{\note}[1]{\textit{\bf{[NOTE: #1]}}}
+
+\newcommand{\ssy}[1]{{\color{blue}{\bf\sf [SSY: #1]}}}
+\newcommand{\GD}[1]{{\bf \color{red} [GD: #1]}}
+\newcommand{\sjx}[1]{{\color{red}{\bf\sf [SJX: #1]}}}
+\newcommand{\RBG}[1]{{\color{cyan}{\bf\sf [RBG: #1]}}}
+
+\definecolor{mydarkblue}{rgb}{0,0.08,0.45}
+\hypersetup{colorlinks=true,
+    linkcolor=mydarkblue,
+    citecolor=mydarkblue,
+    filecolor=mydarkblue,
+    urlcolor=mydarkblue}
+
+\newlength\figurewidth
+\newlength\figureheight
+\linespread{1.}
+\setlength{\parskip}{0.1cm}%
+
+\title{DAGs with NO TEARS: Continuous Optimization for Structure Learning}
+
+% Authors must not appear in the submitted version. They should be hidden
+% as long as the \iclrfinalcopy macro remains commented out below.
+% Non-anonymous submissions will be rejected without review.
+
+\author{Daniel Severo, Cem Anil \\
+University of Toronto, Vector Institute}
+\date{}
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to \LaTeX{} to determine where to break
+% the lines. Using \AND forces a linebreak at that point. So, if \LaTeX{}
+% puts 3 of 4 authors names on the first line, and the last on the second
+% line, try using \AND instead of \And before the third author name.
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We introduce and explain how one can cast and solve structure learning (discovering structural causal model topologies) as a continuous optimization problem. The techniques described were proposed by \citet{zheng2018dags} in the paper ``DAGs with NOTEARS". The technical contribution of this work is the introduction of a novel loss function over adjacency matrices that quantify how "DAG-like"~\footnote{DAG stands for ``directed acyclic graph"} a graph is, with the level set corresponding to and only to DAGs. Switching to continuous optimization using the NOTEARS loss is demonstrated to outperform more traditional discrete algorithms, despite largely relying on domain-agnostic optimization machinery. 
+\end{abstract}
+
+\section{What is Structure Learning}
+We'll begin with motivating \textbf{structural causal models} (SCM) for modelling complex, multidimensional systems, then introduce the problem of structure learning -- the problem of learning the network topology underlying SCMs. 
+
+\subsection{Structural Causal Models}
+Say you're trying to make sense of a complex, multi-dimensional system from which you have a bunch of observations, but no domain knowledge to make sense of it. Examples might include measurements of protein expressions in human cells \citep{sachs2005causal}, or health stats of individuals who regularly exercise and of who don't. What would be your first step?
+
+A reasonable first step would be to consult a domain expert about the data you have and learn which variable(s) are expected by theory to have a causal influence over the others. For example, a physician might tell you that frequent exercise strengthens the heart muscle, and that a strong heart muscle improves blood flow, thereby causing a reduction in heart rate. They might also tell you that exercise is linked with lower body mass index, which is also linked with lower heart rate as well as lower blood pressure. These causal relationships can be succinctly displayed with the help of a directed acyclic graph as done in Figure \ref{fig:scm_example}. 
+
+\begin{figure}[h]
+\center
+\includegraphics[width=12cm]{figures/scm_example_2.png}
+\caption{\textbf{Example of a Structural Causal Model:} A Structural Causal model defines with variables are direct (noisy) functions of which other variables. In the figure above, S (stronger heart) is a direct function of E (exercise), hence there's a link between them. On the other hand, R (lower heart rate) is only influenced by E(exercise) through the mediation of S (stronger heart); hence there's no link between the two. }
+\label{fig:scm_example}
+\end{figure}
+
+This graph simply summarizes what we know about which variables directly ``cause" which other variables (or which variables are direct functions of the others):
+\begin{align}
+    E &= U_{E} \\ 
+    S &= f_{S}(E) + U_{S} \\
+    F &= f_F(E) + U_{F} \\
+    R &= f_R (S, F) + U_{R} \\
+    P &= f_P (F) + U_{P}
+\end{align}
+
+In Figure \ref{fig:scm_example}, $E, S, F, R$ and $P$ are univariate random variables that represent exercise, heart strength, body mass index, heart rate and blood pressure, $U_E$, $U_S$, $U_F$, $U_R$ and $U_P$ are zero-centered (but not necessarily Gaussian) exogenous random variables and $f_S, f_F, f_R, f_P: \reals \mapsto \reals$ are functions that govern how causes impact their effects. The above set of variables and equations define a \textbf{Structural Causal Model} (SCM), also known as a \textbf{Structural Equation Model} -- a central abstraction in causal inference. 
+
+Let's say the domain expert who gave us the above SCM also told us that the variables are linked to each other \textit{linearly} -- a very common assumption. This yields a linear SCM:
+
+\begin{align}
+    E &= U_{E} \\ 
+    S &= w_{ES}E + U_{S} \\
+    F &= w_{EF}E + U_{F} \\
+    R &= w_{SR}S + w_{FR}F + U_{R} \\
+    P &= w_{FP}F + U_{P}
+\end{align}
+
+Setting $\mV = [E, S, F, R, P]$ to be the concatenation of our random variables and $\mU = [U_E, U_S, U_F, U_R, U_P]$ the concatenation of the exogenous noise variables, we can succinctly express the SCM using matrix-vector notation: 
+\begin{equation}
+    \mV = \mW \mV + \mU \
+\end{equation}
+
+The matrix $\mW$ can be seen as the weighed adjacency matrix of the SCM: the nonzero entries $\mW_{ij}$ are equal to the weights connecting two nodes $i$ and $j$ connected with an edge. Note that $\mW$ is often quite sparse: $\mW_{ij} = 0$ if and only if there's no edge between two variables. 
+
+What can we do with a given SCM topology? If we also know the weights, we can answer \textit{probabilistic and causal inference} type questions: given someones body-mass index and exercise habits, can we predict their expected blood pressure? If a person is given a medicine that strengthens heart muscle without directly affecting anything else, how does this affect ones heart rate? We can also attempt to \textit{learn} the coefficients in the linear SCM given a bunch of observations of the random variables: since the functional relationships between the variables is very clear, it's easy to set up a maximum likelihood objective and minimize it by optimizing over the SCM weights. 
+
+
+\subsection{Structure Learning}
+Above, the topology of the graph was given to us by a domain expert. Structure learning refer to the problem of learning the topology of SCM from data - a very difficult, yet very important learning problem. 
+
+Let's formally state the structure learning problem following \citet{zheng2018dags} building on the formalism above. Let $\mX \in \reals^{n \times d}$ be a data matrix consisting of $n$ i.i.d. observations of the multivariable random variable $\mV$. Let $\mathbb{D}$ stand for the space of all DAGs on $d$ nodes. The purpose of structure learning is to learn a weighted adjacency matrix $\mW \in \reals^{d \times d}$ that not only models the dataset $\mX$ via the SCM equation $\mV = \mW\mV + \mU$, but also has the constraint that the edges defined by its nonzero entries describe a graph $G(V, E)$ that is a DAG (i.e. $G \in \dagspace)$). 
+
+There are numerous ways of searching over the space of DAGs to find the most fitting one that describes the data. Until early 2010s, most approaches relied on discrete/combinatorial search algorithms (e.g \citet{heckerman1994combination}). \citet{zheng2018dags} take a different approach which uses a fully continuous optimization based algorithm to solve search over DAGs. This lecture is about the key technical contribution of this work, which is a novel loss function over adjacency matrices that quantify how "DAG-like" a graph is, with the level set corresponding to and only to DAGs. 
+
+\textbf{The optimization problem: } We need three loss functions to set up our continuous optimization problem: (1) a loss function that quantifies how well the current $\mW$ estimate fits the data, (2) a regularization term to make sure the solution is well-behaved (sparse, for example), and (3) a constraint that guarantees that the $\mW$ found at the end of optimization represents a DAG. 
+
+The choice of (1) and (2) are not central to this lecture, so we'll directly state what \citet{zheng2018dags} use:
+\begin{align}
+    F(W) = l(W, X) + r(W) = \frac{1}{2n} ||\mX - \mX \mW||_{F}^{2} + \lambda ||\mW||_1
+\end{align}
+The choice of $l$, besides making intuitive sense~\footnote{This loss has a maximum likelihood interpretation if one assumes that the exogenous noise terms are unit Gaussian.}, has solid theoretical backing: the minimizer of this loss "provably recovers a true DAG with high probability on finite samples and high-dimensions"~\citep{zheng2018dags}. The L1 loss on the adjacency matrix $\mW$ serves to enforce sparsity. It's not hard to show that the minimizer of L1 regularized least squares is sparse. The combination of these loss functions is analogous to LASSO regression~\citep{tibshirani1996regression}. 
+
+The choice of (3) is the main contribution of \citep{zheng2018dags}, and deserves a whole section of its own. 
+
+\section{Quantifying ``DAGness"}
+We're in search of a function $h: \reals^{d \times d} \mapsto \reals$ that have the following properties:
+\begin{enumerate}
+    \item $h(\mW) = 0$ iff $\mW$ is acyclic. 
+    \item High values of $h(\mW)$ implies that $G(\mW)$ has many cycles. Lower values imply not many cycles. 
+    \item $h$ is smooth.
+    \item $h$ and it's derivatives are easy to compute. 
+\end{enumerate}
+
+While it's relatively easy to satisfy (1) and (2) alone, satisfying all 4 criteria is challenging. 
+
+\textbf{Candidate 1:} Pick $h(\mW)$ as the minimum L2 distance to an element of $\dagspace$:
+\begin{align}
+    h_{1}(\mW) = ||\mW - \proj_{\dagspace} \mW||_{F}
+\end{align}
+This loss function satisfies (1) and (2), but doesn't satisfy (3) and (4): it's derivatives are discontinuous and it's very difficult to differentiate through. (proof omitted)
+
+Before considering $h(\mW)$ candidates, let's take a step back and consider what acyclicity really entails. For a graph to be a DAG, there should be no $k$-length cycles in it, for all values of $k$. If we could count the number of $k$-length cycles in a graph, then we could possibly use it to design a loss function to penalize $k$-length cycles. This insight leads to the following lemma:
+
+\begin{lemma}
+    Let $\mB \in \dagspace$ be the binary adjacency matrix of a directed graph G(V, E) of $d$ nodes. The number of paths starting at node $s$ and ending at node $t$, $p_{k}^{(st)}(\mB)$ is given by:
+    \begin{equation}
+        p_k^{(st)}(\mB) = \chi_{t}^T \mB^k \chi_{s} \label{eq:path_count}
+    \end{equation}
+    where $\chi_n$ is the indicator vector at node $n$. 
+    \label{lemma:path_count}
+\end{lemma}
+\begin{proof}
+    We'll use proof by induction. 
+    The base case $k=1$ works, because $\chi_t^T \mB \chi_s = 1$ if $s$ and $t$ are neighbors (by the definition of an adjacency matrix) and $0$ otherwise. This is consistent with the definition $p_1^{(st)}$. 
+    Now assume that the statement holds for $k-1$. This means that $(\mB^{k-1} \chi_s)_i = p_{k}^{(si)}(\mB)$. That is, $i$th coordinate of $\mB^{k-1}\chi_s$ contains the number of paths from $s$ to $i$. The total number of length $k$ paths that start from $s$ and leads to $t$ is equal to the sum of the number of all $k-1$ length paths that start at $s$ and lead to a neighbor of $t$. Combining this with the definition of an adjacency matrix, we conclude the proof.
+    \begin{align}
+        p_{k}^{(st)} &= \sum_{u: (u, t) \in E} p_{k-1}^{(si)}
+        = \sum_{i=1}^{d}\mB_{ti} p_{k-1}^{(si)} 
+        = \sum_{i=1}^{d} \mB_{ti} (\mB^{k-1}\chi_s)_i 
+        = \chi_t^T B B^{k-1} \chi_s 
+        = \chi_t^T B^k \chi_s
+    \end{align}
+\end{proof}
+Now that we can count the number of paths with known start and end nodes, we can count the total number of $k$-length cycles in a graph. 
+\begin{lemma}
+    Let $\mB \in \dagspace$ be the binary adjacency matrix of a directed graph G(V, E) of $d$ nodes. The total number of $k$-length cycles in $G$, $c_k(\mB)$, is given by:
+    \begin{equation}
+        c_k (\mB) = \Tr \mB^k
+    \end{equation}
+    \label{lemma:num_k_cycles}
+\end{lemma}
+\begin{proof}
+    The total number of length $k$ paths starting and ending on node $s$ is given by $p_k^{(ss)} (\mB) = \chi_s^T \mB^k \chi_s$ (by Lemma \ref{lemma:path_count}). Counting length $k$ cycles starting on all nodes, we get:
+    \begin{align}
+        c_k(\mB) = \sum_{i=1}^{d} p_{k}^{(ii)} = \sum_{i=1}^{d} (\mB^k)_{ii} = \Tr \mB^k
+    \end{align}
+\end{proof}
+
+We're now ready to state a new candidate loss function. 
+
+\textbf{Candidate 2:} Pick $h(\mW)$ as follows:
+\begin{align}
+    h_2(\mW) = \Tr (\mI - \mW)^{-1} - d
+\end{align}
+
+While the inverse might look counter-intuitive, things become conceptually cleaner when one considers the (matrix version of the) identity $\frac{1}{1-x} = 1 + x + x^2 + x^3 \dots$ Now, let's justify this loss function more formally. 
+\begin{lemma}
+     Let $\mB \in \dagspace$ be the binary adjacency matrix of a directed graph G(V, E) of $d$ nodes. Further assume that $r(\mB) < 1$ where $r(\mB)$ is the largest singular value of $\mB$. Then $\mB$ is a DAG if and only if 
+     \begin{align}
+         \Tr (\mI - \mB)^{-1} = d
+     \end{align}
+\end{lemma}
+\begin{proof}
+    $\mB$ is a DAG if and only if it doesn't contain any cycles. By Lemma \ref{lemma:num_k_cycles} this is equivalent to saying $\Tr \mB^k = 0$ for any $k \geq 1$. By the Neumann sum identity, we can write:
+    \begin{align}
+        \Tr (\mI - \mB)^{-1} = \Tr \sum_{i=0}^{\infty}\mB^k = \Tr \mI + \sum_{i=1}^{\infty}\Tr \underbrace{\mB^k}_{\text{=0 for all k larger than 1}} = d
+    \end{align}
+\end{proof}
+
+This loss function (or the version where infinity is replaced with $d$ to the same effect) is quite promising, while having fatal flaws. First, we need to ensure $r(\mW) < 1$ throughout training, which prevents learning to discover SCM formulas that don't satisfy these properties. Moreover, values of $\Tr \mB^k$ can get extremely large if the graph is large enough, exceeding machine precision and preventing reliable gradients from being calculated. 
+
+Luckily, there exists a loss function that solves both of these issues. 
+
+\textbf{Candidate 3: } Pick $h$ as follows:
+\begin{align}
+    h(\mW) = \Tr \exp (\mW \circ  \mW) - d
+\end{align}
+where $\circ$ stand for Hadamard product and $\exp$ stand for matrix exponential. 
+Intuitively, this works because just like the inverse operation in Candidate 2, Candidate 3 also defines an infinite sum over the k-length cycles in the graph, but this time weighed by $\frac{1}{k!}$. Let's now see this more concretely. 
+
+\begin{lemma}
+     Let $\mB \in \dagspace$ be the binary adjacency matrix of a directed graph G(V, E) of $d$ nodes. $\mB$ is a DAG iff 
+     \begin{align}
+         \Tr \exp \mB = d
+     \end{align}
+\end{lemma}
+\begin{proof}
+    Following the definition of the matrix exponential, we get:
+    \begin{align}
+        \Tr \exp \mB &= \Tr \sum_{i=0}^{\infty} \frac{1}{k!} \mB^k
+        = \Tr \mI + \sum_{i=1}^{\infty} \frac{1}{k!} \mB^k  = d + \sum_{i=1}^{\infty} \frac{1}{k!} \mB^k \label{eq:exp_cycle}
+    \end{align}
+    By Lemma \ref{lemma:num_k_cycles}, we have that the right hand of Equation \ref{lemma:num_k_cycles} is $0$ (i.e. $\Tr \mB^k=0$ for all $k \geq 1$) iff $\mB$ is a DAG, completing the proof. 
+\end{proof}
+
+As stated above, moving from the inverse operation to matrix exponential merely adds a $\frac{1}{k!}$ scaling to each term in the infinite sum. this serves two crucial purposes: 1) Now, we don't have any constraint on the spectral radius! This loss function works on any matrix. 2) Larger length step counts are normalized by a factor that grows exponentially with $k$. Moreover, it's now smooth and differentiable!
+\begin{lemma}
+    The gradient of the (candidate 3) loss function $h(\mB)$ is given by:
+    \begin{align}
+        \grad h(\mW) = 2(\exp \mW \circ \mW) \circ \mW
+    \end{align}
+\end{lemma}
+The proof for this is trivial and hence omitted. 
+
+Candidate 3 satisfies all of the desiderata, hence can be used to fully define the NOTEARS optimization problem:
+
+\begin{align}
+    &\min_{\mW \in \reals^{d \times d}} \frac{1}{2n} ||\mX - \mX \mW||_{F}^{2} + \lambda ||\mW||_1 \\
+    &\text{subject to} \quad h(\mW) = \Tr \exp (\mW \circ  \mW) - d = 0
+\end{align}
+
+While well defined, this objective is unfortunately non-convex, since the loss function $h$ is nonconvex. (Nonconvexity is inevitable, as the space of DAGs is non-convex) We'll now discuss how the augmented Lagrangian machinery can be used to solve this constrained minimization problem to great empirical success. 
+
+
+% \begin{itemize}
+%     \item Give motivating example. 
+%     \begin{itemize}
+%         \item Define PGMs. Give an example. 
+%         \item Define what one can do with a given PGM (i.e. do inference or learn parametric distributions).
+%         \item Tell that structure learning is the significantly more difficult problem of inferring the graph structure from data alone. Give an example. (protein and phospholipids in immune cells dataset). 
+%         \item Why is this an interesting problem?
+%         \begin{itemize}
+%             \item Useful for scientific discovery
+%             \item Useful for causal discovery
+%         \end{itemize}
+        
+%     \end{itemize}
+%     \item Introduce notation. 
+%     \begin{itemize}
+%         \item X: data matrix. 
+%         \item D: (discrete) space of DAGs.
+%         \item Assumption: each variable is a noisy linear combination of the others. 
+%         \item W: Defines the adjacency matrix. When an entry is not zero, it quantifies the connection between edges. 
+%         \item Describe the induced SEM. 
+%         \begin{itemize}
+%             \item Add 1) Equations, 2) Graphical model, 3) the adjacency matrix W. 
+%         \end{itemize}
+%         \item Linear SEMs can model any generalized linear model. 
+%     \end{itemize}
+%     \item Emphasize that this graph is directed. Hence, the adjacency matrix is not symmetric. 
+%     \item Introduce linear vs. non-linear SEMs. 
+%     \item Introduce loss function. 
+%     \begin{itemize}
+%         \item Desirable properties of least squares
+%         \item Sparsity inducing L1 loss. 
+%     \end{itemize}
+% \end{itemize}   
+
+
+% \section{Continuous Optimization Formulation}
+% \begin{itemize}
+%     \item Desiderata. 
+%     \item Counting length-k walks. 
+%     \item Introduce infinite series loss.
+%     \begin{itemize}
+%         \item Make connection to random walks
+%         \item Mention it requires the radius to be less than 1. 
+%     \end{itemize}
+%     \item Introduce the exponential loss. 
+% \end{itemize}
+
+
+
+\section{Optimizing the NOTEARS Objective}
+As mentioned in the previous section, the optimization problem is non-convex since the constraint $h(\mW)=0$ defines a non-convex set.
+This implies that having the gradient of the Lagrangian equal to zero at some point $\mW$ (i.e., a \emph{stationary point}) is not a sufficient condition for optimality.
+Nonetheless, experiments show that said stationary points are close enough to the true optimum for the applications considered.
+
+The authors apply the augmented Lagrangian method to solve the optimization problem, which adds a quadratic penalty $\frac{\rho}{2}|h(\mW)|^2$ to the objective function resulting in
+
+\begin{align}
+    &\min_{\mW \in \reals^{d \times d}} \frac{1}{2n} ||\mX - \mX \mW||_{F}^{2} + \lambda ||\mW||_1 + \alpha h(\mW) + \frac{\rho}{2}|h(\mW)|^2 \\
+    &\text{subject to} \quad h(\mW) = \Tr \exp (\mW \circ  \mW) - d = 0.
+\end{align}
+Note that $h(\mW)=0$ whenever $\mW$ is a solution. Hence, adding the quadratic penalty will not change the solution set with respect to the original optimization problem.
+Intuitively, as $\rho$ increases, any convex solver will increasingly favor solution where $|h(\mW)|$ is closer to zero.
+A full treatment of this method is beyond the scope of the write-up.
+
+Converting the constrained optimization problem above into a non-constrained one yields the following objective
+\begin{align}
+    \max_{\alpha \in \reals} \min_{\mW \in \reals^{d \times d}} F(\mW) + \frac{\rho}{2}|h(\mW)|^2 + \alpha h(\mW),
+\end{align}
+where $F(\mW) = \frac{1}{2n} ||\mX - \mX \mW||_{F}^{2} + \lambda ||\mW||_1$.
+As previously mentioned, it will suffice to find a local minimizer $\mW^\star_\alpha$ for the inner loop at some value of $\alpha$. There are a multitude of different black-box solvers that can efficiently find globally and locally optimal solutions for convex and non-convex problems, respectively. The development of such programs are completely orthogonal to the specific domain of the optimization problem and is out of the scope for this write-up and hence shall not be discussed. The outer loop can be optimized via gradient descent methods by noting that
+\begin{align}
+    \nabla_\alpha \left( F(\mW^\star_\alpha) + \frac{\rho}{2}|h(\mW^\star_\alpha)|^2 + \alpha h(\mW^\star_\alpha) \right) = h(\mW^\star_\alpha).
+\end{align}
+
+Finally, because the chosen convex solvers will not necessarily output an estimate $\tilde{\mW}$ with some entries equal to $0$ (i.e., indicating an absence of an edge in the DAG), the method requires specifying a threshold value $\omega \geq 0$ where all entries in $\tilde{\mW}$ smaller than $\omega$ are set to zero. Note that the thresholding step has non-trivial consequences: a hard-thresholding step with an appropriately chosen value reduces the number of false discoveries \citep{zhou2009thresholding}. 
+
+\section{Results and Discussion}
+The authors provide comparisons with existing methods on both toy examples (i.e., synthetic data) and real-world datasets.
+
+For each experiment a graph is sampled from either the Erdős–Rényi (ER) or scale-free (SF) families of random graphs along with a ground truth weight matrix $\mW$. Then, $\mV = \mX\mV + \mU$ is sampled using either a Normal, Exponential or Gumbel distribution for $\mU$ to generate datasets $\mX \in \reals^{n \times d}$ for multiple values of $n$ and $d$. For each experiment, the following 3 analyses are presented.
+
+\paragraph{Parameter estimation:} In Figures 1. and 2.~\footnote{These figures are screenshots from the original paper. Hence, the captions belong to the authors. } a visual comparison between the estimated and ground truth weight matrices, $\tilde{\mW}$ and $\mW^\star$, is provided for different threshold values $\omega$.
+The results indicate that, at least for these simple experiments and through visual inspection, the method can recover the underlying ground truth.
+
+
+\begin{figure}[h]
+\center
+\includegraphics[width=16cm]{figures/fig1_and_2.png}
+% \caption{\textbf{Example of a Structural Causal Model:} A Structural Causal model defines with variables are direct (noisy) functions of which other variables. In the figure above, S (stronger heart) is a direct function of E (exercise), hence there's a link between them. On the other hand, R (lower heart rate) is only influenced by E(exercise) through the mediation of S (stronger heart); hence there's no link between the two. }
+\label{fig:figs_1_2}
+\end{figure}
+
+\paragraph{Structure Learning:} A common way to compare 2 graphs is through the \emph{Hamming Distance}, which measures the minimal number of edits (e.g., addition and removal of edges)  required to transform one graph to another. The Hamming Distance is compared for varying values of $n, d$, distributions for $\mU$, and random graph families. NOTEARS consistently outperforms other methods for large values of $n$ and $d$, but under-performs for small values of $n$ (i.e., when there is little data) -- see Figure 3. 
+
+\begin{figure}[h]
+\center
+\includegraphics[width=16cm]{figures/fig3.png}
+% \caption{\textbf{Example of a Structural Causal Model:} A Structural Causal model defines with variables are direct (noisy) functions of which other variables. In the figure above, S (stronger heart) is a direct function of E (exercise), hence there's a link between them. On the other hand, R (lower heart rate) is only influenced by E(exercise) through the mediation of S (stronger heart); hence there's no link between the two. }
+\label{fig:fig3}
+\end{figure}
+
+
+\paragraph{Comparison to exact global minimizer:} For small DAGs it is possible to find the global optimum of the NOTEARS objective in feasible time using out-of-the-box solvers.
+In this setting the dimensionality is fixed to $d=10$ and $n$ is varied from $20$ to $1000$.
+The error of NOTEARS estimate $\tilde{\mW}$ with respect to the global objective $\mW^\star$ is measured as $||\tilde{\mW} - \mW^\star||$, which is shown to be small (compared to the norm of $\mW^\star$).
+This indicates that the non-convexity of the NOTEARS objective does not significantly hinder the employment of convex solvers, at least for low dimensionality -- Table 1. 
+
+\begin{figure}[ht!]
+\center
+\includegraphics[width=16cm]{figures/tab1.png}
+% \caption{\textbf{Example of a Structural Causal Model:} A Structural Causal model defines with variables are direct (noisy) functions of which other variables. In the figure above, S (stronger heart) is a direct function of E (exercise), hence there's a link between them. On the other hand, R (lower heart rate) is only influenced by E(exercise) through the mediation of S (stronger heart); hence there's no link between the two. }
+\label{fig:figs_1_2}
+\end{figure}
+
+\bibliography{references}
+\bibliographystyle{apalike} 
+
+\clearpage
+\appendix
+
+\end{document}

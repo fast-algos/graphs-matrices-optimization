@@ -1,0 +1,42 @@
+\section{Formulation}
+
+
+\subsection{The Continual Learning Problem}
+
+In standard learning problems, the learner receives a fixed dataset $\data$ sampled from some underlying distribution and then optimizes the model through multiple passes of the dataset $\data$. 
+The continual learning (CL) problems are different in that the learner receives a sequence of datasets with varying distributions, and it cannot visit previous datasets due to storage constraints. Each dataset is called a \emph{task}.
+
+Specifically, let $t \in \tdomain$ be the task identifier and $\data_{t} = \{(\bx_n^t, y_n^t)\}_{n=1}^{n_t}$ be the dataset seen at $t$. Notebly, $t$ might only be an index in $\Nats$ representing the task id \citep{kirkpatrick2017overcoming}, or might as well contain distributional information of $\data_t$ (e.g., a vector attribute of the task) \citep{chaudhry2018efficient}. Because of storage constraints, the learner cannot store and visit previous datasets. More concretely, according to the data pipeline, continual learning problems can be categorized into three settings, 
+\begin{itemize}
+\item \textbf{Task Identifier + Batch Training} \citep{lopez2017gradient, zenke2017continual}. The learner receives a whole dataset $\data_t$ for each task, accompanied with the task identifier $t$. Multiple passes of $\data_t$ are permitted. Because the task identifier $t$ is given, the learner is aware of task changing and the potential task distributional information.
+\item \textbf{Task Identifier + Stream Training.} The learner is given the task identifier, but only receives a stream of the dataset $\data_t$. Or in other words, the dataset $\data_t$ is permitted by one pass only. Therefore, the streaming pipeline requires the learner to learn quickly.
+\item \textbf{No Task Identifier + Stream Training} \citep{aljundi2018memory, buzzega2020dark}.  The learner does not know the task identifier, but only receives streaming data whose underlying distribution might change over time. This scenario requires the learner to detect the task changing \citep{titsias2019functional} or to minimize the dependencies on task identifiers \citep{chrysakis2020online}.
+\end{itemize}
+In continual learning, the learner is anticipated to have two abilities,
+\begin{itemize}
+\item \textbf{Avoiding Catastrophic Forgetting.} The continual learning problem requires the learner to learn through a sequence of tasks, without repeatedly visiting old datasets. However, as the requirement of artificial general intelligence \citep{legg2007universal}, the learner should perform well across all seen tasks, instead of catastrophically “forgetting” previous seen tasks. Furthermore, if there are structural similarities between tasks, it might also expect \textbf{backward transfer}, which indicates improving the old performances after learning new tasks.
+\item \textbf{Enabling Forward transfer.} Although the tasks correspond to different underlying distributions, these distributions might share structural similarities potentially depicted by the task identifier. The learner should take advantage of the structures in old datasets so that it learns faster and better on current and future tasks. For example, if the learner has learned on the Imagenet dataset \citep{deng2009imagenet}, it should learn fast on CIFAR10.
+\end{itemize}
+
+In this paper, I focus on using regularization to avoid catastrophic forgetting and to enable forward transfer. For simplicity, I assume using the \textbf{Task Identifier + Batch Training} pipeline, where the task boundaries are known and each dataset can be used for multiple times. I note that the involved approaches can also shed light to other data pipelines such as no task identifiers or streaming training. I also assume each task is a \emph{supervised learning problem} mapping from the input to the target.
+
+\subsection{The Continual Learning Learner}
+To obtain a predictor that solves the continual learning problem, I assume the learner is equipped with the following ingredients,
+\begin{itemize}
+    \item A memory budget $B_t$ to store the predictor and all relevant information. $B_t$ might be a constant, or increase with seeing more tasks.
+    \item The function-space distribution in an exponential family: $r(\by | \bbf)$, where $\bbf \in \fdomain$ is the natural parameter. For example, the logits are the natural parameters of the softmax distribution.
+    % We also denote by $\by$ the moment parameter. For example, for a softmax distribution, the the logits and the probabilities are the natural parameters and the moment parameters, respectively.
+   \item The network $f(\cdot; \bw)$ mapping the input to the natural parameter of the function-space distribution, with $\bw$ being the network weights.
+   \item The loss function $l(y, f(\bx); t)$  measuring how well the function $f$ fits the data point $(\bx, y)$.
+%   \item The function-space distance (FSD) $\rho_f(\bbf, \bbf')$ \footnote{$\rho_f$ might not be a rigorous “distance” in the mathematical definition.}, such as the KL divergence, $\rho_f(\bbf, \bbf') = \KL{r(\cdot|\bbf')}{r(\cdot|\bbf)}$.
+%   \item The weight-space distance $\rho_w(\bw, \bw')$, such as the (weighted) squared distance. 
+\end{itemize}
+
+%\subsection{The Catastrophic Forgetting Problem}
+
+\paragraph{The vanilla learner.}
+A vanilla learner omits the continual learning desiderata and conducts standard loss minimizations. In concrete, let $\bw_0$ be the weight before the current task $t$, the new weight is obtained by,
+\begin{align}
+    \bw^{\star} \leftarrow \min_{\bw} \sum_{(\bx, y) \in \data_{t}} [l(y, f(\bx; \bw); t)],
+\end{align}
+The loss minimization is usually conducted by gradient descent, starting at $\bw_0$. Due to lack of mechanisms to engage previous tasks $\data_{1:t-1}$, the catastrophic forgetting problem might appear.

@@ -1,0 +1,440 @@
+\section{Nystrom Function Space Distance}
+
+Given a neural network $f(\bx; \btheta_0)$ parameterized by $\btheta_0$, we are interested at approximating the Fisher information matrix $\bF = \frac{1}{n}\sum_{i=1}^n \frac{\partial f(\bx_i; \btheta_0)}{\partial \btheta_0} \frac{\partial f(\bx_i; \btheta_0)}{\partial \btheta_0}^{\top}$. Here we start with the regression problem for simiplicity, and $\{\bx_i\}_{i=1}^n$ are the training examples. Intuitively, we hope to use a small set of \textit{inducing points} $\bZ=[\bz_1, ..., \bz_m]$ to summarize the training set well. However, summarizing the training set using $\bZ$ requires the correlations between $f(\bx_i; \btheta_0)$ and $f(\bz_j; \btheta_0)$, which are not directly modelled by the deterministic $f$.
+
+To characterize the correlations, we consider networks with noisy parameters $\btheta$, where $\btheta = \btheta_0 + \bepsilon$ is obtained using zero-mean additive noise $\bepsilon$ applied on the real parameters $\btheta_0$. In consequence, we can compute the mean and covariance with respect to the noisy network,
+\begin{align}
+    \mu(f(\bx; \btheta)) &= \expect_{\bepsilon} [ f(\bx; \btheta)] \approx \expect_{\bepsilon}[ f(\bx; \btheta_0) + (\btheta - \btheta_0)^{\top}  \frac{\partial f(\bx_i; \btheta_0)}{\partial \btheta_0}] = f(\bx; \btheta_0), \\
+    \Cov(f(\bx; \btheta), f(\bx'; \btheta)) &\approx \expect_{\bepsilon} \left[ \left(f(\bx; \btheta)-f(\bx; \btheta_0)\right) \left(f(\bx'; \btheta)-f(\bx'; \btheta_0)\right) \right] \notag \\
+    &\approx \expect_{\bepsilon} \left[  \frac{\partial f(\bx_i; \btheta_0)}{\partial \btheta_0}^{\top} (\btheta - \btheta_0) (\btheta - \btheta_0)^{\top}  \frac{\partial f(\bx_i; \btheta_0)}{\partial \btheta_0} \right] \notag \\
+    &=  \frac{\partial f(\bx_i; \btheta_0)}{\partial \btheta_0}^{\top} \expect_{\bepsilon} [\bepsilon \bepsilon^{\top}] \frac{\partial f(\bx_i; \btheta_0)}{\partial \btheta_0}.
+\end{align}
+where the approximations assume constant curvature $\frac{\partial f(\bx_i; \btheta)}{\partial \btheta}$  around $\btheta_0$. For simiplicity, we denote $\frac{\partial f(\bx_i; \btheta_0)}{\partial \btheta_0}$ by $\bJ_{\bx_i \btheta_0}$ and $\expect_{\bepsilon} [\bepsilon \bepsilon^{\top}]$ by $\bSigma_{\bepsilon}$. We also let $k(\bx, \bx') = \bJ_{\bx_i \btheta_0}^{\top}\bSigma_{\bepsilon} \bJ_{\bx'_i \btheta_0}$ Therefore, the noisy network defines a Gaussian Process, $f(\bx; \btheta) \sim \GP(f(\bx;\btheta_0), k(\bx, \bx'))$. Under the GP formulation, the inducing points $\bZ$ and their function values $f(\bZ; \btheta)$ naturally provide a Nystrom approximation,  
+\begin{align}
+    \hat{f}(\bx; \btheta) =  f(\bx; \btheta_0) + k(\bx, \bZ)k(\bZ, \bZ)^{-1} \left( f(\bZ; \btheta) - f(\bZ; \btheta_0) \right),
+\end{align}
+Now we approximate the function distance $\frac{1}{n}\sum_{i=1}^n \left(f(\bx_i, \btheta) - f(\bx_i, \btheta_0) \right)^2 $,
+\begin{align}
+    \frac{1}{n}\sum_{i=1}^n \left(f(\bx_i, \btheta) - f(\bx_i, \btheta_0) \right)^2 
+    & = \frac{1}{n}\sum_{i=1}^n \left(f(\bx_i, \btheta) - \hat{f}(\bx_i, \btheta) + \hat{f}(\bx_i, \btheta)  - f(\bx_i, \btheta_0) \right)^2 \\
+    &=\underbrace{ \frac{1}{n}\sum_{i=1}^n \left(f(\bx_i, \btheta) - \hat{f}(\bx_i, \btheta)\right)^2}_{\text{A:nystrom approximation residual}} + \underbrace{\frac{1}{n}\sum_{i=1}^n \left( \hat{f}(\bx_i, \btheta)  - f(\bx_i, \btheta_0) \right)^2}_{\text{B:inducing points summarization}} \notag \\
+   &+\underbrace{\frac{2}{n}\sum_{i=1}^n \left(f(\bx_i, \btheta) - \hat{f}(\bx_i, \btheta)\right) \left( \hat{f}(\bx_i, \btheta)  - f(\bx_i, \btheta_0) \right)}_{\text{C: zero in expectation due to orthogonality}}
+\end{align}
+The inducing point summarization term can be computed efficiently,
+\begin{align}
+%    B = \left( f(\bZ; \btheta) - f(\bZ; \btheta_0) \right)^{\top}k(\bZ, \bZ)^{-1}   \left(\frac{1}{n}\sum_{i=1}^n k(\bZ, \bx_i)k(\bx_i, \bZ)\right) k(\bZ, \bZ)^{-1} \left( f(\bZ; \btheta) - f(\bZ; \btheta_0) \right), \notag 
+    B = \frac{1}{n}\|k(\bX, \bZ) k(\bZ, \bZ)^{-1} \left( f(\bZ; \btheta) - f(\bZ; \btheta_0) \right)\|_2^2,
+\end{align}
+Now we estimate the residual term. Let $g(\bx; \btheta) = f(\bx; \btheta)-k(\bx, \bZ)k(\bZ, \bZ)^{-1}f(\bZ; \btheta) $,
+\begin{align}
+A 
+&= \frac{1}{n}\sum_{i=1}^n \left(f(\bx; \btheta) - f(\bx; \btheta_0) - k(\bx, \bZ)k(\bZ, \bZ)^{-1} \left( f(\bZ; \btheta) - f(\bZ; \btheta_0) \right)\right)^2 \\
+& = \frac{1}{n}\sum_{i=1}^n \left(g(\bx; \btheta) - g(\bx; \btheta_0)\right)^2\approx (\btheta - \btheta_0)^{\top} \underbrace{\left(\frac{1}{n}\sum_{i=1}^n \frac{\partial g(\bx_i; \btheta_0) }{\partial \btheta_0}\frac{\partial g(\bx_i; \btheta_0)}{\partial \btheta_0}^{\top}  \right)}_{\bF^g} (\btheta - \btheta_0),
+\end{align}
+We can use a diagonal approximation for the Fisher matrix $\bF^g$.
+
+To sum up, for a function $f(\bx; \btheta): \Reals^d \to \Reals$ and a training set $\{\bx_i\}_{i=1}^n$, the \textbf{function space distance (FSD)} for weight $\btheta, \btheta_0$ is,
+\begin{align}
+    \rho(\btheta, \btheta_0) = \frac{1}{n}\sum_{i=1}^n \left(f(\bx_i; \btheta) - f(\bx_i; \btheta_0) \right)^2
+\end{align}
+To reduce the computational cost, one can use a random mini-batch $\{\bz_i\}_{i=1}^m, m\leq n$ of the training set to estimate the distance $\rho$, as the \textbf{subsampled function space distance (SFSD)},
+\begin{align}
+    \rho_s(\btheta, \btheta_0) = \frac{1}{m}\sum_{i=1}^m \left(f(\bz_i; \btheta) - f(\bz_i; \btheta_0) \right)^2,
+\end{align}
+The SFSG is an unbiased estimate of the FSD, whose variance decays in $\bigO(\frac{1}{\sqrt{m}})$. Besides from estimating FSD unbiasedly using a subset, we can also use nystrom approximation as studied previously. The nystrom approximation provides the \textbf{nystrom function space distance (NFSD)},
+\begin{align}
+    \rho_n(\btheta, \btheta_0) = \left( f(\bZ; \btheta) - f(\bZ; \btheta_0) \right)^{\top}k(\bZ, \bZ)^{-1}   \left(\frac{1}{n}\sum_{i=1}^n k(\bZ, \bx_i)k(\bx_i, \bZ)\right) k(\bZ, \bZ)^{-1} \left( f(\bZ; \btheta) - f(\bZ; \btheta_0) \right), \notag 
+\end{align}
+where $k(\bx, \bx') = \frac{\partial f(\bx; \theta_0)}{\partial \theta_0}^{\top} \bSigma_{\bepsilon} \frac{\partial f(\bx; \theta_0)}{\partial \theta_0}$.
+
+
+\subsection{A Linear Model Example}
+ Assume $ \bx \in \Reals^d$ and a linear model: $f(\bx; \btheta) = \btheta^{\top}\bx$, we let $\delta_{\btheta} \defas \btheta - \btheta_0$ and $\bZ = [\bz_1, ..., \bz_m]^{\top} \in \Reals^{m \times d}$,
+\begin{align}
+    \rho(\btheta, \btheta_0) &= \delta_{\btheta}^{\top}\left(\frac{1}{n}\sum_{i=1}^n \bx_i \bx_i^{\top}\right)\delta_{\btheta}, \\
+    \rho_s(\btheta, \btheta_0) &= \delta_{\btheta}^{\top}\left(\frac{1}{m}\sum_{i=1}^m \bz_i \bz_i^{\top}\right)\delta_{\btheta}, \\
+    \rho_n(\btheta, \btheta_0) &= \delta_{\btheta}^{\top} \bG(\bZ)\left( \frac{1}{n}\sum_{i=1}^n \bx_i \bx_i^{\top} \right) \bG(\bZ)^{\top} \delta_{\btheta},
+\end{align}
+where $\bG(\bZ) = \bZ^{\top} \left( \bZ \bSigma_{\bepsilon}  \bZ^{\top} \right)^{-1}\bZ \bSigma_{\bepsilon} $. We set $\bSigma_{\bepsilon} = \bI$, then $\bG(\bZ)=\bZ^{\dagger}\bZ$ is the Moore-Penrose Inverse of $\bZ$ multipled by $\bZ$ itself. Since $\bZ$ are drawn randomly (or representatively) from $\bX$, $\bG(\bZ)$ approximately find the $m$ directions on which the eigenvalues of $\frac{1}{n}\sum_{i=1}^n \bx_i \bx_i^{\top} $ are the largest. In consequence, \textbf{NFSD} uses 
+$\bG(\bZ)\left( \frac{1}{n}\sum_{i=1}^n \bx_i \bx_i^{\top} \right) \bG(\bZ)^{\top}$ to provide the near-optimal rank-$m$ approximation for $\frac{1}{n}\sum_{i=1}^n \bx_i \bx_i^{\top}$.
+
+Putting the analyses into the proximal regularization or curriculum learning setting, where \textbf{FSD} regularizes the parameter $\btheta$ to move in directions orthogonal to the largest eigenvectors of $\frac{1}{n}\sum_{i=1}^n \bx_i \bx_i^{\top}$. The \textbf{NFSD} approximately preserves its eigensystem for largest eigenvalues, while \textbf{SFSD} generates a new eigensystem mixed with unimportant directions.
+
+Now we strengthen the previous analyses by an example. Let $d=200, n=100$. We sample $\bx$  from a multivariate Gaussian distribution $ \normal(\mu \bone_d, \bU \diag([\lambda_1, ..., \lambda_d]) \bU^{\top})$ with an orthogonal matrix $\bU \sim \Reals^{d \times d}$. We set $\lambda_i = d(1-\alpha) \alpha^i$ such that the matrix trace is approximately $d$ independent of $\alpha$. In the following we experimentally investigate how the spectral decay $\alpha$, input mean $\mu$ and input rotation $\bU$ affects the performance for \textbf{SFSD} and \textbf{NFSD}. We use two metrics for quantifying the approximation quality,
+\begin{align}
+    \text{Distance Error} &= \abs{\rho(\btheta, \btheta_0) - \rho_i(\btheta, \btheta_0)}; \delta_{\theta} \sim \normal(\bzero_d, \bI_d),i \in \{s, n\},  \\
+    \text{Matrix Trace Error} &= \sum_j \abs{\bC_{jj} - \hat{\bC}_{jj}}; \\
+    \text{Matrix Fnorm Error} &= \sqrt{\sum_{j_1, j_2} (\bC_{j_1 j_2} - \hat{\bC}_{j_1 j_2})^2} ; \\
+    & \bC = \frac{1}{n}\sum_{i=1}^n \bx_i \bx_i^{\top},  \hat{\bC} \in \{\frac{1}{m}\sum_{i=1}^m \bz_i \bz_i^{\top}, \bG(\bZ)\left( \frac{1}{n}\sum_{i=1}^n \bx_i \bx_i^{\top} \right) \bG(\bZ)^{\top} \}  \notag 
+\end{align}
+We use two approaches for randomly sampling $\bU$. For uniform sampling over all orthogonal matrices, we randomly sample $\bA \in \Reals^{d \times d}$ from an isotropic Gaussian and compute $\bU$ as the QR decomposition outcome of $\bA \bA^{\top}$. On the other hand, we want to sample $\bU$ that is axes-aligned to certain degree $a$, which is done by using the QR decomposition of $\bA \bA^{\top} + a \bI$. The bigger $a$ is, the more axes-aligned $\bU$ is. For each setting, we compare the approximation errors for $m = 1,...,50$. Each experiment is repeated for $500$ times and the average results are reported.
+
+
+\begin{figure}[!htb]
+\centering
+%\hspace{-4cm}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/linear/vary_mean_random_cov_v5_uniform_n100_d200.pdf}
+       \caption{Uniform Sampling.}
+      \end{subfigure}
+      \hspace{2em}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/linear/vary_mean_random_cov_v5_norm_n100_d200.pdf}
+       \caption{Norm Sampling.}
+      \end{subfigure}
+      \hspace{2em}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/linear/vary_mean_random_cov_v5_optimize_n100_d200.pdf}
+       \caption{Continuous Optimization .}
+      \end{subfigure}
+      \hspace{2em}
+\caption{Effect of Input Mean. $\alpha=0.95$ and $\bU$ is sampled uniformly over all orthogonal matrices. We compare three ways of generating inducing points: uniform sampling from $\bX$, norm sampling from $\bX$, and continuous optimization for nystrom approximation. For each figure, we compare subsampling, nystrom approximation using $\bZ$, and the optimal rank-$M$ nystrom approximation.}
+\end{figure}
+
+
+
+
+\begin{figure}[!htb]
+\centering
+%\hspace{-4cm}       
+\begin{subfigure}[b]{1.1\textwidth}
+ \hspace{-1cm}
+       \includegraphics[width=\textwidth]{figures/linear/zero_mean_random_cov_v5_uniform_n100_d200.pdf}
+       \caption{Uniform Sampling.}
+      \end{subfigure}
+%      \hspace{2em}     
+% \hspace{-1.5cm} 
+% \hspace{2cm}
+\begin{subfigure}[b]{1.1\textwidth}
+ \hspace{-1cm}
+       \includegraphics[width=\textwidth]{figures/linear/zero_mean_random_cov_v5_norm_n100_d200.pdf}
+       \caption{Norm Sampling.}
+      \end{subfigure}
+%      \hspace{2em}     
+% \hspace{-1.5cm} 
+% \hspace{2cm}
+\begin{subfigure}[b]{1.1\textwidth}
+ \hspace{-1cm}
+       \includegraphics[width=\textwidth]{figures/linear/zero_mean_random_cov_v5_optimize_n100_d200.pdf}
+       \caption{Continuous Optimization .}
+      \end{subfigure}
+%      \hspace{2em}
+\caption{Effect of Input Mean. $\bU$ is sampled uniformly over all orthogonal matrices. We compare three ways of generating inducing points: uniform sampling from $\bX$, norm sampling from $\bX$, and continuous optimization for nystrom approximation. For each figure, we compare subsampling, nystrom approximation using $\bZ$, and the optimal rank-$M$ nystrom approximation.}
+\end{figure}
+
+
+
+\begin{figure}[!htb]
+\centering
+%\hspace{-4cm}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/linear/zero_mean_vary_cov_v5_uniform_n100_d200.pdf}
+       \caption{Uniform Sampling.}
+      \end{subfigure}
+      \hspace{2em}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/linear/zero_mean_vary_cov_v5_norm_n100_d200.pdf}
+       \caption{Norm Sampling.}
+      \end{subfigure}
+      \hspace{2em}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/linear/zero_mean_vary_cov_v5_optimize_n100_d200.pdf}
+       \caption{Continuous Optimization .}
+      \end{subfigure}
+      \hspace{2em}
+\caption{Effect of Input Rotation, $\mu=0., \alpha=0.95$. $\bU$ is sampled based on the axes-aligned degree "diagAdd".. We compare three ways of generating inducing points: uniform sampling from $\bX$, norm sampling from $\bX$, and continuous optimization for nystrom approximation. For each figure, we compare subsampling, nystrom approximation using $\bZ$, and the optimal rank-$M$ nystrom approximation.}
+\end{figure}
+
+
+
+%
+%\begin{figure}[h]
+%\centering
+%\vspace{-1.3em}
+%%\hspace{-4cm}
+%\includegraphics[width=1.1\textwidth]{figures/linear/zero_mean_random_cov_v5_uniform_n100_d200.pdf}
+%\caption{Effect of Spectral Decay. The input mean $\mu=0$ and $\bU$ is sampled uniformly over all orthogonal matrices. We observe that, for nystrom approximation, the approximation error decays exponentially in accord to the spectral decay of $\frac{1}{n}\sum_{i=1}^n \bx_i \bx_i^{\top}$. Specifically, the smaller $\alpha$ is, the faster the spectral decay, and the smaller the approximation error is. However, the nystrom approximation is still outperformed by the optimal approximation.
+%Moreover, the approximation error using subsampling is not strongly dependent to the spectral decay.}
+%\end{figure}
+%
+%\begin{figure}[h]
+%%\hspace{-4cm}
+%\centering
+%\vspace{-2em}
+%\includegraphics[width=1.1\textwidth]{figures/linear/zero_mean_vary_cov_v5_uniform_n100_d200.pdf}
+%\caption{Effect of Input Rotation, $\mu=0., \alpha=0.9$. $\bU$ is sampled based on the axes-aligned degree "diagAdd". Rotating the inputs has no influence to both subsampling and nystrom approximation.}
+%\end{figure}
+
+%\subsection{Structured Approximation for the Fisher Remainder}
+%Besides using the inducing points summarization, we can further approximate the \textbf{FSD} by computing the Fisher on the approximation residual, $g(\bx; \btheta) = f(\bx; \btheta)-k(\bx, \bZ)k(\bZ, \bZ)^{-1}f(\bZ; \btheta)$,
+%\begin{align}
+%    \bF^g = \frac{1}{n}\sum_{i=1}^n \frac{\partial g(\bx_i; \btheta_0) }{\partial \btheta_0}\frac{\partial g(\bx_i; \btheta_0)}{\partial \btheta_0}^{\top} ,
+%\end{align}
+%However, $\bF^g$ does not seem to have a KFAC-ish approximation. 
+
+\newpage 
+\subsection{A Random Feature Model}
+Assume $ \bx \in \Reals^d$ and a linear model: $f(\bx; \btheta) = \btheta^{\top}\varphi(\bx)$, where the random feature
+\begin{align}
+    \varphi(\bx) = [\cos(\bw_1^{\top}\bx + b_1), ..., \cos(\bw_h^{\top}\bx + b_h)]^{\top}, \bw_i \sim \normal(0, \sigma^2 \bI_d), \bb_i \sim \mathbb{U}[0, 2\pi],
+\end{align}
+Here $\sigma$ characterizes the spectral decay of the kernel implied by the random feature. Smaller $\kappa$ corresponds to faster spectral decay. We let $\delta_{\btheta} \defas \btheta - \btheta_0$ and $\varphi(\bZ) = [\varphi(\bz_1), ..., \varphi(\bz_m)]^{\top} \in \Reals^{m \times h}$,
+\begin{align}
+    \rho(\btheta, \btheta_0) &= \delta_{\btheta}^{\top}\left(\frac{1}{n}\sum_{i=1}^n \varphi(\bx_i) \varphi(\bx_i)^{\top}\right)\delta_{\btheta}, \\
+    \rho_s(\btheta, \btheta_0) &= \delta_{\btheta}^{\top}\left(\frac{1}{m}\sum_{i=1}^m \varphi(\bz_i) \varphi(\bz_i)^{\top}\right)\delta_{\btheta}, \\
+    \rho_n(\btheta, \btheta_0) &= \delta_{\btheta}^{\top} \bG(\varphi(\bZ))\left( \frac{1}{n}\sum_{i=1}^n \varphi(\bx_i) \varphi(\bx_i)^{\top} \right) \bG(\varphi(\bZ))^{\top} \delta_{\btheta},
+\end{align}
+where $\bG(\varphi(\bZ)) = \varphi(\bZ)^{\top} \left( \varphi(\bZ) \bSigma_{\bepsilon}  \varphi(\bZ)^{\top} \right)^{-1}\varphi(\bZ) \bSigma_{\bepsilon} $. We set $\bSigma_{\bepsilon} = \bI$.
+
+
+\begin{figure}[h]
+\centering
+%\hspace{-4cm}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/rf/spectral_sigma_uniform_n100_d10_h200.pdf}
+       \caption{Uniform Sampling.}
+      \end{subfigure}
+      \hspace{2em}
+%\begin{subfigure}[b]{\textwidth}
+%       \includegraphics[width=\textwidth]{figures/rf/spectral_sigma_norm_n100_d10_h200.pdf}
+%       \caption{Norm Sampling.}
+%      \end{subfigure}
+%      \hspace{2em}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/rf/spectral_sigma_optimize_n100_d10_h200.pdf}
+       \caption{Continuous Optimization .}
+      \end{subfigure}
+      \hspace{2em}
+\caption{Effect of Spectral Decay. $n=100, h=200, d=10$. We compare two ways of generating inducing points: uniform sampling from $\bX$, and continuous optimization for nystrom approximation. For each figure, we compare subsampling, nystrom approximation using $\bZ$, and the optimal rank-$M$ nystrom approximation. \ssy{Continuous optimization does not match the optimal perfectly anymore.}}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+%\hspace{-4cm}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/rf/hidden_size_uniform_n100_d10_sigma03.pdf}
+       \caption{Uniform Sampling.}
+      \end{subfigure}
+      \hspace{2em}
+%\begin{subfigure}[b]{\textwidth}
+%       \includegraphics[width=\textwidth]{figures/rf/spectral_sigma_norm_n100_d10_h200.pdf}
+%       \caption{Norm Sampling.}
+%      \end{subfigure}
+%      \hspace{2em}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/rf/hidden_size_optimize_n100_d10_sigma03.pdf}
+       \caption{Continuous Optimization .}
+      \end{subfigure}
+      \hspace{2em}
+\caption{Effect of Hidden Size. $n=100, \sigma=0.3, d=10$. We compare two ways of generating inducing points: uniform sampling from $\bX$, and continuous optimization for nystrom approximation. For each figure, we compare subsampling, nystrom approximation using $\bZ$, and the optimal rank-$M$ nystrom approximation.}
+\end{figure}
+
+
+\begin{figure}[h]
+\centering
+%\hspace{-4cm}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/rf/hidden_size_uniform_n100_d30_sigma03.pdf}
+       \caption{Uniform Sampling.}
+      \end{subfigure}
+      \hspace{2em}
+%\begin{subfigure}[b]{\textwidth}
+%       \includegraphics[width=\textwidth]{figures/rf/spectral_sigma_norm_n100_d10_h200.pdf}
+%       \caption{Norm Sampling.}
+%      \end{subfigure}
+%      \hspace{2em}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/rf/hidden_size_optimize_n100_d30_sigma03.pdf}
+       \caption{Continuous Optimization .}
+      \end{subfigure}
+      \hspace{2em}
+\caption{Effect of Hidden Size. $n=100, \sigma=0.3, d=30$. We compare two ways of generating inducing points: uniform sampling from $\bX$, and continuous optimization for nystrom approximation. For each figure, we compare subsampling, nystrom approximation using $\bZ$, and the optimal rank-$M$ nystrom approximation. \ssy{Since $d=30$, continuous optimization over $\bZ$ approximates the optimal better.} \ssy{Subsampling is better when inputs are in high dimensions, might because of slower spectral decay? }}
+\end{figure}
+
+%
+%\section{Functional Regularisation and Online Inference}
+%Functional regularisation (FR) and online inference (OI) have been adopted in continual learning to prevent from catastrophic forgetting. In this project we attempt to combine NN2GP with FR and OI for further boost of continual learning.
+%
+%\paragraph{Weight-space Regularization.} : Requires 
+%
+%\paragraph{Model Two.} NN2GP + Online Inference (VARGP).
+%
+%\paragraph{Model Three.} NN2GP + Inducing Points Regularization.
+
+\section{Methods for Preventing Catastrophic Forgetting}
+
+We start with the setup, which includes several key concepts,
+\begin{itemize}
+    \item Previous training inputs: $\{\bx_i\}_{i=1}^n$.
+    \item The output space distribution (OSD) in an exponential family: $r(\bt | \bbf)$. $\bbf$ is the natural parameter.
+    \item The network mapping to the natural parameter: $f(\cdot; \bw): \xdomain \to \fdomain$.
+    \item The moment parameter $\by$ of the output space distribution $r$.
+    \item The present parameter $\bw$ and the previous parameter $\bw_0$.
+    \item The output space distance $\rho(\bbf, \bbf') = \KL{r(\cdot|\bbf')}{r(\cdot|\bbf)}$. For example, when the OSD is Gaussian, $\rho(\bbf, \bbf')$ is linear dependent to $\frac{1}{2}\|\bbf - \bbf'\|_2^2$.
+\end{itemize}
+
+\subsection{Exact Function Space Distance}
+The function space distance (E-FSD) can be computed exactly via,
+\begin{align}
+   \text{E-FSD: } \frac{1}{n}\sum_{i=1}^n \rho(f(\bx_i; \bw), f(\bx_i; \bw_0)),
+\end{align}
+Though the exact FSD provides perfect functional regularization, it requires to store all previously inputs $\{\bx_i\}_{i=1}^n$ and to forward them all for computing the FSD.
+
+\subsection{Subsampling Function Space Distance}
+Consider a small $\{\bz_i\}_{i=1}^m$ representative of all previous inputs, the E-FSD can be estimated via the subsampling function space distance (S-FSD),
+\begin{align}
+   \text{S-FSD: } \frac{1}{m}\sum_{i=1}^m \rho(f(\bz_i; \bw), f(\bz_i; \bw_0)),
+\end{align}
+
+\subsection{Quadratic Funtion Space Distance}
+We can approximate the FSD by taking a second-order Taylor approximation around the previous network parameters $\bw_0$,
+\begin{align}
+    \text{Q-FSD: } \frac{1}{2}(\bw - \bw_0)^{\top} \underbrace{\frac{1}{n}\sum_{i=1}^n \left( \bJ_{\bbf_i\bw_0}^{\top}\bG_{\bbf_i}\bJ_{\bbf_i\bw_0} \right)}_{\emph{$\bG$: Fisher Information Matrix}} (\bw - \bw_0)
+\end{align}
+where all the previous inputs are summarized by the Fisher information matrix $\bG$. The Jacobian $\bJ_{\bbf_i\bw} = \frac{\partial f(\bx_i; \bw_0)}{\partial \bw_0}$ and the output space Hessian $\bG_{\bbf_i} = \nabla_{\bbf_i}^2 \rho\left(\bbf, f(\bx_i; \bw_0)\right)\vert_{\bbf=f(\bx_i; \bw_0)}$. Given that $\rho$ is the Bregman divergence,
+\begin{align}
+    \bG_{\bbf_i} = \nabla_{\bbf}^2 \log Z(\bbf) \vert_{\bbf=f(\bx_i; \bw_0)} = \bF_{f(\bx_i; \bw_0)} = \Cov_{f(\bx_i; \bw_0)}(\bt).
+\end{align}
+
+In order to compute the Q-FSD, we can resort to the JVP-HVP-VJP procedure. Alternatively, we can approximately represent $\bG$ by vectors $\bv_i \sim \normal(\bzero, \bG_i), i=1,...,n$, then the Q-FSD can be approximated by $\frac{1}{n}\sum_{i=1}^n\left(\bv_i^{\top}(\bw - \bw_0)\right)^2$. To compute each $\bv_i$, we only need to sample $\hat{\bv}_i \sim \normal(\bzero, \bG_{\bbf_i})$ and apply VJP to obtain $\bv_i$. Note that $\bG_{\bbf_i} = \Cov_{f(\bx_i; \bw_0)}(\bt)$, sampling from the Gaussian can be done efficiently via sampling $\bt$ and computing $\bt - \by_i$.
+
+\subsection{Diagonal Quadratic Function Space Distance}
+Though the Fisher $\bG$ summarizes the information of the previous inputs, it is generally infeasible to store $\bG$ since the parameter size is usually large. Besides, it is infeasible either to store multiple vectors $\bv_i$, since each $\bv_i$ is of the same size as the parameter $\bw$. To reduce the storage burden, we can use a structured approximation for the Fisher information matrix $\bG$, such as a diagonal Fisher,
+\begin{align}
+    \text{DQ-FSD: } \frac{1}{2}(\bw - \bw_0)^{\top} \diag(\bg) (\bw - \bw_0),
+\end{align}
+The diagonal can also be approximated by, $\bg \approx \frac{1}{n}\sum_{i=1}^n \bv \circ \bv$.
+
+We can be more expressive apprixmations that accounts for the correlations between weights. For example the Kronecker factored approximation,
+\begin{align}
+    \text{KQ-FSD: } \frac{1}{2}(\bw - \bw_0)^{\top} \diag([...,\bA_i \otimes \bS_i, ...]) (\bw - \bw_0),
+\end{align}
+
+\subsection{Tangent Shuffling Distance}
+The Kronecker-Factorized (KFAC) Fisher approximation has been shown to approximate the so-caled tangent shuffling distance (TSD). At each layer of the neural network, the pre-activation is computed using $\bW_0 \ba + (\bW - \bW_0) \ba'$, where $\ba, \ba'$ are the activations of the current point and of a random point, respectively. The resulting function is $\hat{f}$, and $\hat{f}(\bX, \bw, \bw_0) = f(\bX, \bw_0)$ when $\bw = \bw_0$. TSD quantifies how much the network predictions differ when adding the tangent perturbation,
+\begin{align}
+    \text{TSD: } \expect_{\bX_b \in \bX^{\otimes B}} \left[ \frac{1}{B}\sum_{i=1}^B \rho(\hat{f}(\bX_b, \bw, \bw_0)_i, f(\bX_{b,i}, \bw_0)) \right],
+\end{align}
+Compared to the FSD, TSD is more data-efficient, since its forwarding involves multiple points. Therefore we expect, when we can store only a small of data points, Subsampling-TSD (S-TSD) would provide a better regularization than S-FSD.
+
+\begin{align}
+    df(\bX; \bw)^{\top}\bK(\bX, \bX)^{-1} df(\bX; \bw) 
+    &\approx \left(\hat{f}(\bX; \bw)-f(\bX; \bw_0)\right)^{\top}\bK(\bX, \bX)^{-1} \left(\hat{f}(\bX; \bw)-f(\bX; \bw_0)\right) \notag \\
+    &=df(\bZ; \bw)^{\top} \bK(\bZ, \bZ)^{-1}\underbrace{\bK(\bZ, \bX)\bK(\bX, \bX)^{-1}\bK(\bX, \bZ)}_{\color{red} =\bK(\bZ, \bZ) \text{ if } \bZ \subset \bX} \bK(\bZ, \bZ)^{-1} df(\bZ; \bw) \notag \\
+    &= df(\bZ; \bw)^{\top}\bK(\bZ, \bZ)^{-1} df(\bZ; \bw)  \notag 
+\end{align}
+
+
+
+\subsection{Nystrom Function Space Distance}
+The subsampling FSD attempts to use a small set of inducing points to summarize the whole dataset, however it omits the correlations between different inputs thus might not fully exploit the information in the inducing points. We firstly consider the NN2GP framework that represents the network as a Gaussian process. Given the Gaussian process, we use the Nystrom approximation to take into account of the correlations between inputs and approximate the FSD. The Gaussian process by NN2GP is represented by,
+\begin{align}
+\GP(f_{\bw_0}, \underbrace{\bJ_{\bbf \bw_0} \bSigma_{\bw} \bJ_{\bbf' \bw_0}^{\top}}_{k(\bx, \bx')}),
+\end{align}
+where $\bSigma_{\bw}$ represents a covariance of the parameter $\bw$. When the network output is $d_o$-dimensional, $k(\bx, \bx')$ is a $d_o \times d_o$ matrix. For simplicity, we keep its only its diagonal term and term $k_j(\bx, \bx') = \bJ_{\bbf_j \bw_0} \bSigma_{\bw} \bJ_{\bbf_j' \bw_0}^{\top} $.
+
+
+%Where the covariance $\bSigma_{\bw}$ takes into account of the information of the previous inputs,
+%\begin{align}
+%    \bSigma_{\bw}^{-1} = \tau \bI + \sum_{i=1}^N\bJ_{\bbf_i \bw_0}^{\top} \bG_{\bbf_i} \bJ_{\bbf_i \bw_0}.
+%\end{align}
+%Here $\bSigma_{\bw}^{-1}$ is actually a dampened Fisher information matrix, and we keep only its diagonal term. When introducing DQ-FSD, we have introduced how to estimate the diagonal fisher $\bg$. \ssy{NN2GP uses $-\nabla^2_{\bbf} \log(\bt_i | \bbf)$ with the observation $\bt_i$, which is equivalent to $\bG_{\bbf_i}$ since the output distribution is an exponential family and the output metric is the KL divergence.}
+
+Under the GP formulation, the inducing points $\bZ$ and their function values $f(\bZ; \btheta)$ naturally provide a Nystrom approximation. For the $j$-th dimension, the Nystrom approximation is,
+\begin{align}
+    \hat{f}_j(\bx; \bw) =  f_j(\bx; \bw_0) + k_j(\bx, \bZ)k_j(\bZ, \bZ)^{-1} \left( f_j(\bZ; \bw) - f_j(\bZ; \bw_0) \right),
+\end{align}
+To approximate the FSD, we first take a second-order Taylor approximation for the output metric,
+\begin{align}
+    \rho(f(\bx_i; \bw), f(\bx_i; \bw_0)) 
+    &\approx\frac{1}{2}(f(\bx_i; \bw) - f(\bx_i; \bw_0))^{\top} \bG_{\bbf_i} (f(\bx_i; \bw) - f(\bx_i; \bw_0)) \notag \\
+    &\leq  \frac{1}{2}\underbrace{ (\hat{f}(\bx_i; \bw) - f(\bx_i; \bw_0))^{\top} \bG_{\bbf_i} (\hat{f}(\bx_i; \bw) - f(\bx_i; \bw_0))}_{\text{$\alpha(\bx_i, \bw, \bw_0)$:\emph{inducing points summarization}}} \notag \\
+    & + \frac{1}{2} \underbrace{ (f(\bx_i; \bw) - \hat{f}(\bx_i; \bw))^{\top} \bG_{\bbf_i} (f(\bx_i; \bw) - \hat{f}(\bx_i; \bw)) }_{\text{$\beta(\bx_i, \bw, \bw_0) $:\emph{nystrom approximation residual}}}
+%    & + \underbrace{  (\hat{f}(\bx_i; \bw) - f(\bx_i; \bw_0))^{\top} \bG_{\bbf_i} (f(\bx_i; \bw) - \hat{f}(\bx_i; \bw))}_{\text{$c(\bx_i, \bw, \bw_0)$: zero in expectation due to orthogonality}}
+\end{align}
+Where the last inequality is by the Cauchy-Schwarz inequality. Furthermore, if the inducing points $\bZ$ summarize the training data well, then the \emph{nystrom approximation residual} $\beta(\bx_i, \bw, \bw_0)$ is small as well and could be omitted.
+%Due to the Cauchy-Schwarz inequality, $ \rho(f(\bx_i; \bw), f(\bx_i; \bw_0)) \leq  \alpha(\bx_i, \bw, \bw_0) + \beta(\bx_i, \bw, \bw_0)  $. Furthermore, if the inducing points $\bZ$ summarize the training data well, then the \emph{nystrom residual} $\beta(\bx_i, \bw, \bw_0)$ is small as well. 
+
+\paragraph{The inducing points summarization.} We define $df(\bx; \bw ) \defas f(\bx; \bw) - f(\bx; \bw_0)$. For computational and storage efficiency, we approximate the output-space Fisher $\bG_{\bbf_i}$ by its diagonal $\diag(\bg_{\bbf_i})$ (The approximate is exact when the OSD is Gaussian). Then we can rewrite the \emph{inducing points summarization} as,
+\begin{align}
+    \frac{1}{n}\sum_{i=1}^n  \alpha(\bx_i, \bw, \bw_0) 
+    & - \frac{1}{n}\sum_{i=1}^n \sum_{j=1}^{d_o} \bg_{\bbf_i, j} df_j(\bZ; \bw )^{\top} k_j(\bZ, \bZ)^{-1}  k_j(\bZ, \bx_i)k_j(\bx_i, \bZ) k_j(\bZ, \bZ)^{-1} df_j(\bZ; \bw ) \notag \\
+    &=\sum_{j=1}^{d_o}  df_j(\bZ; \bw )^{\top} k_j(\bZ, \bZ)^{-1} \underbrace{\left[\frac{1}{n}\sum_{i=1}^n \bg_{\bbf_i, j}k_j(\bZ, \bx_i)k_j(\bx_i, \bZ)  \right]}_{\hat{\bK}_j(\bZ, \bZ) } k_j(\bZ, \bZ)^{-1} df_j(\bZ; \bw ), \notag 
+\end{align}
+Therefore, all the previous information can be summarized by the inducing location $\bZ$, the previous parameter $\bw_0$, the matrices $\hat{\bK}_j(\bZ, \bZ), j=1,...,d_o$. 
+
+%For storage efficiency, we can store only one $\hat{\bK}(\bZ, \bZ)$ by letting it be,
+%\begin{align}
+%    \hat{\bK}(\bZ, \bZ) = \frac{1}{d_o}\sum_{j=1}^{d_o}\frac{1}{n}\sum_{i=1}^n \bg_{\bbf_i, j}k_j(\bZ, \bx_i)k_j(\bx_i, \bZ),
+%\end{align}
+
+The parameter covariance determines the region of $\bw$ where the Nystrom approximation is accurate. A good choice is the posterior covariance of $\bw$, which can be approximately estimated as the dampened Fisher inverse,
+\begin{align}
+    \bSigma_{\bw}^{-1} = \tau \bI + \sum_{i=1}^N\bJ_{\bbf_i \bw_0}^{\top} \bG_{\bbf_i} \bJ_{\bbf_i \bw_0}.
+\end{align}
+We use its diagonal for computational and storage consideration.
+
+%\paragraph{The parameter covariance $\bSigma_\bw$.} The parameter covariance determines the region of $\bw$ where the Nystrom approximation is accurate. We consider variations for choosing the parameter covariance,
+%\begin{itemize}
+%\item Identity, $\bSigma_{\bw} = \frac{1}{\tau} \bI$, which treats the whole space equally important.
+%\item The Fisher inverse matrix, which emphasizes the region of $\bw$ that explains the previous data well. 
+%\begin{align}
+%    \bSigma_{\bw}^{-1} = \tau \bI + \sum_{i=1}^N\bJ_{\bbf_i \bw_0}^{\top} \bG_{\bbf_i} \bJ_{\bbf_i \bw_0}.
+%\end{align}
+%We use its diagonal for computational and storage consideration.
+%\ssy{NN2GP uses $-\nabla^2_{\bbf} \log(\bt_i | \bbf)$ with the observation $\bt_i$, which is equivalent to $\bG_{\bbf_i}$ since the output distribution is an exponential family and the output metric is the KL divergence.}
+%\end{itemize}
+
+
+\paragraph{The Nystrom approximation residual.}
+Let $ h_j(\bx, \bw) \defas f_j(\bx; \bw) - k_j(\bx, \bZ)k_j(\bZ, \bZ)^{-1} f_j(\bZ; \bw)$, then the \emph{Nystrom approximation residual} can be computed as,
+\begin{align}
+    \frac{1}{n}\sum_{i=1}^n   \beta(\bx_i, \bw, \bw_0) & = 
+    \frac{1}{n}\sum_{i=1}^n \left(h(\bx_i, \bw) - h(\bx_i, \bw_0)\right)^{\top} \bG_{\bbf_i}  \left(h(\bx_i, \bw) - h(\bx_i, \bw_0)\right) \notag \\
+    & \approx (\bw - \bw_0)^{\top} \underbrace{\left(\frac{1}{n}\sum_{i=1}^n \bJ_{\bh_i \bw_0}^{\top}\bG_{\bbf_i} \bJ_{\bh_i \bw_0}\right)}_{\bF^h} (\bw - \bw_0).
+\end{align}
+We can use a diagonal approximation for the Fisher matrix $\bF^h$ of the function $h(\bx, \bw_0)$.
+
+\section{Experiments}
+
+
+\begin{figure}[h]
+\centering
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/rmsprop_permnist.pdf}
+%       \caption{.}
+      \end{subfigure}
+      \hspace{2em}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/rmsprop_fsd_permnist.pdf}
+%       \caption{Split MNIST.}
+      \end{subfigure}
+      \hspace{2em}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/rmsprop_inducing_permnist.pdf}
+%       \caption{Split MNIST.}
+      \end{subfigure}
+      \hspace{2em}
+\caption{Continuou Learning Performances of Permuted MNIST. \textbf{top}: All methods. \textbf{Middle}: The subset of methods without quadratic approximations. \textbf{bottom}: how the number of inducing points affect the performances. \emph{efsd} and \emph{stsd} uses FSD and TSD with fixed random sets, respectively. \emph{n2fsd}, \emph{n3fsd} and \emph{n4fsd} are Nystrom FSD instances, with random inducing points, fixed inducing points, and fixed inducing points + Nystrom residual, respectively.}
+\end{figure}
+
+
+\begin{figure}[h]
+\centering
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/rmsprop_splitmnist.pdf}
+%       \caption{.}
+      \end{subfigure}
+      \hspace{2em}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/rmsprop_fsd_splitmnist.pdf}
+%       \caption{Split MNIST.}
+      \end{subfigure}
+      \hspace{2em}
+\begin{subfigure}[b]{\textwidth}
+       \includegraphics[width=\textwidth]{figures/rmsprop_inducing_splitmnist.pdf}
+%       \caption{Split MNIST.}
+      \end{subfigure}
+      \hspace{2em}
+\caption{Continuou Learning Performances of Split MNIST. \textbf{top}: All methods. \textbf{Middle}: The subset of methods without quadratic approximations. \textbf{bottom}: how the number of inducing points affect the performances. \emph{efsd} and \emph{stsd} uses FSD and TSD with fixed random sets, respectively. \emph{n2fsd}, \emph{n3fsd} and \emph{n4fsd} are Nystrom FSD instances, with random inducing points, fixed inducing points, and fixed inducing points + Nystrom residual, respectively.}
+\end{figure}

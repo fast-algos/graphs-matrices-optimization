@@ -1,0 +1,329 @@
+% !TEX root =  paper.tex
+
+\def\[#1\]{\begin{align}#1\end{align}}
+\def\*[#1\]{\begin{align*}#1\end{align*}}
+
+\newcommand{\ZO}{\mathbb B} %by JY
+	 
+\newcommand{\defas}{\vcentcolon=}  % requires mathtools package
+%\newcommand{\defas}{\equiv}
+
+%% such that
+\newcommand{\st}{\,:\,}
+
+
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
+
+%% for writing  A | X ~ P(X) statements
+\newcommand{\dist}{\ \sim\ }
+\newcommand{\given}{\mid}
+\newcommand{\distiid}{\overset{iid}{\dist}}
+\newcommand{\distind}{\overset{ind}{\dist}}
+
+\newcommand{\downcdots}{...}
+
+\DeclareMathOperator{\tr}{\mathrm{trace}}
+
+
+\newcommand{\innerprod}[2]{\langle #1, #2 \rangle}
+\newcommand{\lagrangian}{\mathcal{L}}
+
+\newcommand{\sigmoid}{\mathrm{sigmoid}}
+\newcommand{\Swish}{\mathrm{Swish}}
+\newcommand{\softplus}{\mathrm{softplus}}
+\newcommand{\rkhs}{\mathcal{H}}
+\newcommand{\Naturals}{\mathbb{N}}
+\newcommand{\Rationals}{\mathbb{Q}}
+\newcommand{\Reals}{\mathbb{R}}
+\newcommand{\Complex}{\mathbb{C}}
+\newcommand{\BorelSets}{\mathcal{B}}
+\newcommand{\Nats}{\mathbb{N}}
+\newcommand{\Sphere}{\mathbb{S}}
+\newcommand{\Ints}{\mathbb{Z}}
+\newcommand{\NNInts}{\Ints_+}
+\newcommand{\NNExtInts}{\overline{\Ints}_+}
+\newcommand{\Cantor}{\2^\mathbb{N}}
+\newcommand{\NNReals}{\Reals_+}
+
+\newcommand{\as}{\textrm{a.s.}}
+
+\newcommand{\epi}{\textrm{epi}}
+\newcommand{\intr}{\textrm{int}}
+\newcommand{\conv}{\textrm{conv}}
+\newcommand{\cone}{\textrm{cone}}
+\newcommand{\aff}{\textrm{aff}}
+\newcommand{\dom}{\textrm{dom}}
+\newcommand{\cl}{\textrm{cl}}
+\newcommand{\ri}{\textrm{ri}}
+\newcommand{\grad}{\nabla}
+\newcommand{\imp}{\Rightarrow}
+\newcommand{\downto}{\!\downarrow\!}
+\newcommand{\upto}{\!\uparrow\!}
+
+%\newcommand{\ind}{\perp\!\!\!\perp}
+\newcommand{\ind}{\mathrel{\perp\mkern-9mu\perp}}
+%\newcommand\ind{\protect\mathpalette{\protect\independenT}{\perp}} 
+%\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern5mu{#1#2}}}
+
+\newcommand{\AND}{\wedge}
+\newcommand{\OR}{\vee}
+\newcommand{\NOT}{\neg}
+
+\newcommand{\dee}{\mathrm{d}}
+
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\sign}{sign}
+
+\DeclareMathOperator*{\newlim}{\mathrm{lim}\vphantom{\mathrm{infsup}}}
+\DeclareMathOperator*{\newmin}{\mathrm{min}\vphantom{\mathrm{infsup}}}
+\DeclareMathOperator*{\newmax}{\mathrm{max}\vphantom{\mathrm{infsup}}}
+\DeclareMathOperator*{\newinf}{\mathrm{inf}\vphantom{\mathrm{infsup}}}
+\DeclareMathOperator*{\newsup}{\mathrm{sup}\vphantom{\mathrm{infsup}}}
+\renewcommand{\lim}{\newlim}
+\renewcommand{\min}{\newmin}
+\renewcommand{\max}{\newmax}
+\renewcommand{\inf}{\newinf}
+\renewcommand{\sup}{\newsup}
+
+%\newcommand{\card}[1]{\#(#1)}
+\newcommand{\PowerSet}{\mathcal{P}}
+
+\newcommand{\Measures}{\mathcal{M}}
+\newcommand{\ProbMeasures}{\mathcal{M}_1}
+
+\renewcommand{\Pr}{\mathbb{P}}
+\def\EE{\mathbb{E}}
+\DeclareMathOperator*{\var}{var}
+
+%% definition 
+\newcommand{\defn}[1]{\emph{#1}}
+
+\newcommand{\floor}[1]{\lfloor #1 \rfloor}
+\newcommand{\ceiling}[1]{\lceil #1 \rceil}
+
+\def\bone{\mathbf{1}}
+\def\Ind{\bone}
+
+\newcommand{\cF}{\mathcal F}
+\newcommand{\cG}{\mathcal G}
+
+\DeclareMathOperator*{\Beta}{Beta}
+\DeclareMathOperator*{\Bernoull}{Bernoulli}
+\DeclareMathOperator*{\PP}{PP}
+\DeclareMathOperator*{\Poisson}{Poisson}
+\newcommand{\Uniform}{\textrm U (0,1)}
+
+\newcommand{\equaldist}{\overset{d}{=}}
+\newcommand{\inv}{^{-1}}
+
+\newcommand{\abs}[1]{\lvert #1 \rvert}
+\newcommand{\norm}[1]{\lVert #1 \rVert}
+\newcommand{\event}[1]{\left \lbrace #1 \right \rbrace}
+\newcommand{\tuple}[1]{\langle #1 \rangle}
+
+
+\newcommand{\bspace}{\Omega}
+\newcommand{\bsa}{\mathcal A}
+\newcommand{\borelspace}{(\bspace,\bsa)}
+
+
+\newcommand{\card}[1]{\##1}
+%\newcommand{\as}{\textrm{a.s.}}
+\newcommand{\iid}{i.i.d.}
+
+%% for writing down stochastic processes
+\newcommand{\gprocess}[2]{(#1)_{#2}}
+\newcommand{\nprocess}[3]{\gprocess{#1_{#3}}{#3 \in #2}}
+\newcommand{\process}[2]{\nprocess{#1}{#2}n}
+
+
+%% not in love with these...
+\newcommand{\of}[1]{\left ( #1 \right )}
+\newcommand{\oof}[1]{( #1 )}
+\newcommand{\ooof}[1]{\bigl ( #1 \bigr )}
+\newcommand{\oooof}[1]{\Bigl ( #1 \Bigr )}
+\newcommand{\ooooof}[1]{\biggl ( #1 \biggr )}
+\newcommand{\oooooof}[1]{\Biggl ( #1 \Biggr )}
+
+\newcommand{\oF}[1]{\left [ #1 \right ]}
+\newcommand{\ooF}[1]{[ #1 ]}
+\newcommand{\oooF}[1]{\bigl [ #1 \bigr ]}
+\newcommand{\ooooF}[1]{\Bigl [ #1 \Bigr ]}
+\newcommand{\oooooF}[1]{\biggl [ #1 \biggr ]}
+\newcommand{\ooooooF}[1]{\Biggl [ #1 \Biggr ]}
+
+\newcommand{\Of}[1]{\left \{ #1 \right \}}
+\newcommand{\Oof}[1]{\{ #1 \}}
+\newcommand{\Ooof}[1]{\bigl \{ #1 \bigr \}}
+\newcommand{\Oooof}[1]{\Bigl \{ #1 \Bigr \}}
+\newcommand{\Ooooof}[1]{\biggl \{ #1 \biggr \}}
+\newcommand{\Oooooof}[1]{\Biggl \{ #1 \Biggr \}}
+
+
+%% added by Jun Yang
+\newcommand{\TMarginal}{\Truth^1}
+\newcommand{\TPosterior}{\Truth^2}
+%\newcommand{\AND}{\wedge}
+%\newcommand{\OR}{\vee}
+%\newcommand{\NOT}{\neg}
+
+%\newcommand{\dee}{\mathrm{d}}
+
+%\newcommand{\ProbMeasures}{\mathcal{M}_1}
+%\newcommand{\defas}{\vcentcolon=}
+\renewcommand{\appendixname}{}
+%\renewcommand{\sectionname}{\S}
+%\newcommand{\NNReals}{\Reals_+}
+%\newcommand{\Reals}{\mathbb{R}}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\newcommand{\KL}[2]{\mathrm{KL}\left(#1 || #2\right)}
+%%\newcommand{\conv}{\textrm{conv}}
+%%\newcommand{\defn}[1]{\emph{#1}}
+
+\newcommand{\XX}{\mathcal X}
+\newcommand{\YY}{\mathcal Y}
+\newcommand{\Actions}{\mathcal A}
+\newcommand{\Algorithms}{\mathcal F}
+\newcommand{\Model}{Q}
+\newcommand{\Truth}{P}
+\newcommand{\prior}{\pi}
+\newcommand{\optset}{\Pi}
+%\newcommand{\Nats}{\mathbb{N}}
+
+\newcommand{\disint}[3]{(#1#2|#3)}
+
+
+
+% added by Shengyang
+\newcommand{\bbf}{\mathbf{f}}
+\newcommand{\bx}{\mathbf{x}}
+\newcommand{\bk}{\mathbf{k}}
+\newcommand{\by}{\mathbf{y}}
+\newcommand{\bz}{\mathbf{z}}
+\newcommand{\bv}{\mathbf{v}}
+\newcommand{\bV}{\mathbf{V}}
+\newcommand{\bw}{\mathbf{w}}
+\newcommand{\bb}{\mathbf{b}}
+\newcommand{\bc}{\mathbf{c}}
+\newcommand{\br}{\mathbf{r}}
+\newcommand{\bg}{\mathbf{g}}
+\newcommand{\bp}{\mathbf{p}}
+\newcommand{\bt}{\mathbf{t}}
+\newcommand{\bh}{\mathbf{h}}
+\newcommand{\bu}{\mathbf{u}}
+\newcommand{\be}{\mathbf{e}}
+\newcommand{\bd}{\mathbf{d}}
+\newcommand{\bs}{\mathbf{s}}
+\newcommand{\ba}{\mathbf{a}}
+\newcommand{\bq}{\mathbf{q}}
+\newcommand{\bo}{\mathbf{o}}
+\newcommand{\bbm}{\mathbf{m}}
+
+\newcommand{\bX}{\mathbf{X}}
+\newcommand{\bW}{\mathbf{W}}
+\newcommand{\bS}{\mathbf{S}}
+\newcommand{\bJ}{\mathbf{J}}
+\newcommand{\bI}{\mathbf{I}}
+\newcommand{\bG}{\mathbf{G}}
+\newcommand{\bK}{\mathbf{K}}
+\newcommand{\bM}{\mathbf{M}}
+\newcommand{\bL}{\mathbf{L}}
+\newcommand{\bD}{\mathbf{D}}
+\newcommand{\bY}{\mathbf{Y}}
+\newcommand{\bN}{\mathbf{N}}
+\newcommand{\bQ}{\mathbf{Q}}
+\newcommand{\bR}{\mathbf{R}}
+\newcommand{\bC}{\mathbf{C}}
+\newcommand{\bU}{\mathbf{U}}
+\newcommand{\bA}{\mathbf{A}}
+\newcommand{\bZ}{\mathbf{Z}}
+\newcommand{\bF}{\mathbf{F}}
+\newcommand{\bH}{\mathbf{H}}
+\newcommand{\bB}{\mathbf{B}}
+\newcommand{\bT}{\mathbf{T}}
+\newcommand{\bP}{\mathbf{P}}
+
+\newcommand{\bzero}{\mathbf{0}}
+
+\newcommand{\bpi}{\bm{\pi}}
+\newcommand{\bomega}{\bm{\omega}}
+\newcommand{\balpha}{\bm{\alpha}}
+\newcommand{\bbeta}{\bm{\beta}}
+\newcommand{\bpsi}{\bm{\psi}}
+\newcommand{\btau}{\bm{\tau}}
+\newcommand{\btheta}{\bm{\theta}}
+\newcommand{\bphi}{\bm{\phi}}
+\newcommand{\bgamma}{\bm{\gamma}}
+\newcommand{\bPhi}{\bm{\Phi}}
+\newcommand{\bmu}{\bm{\mu}}
+\newcommand{\blambda}{\bm{\lambda}}
+\newcommand{\bSigma}{\bm{\Sigma}}
+\newcommand{\bsigma}{\bm{\sigma}}
+\newcommand{\bepsilon}{\bm{\epsilon}}
+\newcommand{\bLambda}{\bm{\Lambda}}
+
+\newcommand{\expect}{\mathbb{E}}
+\newcommand{\data}{\mathcal{D}}
+\newcommand{\coreset}{\mathcal{C}}
+\newcommand{\normal}{\mathcal{N}}
+\newcommand{\xdomain}{\mathcal{X}}
+\newcommand{\tdomain}{\mathcal{T}}
+\newcommand{\ydomain}{\mathcal{Y}}
+\newcommand{\domain}{\mathcal{Z}}
+\newcommand{\outputs}{\mathcal{Y}}
+\newcommand{\const}{\mathcal{C}}
+\newcommand{\loss}{\mathcal{L}}
+\newcommand{\indices}{\mathcal{I}}
+\newcommand{\qdomain}{\mathcal{Q}}
+\newcommand{\hdomain}{\mathcal{H}}
+\newcommand{\fdomain}{\mathcal{F}}
+\newcommand{\prob}{\mathbb{P}}
+
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\bernstein}{\mathcal{G}}
+
+\newcommand{\train}{S}
+\newcommand{\trainsize}{m}
+\newcommand{\bigO}{\mathcal{O}}
+\newcommand{\Cov}{\textrm{Cov}}
+
+\newcommand{\transpose}[1]{#1^\top}
+\newcommand{\params}{{\boldsymbol \theta}}
+
+%\newcommand{\flatConst}{h}
+%\newcommand{\obs}{z}
+\newcommand{\klBound}{\kappa}
+\newcommand{\gdomain}{\mathcal{G}}
+
+\newcommand{\Risk}[2][\data]{\loss_{#1}(#2)}
+\newcommand{\EmpRisk}[2][\train]{\hat\loss_{#1}(#2)}
+\newcommand{\GibbsRisk}[2][\data]{\Risk[#1]{#2}}
+\newcommand{\GibbsEmpRisk}[2][\train]{\EmpRisk[#1]{#2}}
+
+\newcommand{\gloss}[3][f]{\expect_{#2}#1(#3)}
+
+\newcommand{\GP}{\mathcal{GP}}
+\newcommand{\NN}{\mathcal{N}}
+\newcommand{\fourierT}{\mathcal{F}}
+
+% linear algebra
+\newcommand{\householder}{\mathcal{H}}
+\newcommand{\diag}{\mathrm{diag}}
+\newcommand{\manifold}{\mathcal{M}}
+
+
+% systems
+\newcommand{\DelayOp}{\mathcal{R}}
+\newcommand{\IntOp}{\mathcal{A}}
+
+\newcommand{\RealPart}{\mathrm{Re}}
+\newcommand{\ImgPart}{\mathrm{Im}}
+
+% quantum
+\newcommand{\quanState}[1]{|#1\rangle}
+\newcommand{\quanStateTr}[1]{\langle #1|}
+\newcommand{\nState}{N}

@@ -1,0 +1,24 @@
+\newif\ifcomments
+
+\commentsfalse
+% \commentstrue
+
+\ifcomments
+  \newcommand{\colornote}[3]{{\color{#1}\bf{#2: #3}\normalfont}}
+\else
+  \newcommand{\colornote}[3]{}
+\fi
+
+
+
+% Comments. 
+\newcommand {\ca}[1]{\colornote{teal}{ca}{#1}}
+\newcommand {\kq}[1]{\colornote{orange}{kq}{#1}}
+\newcommand {\rbg}[1]{\colornote{blue}{rbg}{#1}}
+\newcommand {\zico}[1]{\colornote{purple}{zico}{#1}}
+\newcommand {\shaojie}[1]{\colornote{magenta}{shaojie}{#1}}
+\newcommand{\ap}[1]{\colornote{purple}{ashwini}{#1}}
+
+\newcommand{\jacfix}{\mathbb{J}_{\fixf}(\vx)}
+\newcommand{\jacfz}{\mathbb{J}_{f_z}(\vx, \vz^*)}
+\newcommand{\dagspace}{\mathbb{D}}
