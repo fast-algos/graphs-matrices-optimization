@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.280">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Spectral Geometry Processing</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}
+</style>
+
+
+<script src="SpectralMeshSimplification_files/libs/clipboard/clipboard.min.js"></script>
+<script src="SpectralMeshSimplification_files/libs/quarto-html/quarto.js"></script>
+<script src="SpectralMeshSimplification_files/libs/quarto-html/popper.min.js"></script>
+<script src="SpectralMeshSimplification_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="SpectralMeshSimplification_files/libs/quarto-html/anchor.min.js"></script>
+<link href="SpectralMeshSimplification_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="SpectralMeshSimplification_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="SpectralMeshSimplification_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="SpectralMeshSimplification_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="SpectralMeshSimplification_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#background" id="toc-background" class="nav-link active" data-scroll-target="#background">Background</a>
+  <ul class="collapse">
+  <li><a href="#geometry-processing" id="toc-geometry-processing" class="nav-link" data-scroll-target="#geometry-processing">Geometry Processing</a></li>
+  <li><a href="#what-is-a-mesh" id="toc-what-is-a-mesh" class="nav-link" data-scroll-target="#what-is-a-mesh">What is a mesh?</a></li>
+  </ul></li>
+  <li><a href="#mesh-laplacian" id="toc-mesh-laplacian" class="nav-link" data-scroll-target="#mesh-laplacian">Mesh Laplacian</a>
+  <ul class="collapse">
+  <li><a href="#differential-geometric-perspective" id="toc-differential-geometric-perspective" class="nav-link" data-scroll-target="#differential-geometric-perspective">Differential Geometric Perspective</a></li>
+  <li><a href="#signal-processing-perspective" id="toc-signal-processing-perspective" class="nav-link" data-scroll-target="#signal-processing-perspective">Signal Processing Perspective</a></li>
+  <li><a href="#applications" id="toc-applications" class="nav-link" data-scroll-target="#applications">Applications</a></li>
+  </ul></li>
+  <li><a href="#efficient-spectral-mesh-processing" id="toc-efficient-spectral-mesh-processing" class="nav-link" data-scroll-target="#efficient-spectral-mesh-processing">Efficient spectral mesh processing</a>
+  <ul class="collapse">
+  <li><a href="#spectral-coarsening-of-linear-operators" id="toc-spectral-coarsening-of-linear-operators" class="nav-link" data-scroll-target="#spectral-coarsening-of-linear-operators">Spectral Coarsening of Linear Operators</a></li>
+  <li><a href="#geometric-mesh-simplification" id="toc-geometric-mesh-simplification" class="nav-link" data-scroll-target="#geometric-mesh-simplification">Geometric Mesh Simplification</a></li>
+  </ul></li>
+  <li><a href="#spectral-mesh-simplification" id="toc-spectral-mesh-simplification" class="nav-link" data-scroll-target="#spectral-mesh-simplification">Spectral Mesh Simplification</a>
+  <ul class="collapse">
+  <li><a href="#preserving-laplacian-eigenvectors" id="toc-preserving-laplacian-eigenvectors" class="nav-link" data-scroll-target="#preserving-laplacian-eigenvectors">Preserving Laplacian Eigenvectors</a></li>
+  <li><a href="#algorithm" id="toc-algorithm" class="nav-link" data-scroll-target="#algorithm">Algorithm</a></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">Results</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Spectral Geometry Processing</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<p>In these notes, we will explore the intersection of spectral graph theory and geometry processing. Beginning with some background, we will discuss the laplacian and its applications to geometry processing and cover recent research on developing efficient algorithms for the application of spectral techniques to geometry processing.</p>
+<section id="background" class="level2">
+<h2 class="anchored" data-anchor-id="background">Background</h2>
+<section id="geometry-processing" class="level3">
+<h3 class="anchored" data-anchor-id="geometry-processing">Geometry Processing</h3>
+<p>Three-dimensional geometric models are the base data representation for computer graphics, computer aided design, visualization, multimedia, and many other related fields. The advent of low-cost scanning technologies and accessible fabrication methods have brought these models to the forefront as an interface between the digital world on our computer and the physical 3D world around us.</p>
+<p><img src="geometryProcessing.png" class="img-fluid"></p>
+<p><em>Geometry processing</em>, or the computerized creation, manipulation, editing and analysis of 3D geometry has therefore become an important field for both computer scientists and end users from diverse backgrounds. Having briefly motivated geometry processing, let us now cover some technical definitions to help us discuss research in this field.</p>
+</section>
+<section id="what-is-a-mesh" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-a-mesh">What is a mesh?</h3>
+<p>To discuss problems in geometry processing, we must first define a representation for 3D geometric models. While there exist many different representations, each with their own advantages and disadvantages; a popular representation, and one that is closest to the concepts discussed in the course is that of a discrete mesh <span class="math inline">\(M\)</span>.</p>
+<p><span class="math inline">\(M = (V, E, F)\)</span> is defined by three elements, geometric vertices <span class="math inline">\(V\)</span>, edges <span class="math inline">\(E\)</span> connecting vertices and polygonal faces <span class="math inline">\(F\)</span> bounded by edges. From the graph theoretic perspective, the vertices and edges of <span class="math inline">\(M\)</span> convey the same information as in a graph; in particular <span class="math inline">\(M_G = (V,E)\)</span> is a perfectly valid graph defined by the connectivity of <span class="math inline">\(M\)</span>. However, <span class="math inline">\(M\)</span> further has two additional elements.</p>
+<p><img src="lionMesh.png" class="img-fluid"></p>
+<ul>
+<li><p>Geometric Embedding: Each vertex in <span class="math inline">\(V\)</span> has a geometric position <span class="math inline">\((x,y,z)\)</span> attached to it, that defines its location in space. This imbues every mesh <span class="math inline">\(M\)</span> with a geometric embedding in 3D space, unlike a typical graph.</p></li>
+<li><p>Surface Topology: The faces of <span class="math inline">\(M\)</span> constitute 2D topological elements that are not present in graphs we have studied. Faces allow a mesh to represent <em>surfaces</em> in 3D space using discrete elements.</p></li>
+</ul>
+</section>
+</section>
+<section id="mesh-laplacian" class="level2">
+<h2 class="anchored" data-anchor-id="mesh-laplacian">Mesh Laplacian</h2>
+<p>Much like the graph laplacian, we can define a <em>mesh laplacian</em> using the connectivity of a mesh. As we discussed earlier, a graph <span class="math inline">\(M_G = (V,E)\)</span> could be defined based on <span class="math inline">\(M\)</span>’s connectivity.</p>
+<p>One way to define the mesh laplacian for <span class="math inline">\(M\)</span> is to simply take the uniform graph laplacian of <span class="math inline">\(M_G\)</span>, i.e</p>
+<p><span class="math display">\[L = D - A\]</span></p>
+<p><img src="meshlaplacian.png" class="img-fluid"></p>
+<p>As in the case of voltages in electrical networks, the mesh laplacian is particularly useful when considered as an operator on a quantity defined on the vertices. In our context, we are interested in the laplacian of the geometric positions.</p>
+<p>Let’s say <span class="math inline">\(M\)</span> has <span class="math inline">\(n\)</span> vertices, each denoted with coordinates <span class="math inline">\(v_i = (x_i, y_i, z_i)\)</span>. Now lets define <span class="math inline">\(X\)</span> , <span class="math inline">\(Y\)</span> and <span class="math inline">\(Z\)</span> as column vectors containing all <span class="math inline">\(x_i\)</span>’s , <span class="math inline">\(y_i\)</span>’s and <span class="math inline">\(z_i\)</span>’s respectively. The elements of <span class="math inline">\(LX\)</span> are:</p>
+<p><span class="math display">\[
+\begin{align}
+LX_i &amp;= d_i x_i - \sum\limits_{j \in N(i)}x_j \\
+&amp;= d_i (x_i - \frac{1}{d_i}\sum\limits_{j \in N(i)}x_j)
+\end{align}
+\]</span></p>
+<p>where <span class="math inline">\(N(i)\)</span> denotes the neighbors of vertex <span class="math inline">\(i\)</span> in <span class="math inline">\(M_G\)</span>.</p>
+<p>The term <span class="math inline">\((x_i - \frac{1}{d_i}\sum\limits_{j \in N(i)}x_j)\)</span> is particularly interesting as it represents the <span class="math inline">\(x\)</span> co-ordinate of the vertex relative to its neighbors. We thus define the <em>differential co-ordinates</em> <span class="math inline">\(\delta\)</span> <span class="citation" data-cites="sorkine2005laplacian">(<a href="#ref-sorkine2005laplacian" role="doc-biblioref">Sorkine 2005</a>)</span> of the mesh as follows:</p>
+<p><span class="math display">\[\delta_i = (\delta_i^{(x)},\delta_i^{(y)},\delta_i^{(z)}) = v_i - \frac{1}{d_i}\sum\limits_{j \in N(i)}v_j\]</span></p>
+<p>Thus, <span class="math inline">\(LX = D\delta^{(x)}\)</span>, <span class="math inline">\(LY = D\delta^{(y)}\)</span> and <span class="math inline">\(LZ = D\delta^{(z)}\)</span>.</p>
+<p>Let us now gain some intuition on the mesh laplacian and the differential co-ordinates by considering it from the two perspectives of differential geometry and signal processing.</p>
+<section id="differential-geometric-perspective" class="level3">
+<h3 class="anchored" data-anchor-id="differential-geometric-perspective">Differential Geometric Perspective</h3>
+<p>The <span class="math inline">\(\delta\)</span> co-ordinates defined above, can be represented as</p>
+<p><span class="math display">\[
+\delta_i = \frac{1}{d_i} \sum\limits_{j \in N(i)} (v_i - v_j)
+\]</span></p>
+<p>The sum above is a discretization of the following curvilinear integral:</p>
+<p><span class="math display">\[
+\frac{1}{|\gamma|} \int_{v \in \gamma} (v_i - v) dl(v)
+\]</span></p>
+<p>where <span class="math inline">\(\gamma\)</span> is a closed curve around <span class="math inline">\(v_i\)</span> and <span class="math inline">\(|\gamma|\)</span> is the length of the curve. We know from differential geometry, that taking <span class="math inline">\(\lim_{|\gamma| \to 0}\)</span> on the above expression returns a vector with the magnitude of the mean curvature and the direction of the surface normal at <span class="math inline">\(v_i\)</span>.</p>
+<p><img src="meshLaplacianDiffGeom.png" class="img-fluid"></p>
+<p>The direction of the differential coordinate vector therefore approximates the local normal direction and the magnitude approximates a quantity proportional to the local mean curvature. Intuitively, this means that the <span class="math inline">\(\delta\)</span> co-ordinates capture the local shape characteristics of the surface mesh <span class="math inline">\(M\)</span>.</p>
+</section>
+<section id="signal-processing-perspective" class="level3">
+<h3 class="anchored" data-anchor-id="signal-processing-perspective">Signal Processing Perspective</h3>
+<p>An alternative perspective arises from taking the spectral viewpoint <span class="citation" data-cites="levy2010spectral">(<a href="#ref-levy2010spectral" role="doc-biblioref">Lévy and Zhang 2010</a>)</span>. We know that <span class="math inline">\(L\)</span> is symmetric positive semi-definite and thus has orthonormal eigenvectors</p>
+<p><span class="math display">\[ E = (e_1, e_2, ...,e_n)\]</span></p>
+<p>with eigenvalues <span class="math inline">\(\lambda_i\)</span> such that</p>
+<p><span class="math display">\[
+0 = \lambda_1 &lt; \lambda_2 \leq ..\leq \lambda_n
+\]</span></p>
+<p>Clearly, the eigenvectors <span class="math inline">\(E\)</span> form a basis which can represent the mesh vertex coordinates <span class="math inline">\(X\)</span> , <span class="math inline">\(Y\)</span> and <span class="math inline">\(Z\)</span>.</p>
+<p><span class="math display">\[
+X = \alpha_1e_1 + \alpha_2e_2 + ... + \alpha_ne_n
+\]</span></p>
+<p>We can think of the eigenvectors and vertex coordinates as scalar functions or ‘signals’ defined on the mesh <span class="math inline">\(M\)</span>, since in each case we have a single scalar value corresponding to each vertex in <span class="math inline">\(M\)</span>.</p>
+<p><img src="signalPerspective.png" class="img-fluid"></p>
+<p>Now, let’s see what these signals typically look like on this simple 2D example of a seahorse.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="seahorseeg.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+<p><img src="seahorseEigenvalues.png" class="img-fluid"></p>
+<p>The earlier eigenvectors, corresponding to smaller eigenvalues, are smooth, slowly varying functions. For instance, the first eigenvector is the “smoothest” as it is constant and does not vary at all. Later eigenvectors with larger eigenvalues behave like high frequency functions with rapid oscillations.</p>
+<p>In fact, this behaviouar is general and can be corroborated by the fact that the laplacian eigenbasis has been shown to be an extension of the discrete cosine basis to irregular domains <span class="citation" data-cites="taubin1995curve">(<a href="#ref-taubin1995curve" role="doc-biblioref">Taubin 1995</a>)</span>, with the eigenvalues considered as mesh frequencies.</p>
+<p>With this intuition, let us now explore what this basis captures in a shape. To do this, we represent the geometry of the shape using the eigenbasis, while suppressing terms corresponding to eigenvectors with increasingly higher eigenvalues (from left to right in the figure below). This helps us see the effect of different eigenvectors in the basis in isolation.</p>
+<p><img src="seahorseeigens.png" class="img-fluid"></p>
+<p>We see that the coefficients and eigenvectors corresponding to lower eigenvalues capture global characteristics of the shape; and conversely those corresponding to higher eigenvalues capture local detail. Akin to a fourier basis for images, the laplacian eigenbasis therefore forms a meaningful compact representation for geometry.</p>
+</section>
+<section id="applications" class="level3">
+<h3 class="anchored" data-anchor-id="applications">Applications</h3>
+<p>Having formed some intuition for the mesh laplacian, let us now discuss its applications to geometry processing.</p>
+<section id="laplacian-mesh-editing" class="level4">
+<h4 class="anchored" data-anchor-id="laplacian-mesh-editing">Laplacian Mesh Editing</h4>
+<p>The <span class="math inline">\(\delta\)</span> co-ordinates’ ability to capture local shape characteristics has been used for a variety of applications in mesh reconstruction and editing. The underlying idea is to combine known laplacian coordinates with a set of positional constraints in an overconstrained linear system. In particular, such applications typically compute a least-squares solution to the following overconstrained linear system for each of the coordinates <span class="math inline">\(X\)</span> , <span class="math inline">\(Y\)</span> and <span class="math inline">\(Z\)</span> :</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+L \\
+I_K
+\end{bmatrix} X =
+\begin{bmatrix}
+D\delta^{(x)} \\
+C_k^{(x)}
+\end{bmatrix}
+\]</span></p>
+<p>Here <span class="math inline">\(L\)</span> is the laplacian, as usual, and <span class="math inline">\(I_k\)</span> and <span class="math inline">\(C_k\)</span> are matrices that represent a set of positional constraints. For instance, if we want to constrain <span class="math inline">\(x_j\)</span> to be <span class="math inline">\(c_j\)</span>, <span class="math inline">\(I_k\)</span> will have a row that has a 1 for <span class="math inline">\(x_j\)</span> and 0 for everything else, and the corresponding row in <span class="math inline">\(C_k^{(x)}\)</span> will have value <span class="math inline">\(c_j\)</span>; thus adding the positional constraint to the linear system. The least-squares solution <span class="math inline">\(\tilde{X}\)</span> is of the form:</p>
+<p><span class="math display">\[
+\tilde{X} = \arg\min_X (||LX - \delta^{(x)}||^2 + \sum\limits_{i=1}^{k}|X_k-C_k|^2)
+\]</span></p>
+<p>The intuition behind this system is that the <span class="math inline">\(\delta\)</span> coordinates help us preserve relative shape characteristics, and the constraints specify the absolute geometric positions needed to reconstruct the mesh geometry. Based on the constraints and how they are weighted, we can use the same system for reconstructing a mesh from a sparse set of input points <span class="citation" data-cites="sorkine2004least">(<a href="#ref-sorkine2004least" role="doc-biblioref">Sorkine and Cohen-Or 2004</a>)</span> (for e.g, by setting <span class="math inline">\(\delta\)</span> to 0 in mesh portions where we don’t have prior information to require a generally smooth surface at that location).</p>
+<p><img src="horseLaplacian.png" class="img-fluid"></p>
+<p>Or alternatively to edit a mesh while retaining its local characteristics by specifying positional constraints that correspond to the original and edited mesh positions <span class="citation" data-cites="sorkine2005laplacian">(<a href="#ref-sorkine2005laplacian" role="doc-biblioref">Sorkine 2005</a>)</span>.</p>
+<p><img src="laplacianMeshEditing.png" class="img-fluid"></p>
+</section>
+<section id="spectral-mesh-compression" class="level4">
+<h4 class="anchored" data-anchor-id="spectral-mesh-compression">Spectral Mesh Compression</h4>
+<p>As we discussed earlier, the laplacian eigenbasis forms a meaningful compact representation for geometry. Representing mesh coordinates in the laplacian eigenbasis as before we have:</p>
+<p><span class="math display">\[
+X = \alpha_1e_1 + \alpha_2e_2 + ... + \alpha_ne_n
+\]</span></p>
+<p>Now, much like image compression techniques that use the fourier basis, we can perform a low-pass filtering on the mesh geometry to get smoother versions of the surface mesh. In particular, we simply suppress terms corresponding to eigenvectors with eigenvalues above a threshold, and take only the contributions of the first <span class="math inline">\(k\)</span> eigenvectors, i.e</p>
+<p><span class="math display">\[
+X = \sum\limits_{i=1}^k\alpha_ie_i \text{ where } k \leq n
+\]</span></p>
+<p>This helps us perform a controlled mesh smoothing and compression as highlighted below <span class="citation" data-cites="sorkine2005laplacian">(<a href="#ref-sorkine2005laplacian" role="doc-biblioref">Sorkine 2005</a>)</span>.</p>
+<p><img src="specMeshComp.png" class="img-fluid"></p>
+<p>Alternatively, this compact basis has been used for a variety of different applications like shape matching, where maps are computed between basis vectors for two different shapes <span class="citation" data-cites="ovsjanikov2012functional">(<a href="#ref-ovsjanikov2012functional" role="doc-biblioref">Ovsjanikov et al. 2012</a>)</span>.</p>
+<p><img src="shapeMatchingEigen.png" class="img-fluid"></p>
+</section>
+</section>
+</section>
+<section id="efficient-spectral-mesh-processing" class="level2">
+<h2 class="anchored" data-anchor-id="efficient-spectral-mesh-processing">Efficient spectral mesh processing</h2>
+<p>The mesh laplacian is a popular tool for geometry processing with a variety of different applications. However, an important challenge in the use of spectral methods for geometry processing is the size of the meshes in real-world applications. In particular, meshes can have vertices in the order of hundreds of thousands, and the downstream processing of the laplacian becomes extremely expensive for such models. For instance, even if we can compute the laplacian eigenbasis, tasks like solving linear systems, computing maps between different bases for shape correspondence and so on can become extremely expensive, especially as the complexity of operations in the downstream application pipeline increase.</p>
+<p>As a result, researches have been trying to reduce the cost of such computations by attempting to coarsen the matrices we are working with. In particular, prior work has tried to approach this problem in two ways:</p>
+<ul>
+<li><p>Coarsening the linear operator <span class="math inline">\(L\)</span></p></li>
+<li><p>Coarsening the mesh <span class="math inline">\(M\)</span>.</p></li>
+</ul>
+<p>While both approaches have the potential to reduce the problem domain and thus allow for efficient computation, let us discuss issues with the current state of the art.</p>
+<section id="spectral-coarsening-of-linear-operators" class="level3">
+<h3 class="anchored" data-anchor-id="spectral-coarsening-of-linear-operators">Spectral Coarsening of Linear Operators</h3>
+<p>Such approaches focus on coarsening the laplacian matrix <span class="math inline">\(L\)</span> such that its spectral properties are preserved. The coarsened operator is then used for downstream analysis, and the results are transferred back to the original mesh by keeping track of the coarsening process.</p>
+<p>While both algebraic <span class="citation" data-cites="kyng2016approximate">(<a href="#ref-kyng2016approximate" role="doc-biblioref">Kyng and Sachdeva 2016</a>)</span> and geometric <span class="citation" data-cites="liu2019spectral">(<a href="#ref-liu2019spectral" role="doc-biblioref">Liu, Jacobson, and Ovsjanikov 2019</a>)</span> approaches have been proposed for this problem, such approaches suffer from one key limitation: <em>the lack of a corresponding coarse mesh</em>.</p>
+<p>Without a mesh that corresponds to the coarsened operator, the downstream applications of the coarsening are severely limited to those that can be performed without the presence of corresponding geometry, or more specifically those that <em>only</em> require the operator. We saw earlier that most of our applications used both the laplacian and corresponding precise vertex positions.</p>
+<p>To further illustrate the severity of the limitation, let us see vertices of the coarsened graphs returned by such methods. The figure is a comparison between an algebraic and geometric method for coarsening, and while the geometric approach captures the surface better, it still does not have access to a mesh.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="linearCoarsening.png" class="img-fluid figure-img"></p>
+<p></p><figcaption class="figure-caption"><em>Figure taken from <span class="citation" data-cites="liu2019spectral">(<a href="#ref-liu2019spectral" role="doc-biblioref">Liu, Jacobson, and Ovsjanikov 2019</a>)</span> compares algebraic and geometric (denoted ‘ours’) approaches for coarsening of linear operators. The matrices represents an error metric they formulate in their paper; where closer to diagonal matrices indicate better preservation</em></figcaption><p></p>
+</figure>
+</div>
+<p>Given the sparsity of the vertices and fixed nature of the underlying coarsened graph, it is difficult to construct a triangle mesh that represents the original geometry in this setting.</p>
+</section>
+<section id="geometric-mesh-simplification" class="level3">
+<h3 class="anchored" data-anchor-id="geometric-mesh-simplification">Geometric Mesh Simplification</h3>
+<p>This limitation led researchers to simplify the mesh instead. Mesh simplification is usually performed via a series of edge collapses on a mesh <span class="citation" data-cites="garland1997surface">(<a href="#ref-garland1997surface" role="doc-biblioref">Garland and Heckbert 1997</a>)</span>. This allows techniques to both be careful about the geometric deterioration of the mesh and retain the desired triangular nature of the mesh faces.</p>
+<p><img src="meshSimpEdgeCollapse.png" class="img-fluid"></p>
+<p>The edge collapses are ordered based on a greedy approach that aims to minimize the geometric change as a result of the collapse.</p>
+<table class="table">
+<colgroup>
+<col style="width: 101%">
+</colgroup>
+<thead>
+<tr class="header">
+<th><em>Algorithm: Progressive Mesh Simplification</em></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><p><strong>Input:</strong> Mesh <span class="math inline">\(M = (V, F)\)</span>, target size <span class="math inline">\(N\)</span>, error metric <span class="math inline">\(s : v \times v \to \mathbb R\)</span></p>
+<p><strong>Output:</strong> Simplified mesh <span class="math inline">\(\tilde{M} = (\tilde{V}, \tilde{F})\)</span></p>
+<p><span class="math inline">\(\tilde{V} = V\)</span>, <span class="math inline">\(\tilde{F} = F\)</span>, <em>queue</em> = {}</p>
+<p>for <em>edge</em> <span class="math inline">\(e \in M\)</span>:</p>
+<ul>
+<li>add <span class="math inline">\((e, s(e))\)</span> to <em>queue</em>:</li>
+</ul>
+<p>while <span class="math inline">\(|\tilde{V}| &gt; N\)</span> and <em>queue</em> not empty:</p>
+<ul>
+<li><p><span class="math inline">\((e, c)\)</span> <span class="math inline">\(\leftarrow\)</span> pop edge <span class="math inline">\(e\)</span> with lowest cost <span class="math inline">\(c\)</span> from <em>queue</em></p></li>
+<li><p>collapse <span class="math inline">\(e\)</span></p></li>
+</ul>
+<p>for <span class="math inline">\(n\)</span> in <span class="math inline">\(e\)</span>’s neighbors do</p>
+<ul>
+<li>update <span class="math inline">\(n\)</span> in <em>queue</em></li>
+</ul></td>
+</tr>
+</tbody>
+</table>
+<p>However, simplification methods that only attempt to preserve the appearance of the mesh fail to preserve spectral properties. For instance, the figure below illustrates the eigenvectors of the laplacian on fine and coarse versions of a geometrically simplified lion mesh with the approach above.</p>
+<p><img src="geometricSimpEigenVecs.png" class="img-fluid"></p>
+<p>We can see clear differences in the patterns induced by the later eigenvectors.</p>
+</section>
+</section>
+<section id="spectral-mesh-simplification" class="level2">
+<h2 class="anchored" data-anchor-id="spectral-mesh-simplification">Spectral Mesh Simplification</h2>
+<p>Motivated by this problem, <span class="citation" data-cites="lescoat2020spectral">(<a href="#ref-lescoat2020spectral" role="doc-biblioref">Lescoat et al. 2020</a>)</span> proposed a method for <em>spectral mesh simplification,</em> i.e a geometric mesh simplification technique that successfully preserves laplacian eigenvectors.</p>
+<p>The approach is based on two main ideas. First, they stay rooted in <em>geometric simplification</em> techniques, performing a greedy edge-by-edge simplification to compute a coarsened mesh as the output. Second, instead of standard geometric error metrics, the simplification is based on a <em>novel formulation for the preservation of the laplacian eigenvectors</em>.</p>
+<section id="preserving-laplacian-eigenvectors" class="level3">
+<h3 class="anchored" data-anchor-id="preserving-laplacian-eigenvectors">Preserving Laplacian Eigenvectors</h3>
+<p>The preservation of the laplacian eigenvectors is formulated as the <strong>commutativity of the laplacian and the simplification</strong>. In particular, computing the laplacian on a mesh and then restricting it to the simplified mesh should equal computing the laplacian on the simplified mesh.</p>
+<p>This formulation encourages the preservation of the laplacian eigenvector functions on the mesh geometry. In other words, by encouraging the laplacian and mesh simplification to commute, we are able to retain the relationship between the laplacian eigenvectors and the geometric positions of the mesh vertices across the simplification. Let us now describe this idea more formally.</p>
+<p>Given an input mesh <span class="math inline">\(M = (V,F)\)</span> and its laplacian as <span class="math inline">\(L \in \mathbb R ^{|V| \times |V|}\)</span>, we define the coarse mesh <span class="math inline">\(\tilde{M} = (\tilde{V}, \tilde{F})\)</span> and its laplacian <span class="math inline">\(\tilde{L} \in \mathbb R ^{|\tilde{V} \times \tilde{V}|}\)</span>. We further define <span class="math inline">\(P \in \mathbb R^{|\tilde{V} \times |V|}\)</span> as the fine-to-coarse restriction matrix that captures which vertices are collapsed on to each other.</p>
+<p>Now, in general for a signal <span class="math inline">\(f \in \mathbb R^{|V|}\)</span>, we want</p>
+<p><span class="math display">\[
+\tilde{L}Pf = PLf
+\]</span></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="laplacianCommutativity.png" class="img-fluid figure-img" width="305"></p>
+</figure>
+</div>
+<p>Given <span class="math inline">\(K\)</span> such signals to preserve (in our case the eigenvectors of the laplacian), represented as a matrix <span class="math inline">\(F \in \mathbb R^{|V| \times K}\)</span>, we want to minimize an error <span class="math inline">\(E\)</span> where</p>
+<p><span class="math display">\[
+E = ||\tilde{L}PF - PLF||^2
+\]</span></p>
+<p>where <span class="math inline">\(||X||^2 = tr(X^{\top}X)\)</span>.</p>
+<p>This energy can also be represented as a per-vertex sum</p>
+<p><span class="math display">\[
+E = \sum\limits_vE_v \text{ where } E_v = ||\text{row}_v(\tilde{L}PF - PLF)||^2
+\]</span></p>
+</section>
+<section id="algorithm" class="level3">
+<h3 class="anchored" data-anchor-id="algorithm">Algorithm</h3>
+<p>The key idea behind the spectral mesh simplification approach is to use the progressive mesh simplification algorithm we discussed above, but define the order of edge collapses based on the spectral error metric <span class="math inline">\(E\)</span>. Instead of minimizing only the geometric error across simplification, we now aim to preserve the first <span class="math inline">\(K\)</span> eigenvectors of the laplacian.</p>
+<p>As we have already discussed the overall mesh simplification algorithm, in this section we will focus on the cost function for each edge and the update step for it.</p>
+<p>Let’s begin by defining the cost for each edge. Intuitively, the cost for an edge <span class="math inline">\(e\)</span> is the change in the spectral error <span class="math inline">\(E\)</span> after collapsing <span class="math inline">\(e\)</span>.</p>
+<p><span class="math display">\[
+\text{cost} (e) = E^{after} - E^{before}
+\]</span></p>
+<p>Before we compute the cost, however, we must discuss how to compute the error <span class="math inline">\(E\)</span> for a given mesh. <span class="math inline">\(E\)</span> is based on four matrices <span class="math inline">\(F\)</span>,<span class="math inline">\(L\)</span>, <span class="math inline">\(\tilde{L}\)</span> and <span class="math inline">\(P\)</span>. While <span class="math inline">\(L\)</span> and <span class="math inline">\(\tilde{L}\)</span> can easily be computed based on the current mesh, the matrix <span class="math inline">\(F\)</span> is computed at the start via an eigen decomposition of the original laplacian matrix <span class="math inline">\(L\)</span>.</p>
+<p>The matrix <span class="math inline">\(P\)</span> is iteratively updated following each collapse. For instance, lets consider an edge collapse <span class="math inline">\(c_i\)</span> for an edge <span class="math inline">\(e = (u,v)\)</span>. Each such collapse operation <span class="math inline">\(c_i\)</span> has a restriction matrix <span class="math inline">\(Q_i\)</span> associated with it which maps the edge vertices <span class="math inline">\(u\)</span> and <span class="math inline">\(v\)</span> to the remaining vertex after the collapse, let’s say <span class="math inline">\(v\)</span>. If we perform <span class="math inline">\(m\)</span> such collapses, our fine-to-coarse restriction matrix <span class="math inline">\(P\)</span> is simply defined as <span class="math inline">\(P = Q_1Q_2...Q_m\)</span>.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="edgeCollapseNbd.png" class="img-fluid figure-img" width="317"></p>
+</figure>
+</div>
+<p>Now, let us discuss the steps to compute the cost. Considering the per vertex sum version of the energy <span class="math inline">\(E = \sum\limits_v E_v\)</span>, we note that the energy <span class="math inline">\(E_v\)</span> changes only for the neighbors of <span class="math inline">\(u\)</span> and <span class="math inline">\(v\)</span> after a collapse. We can thus restrict our computation to the subset <span class="math inline">\(H = \{u,v\} \cup N(u,v)\)</span>; where <span class="math inline">\(N(u,v)\)</span> consists of the neighbors of <span class="math inline">\(u\)</span> and <span class="math inline">\(v\)</span>.</p>
+<p>We can thus define the per-edge cost as</p>
+<p><span class="math display">\[
+\text{cost}(e) = \sum\limits_{w \in H} E_w^{after} - E_w^{before}
+\]</span> Let’s say the optimal edge to collapse is some edge <span class="math inline">\(e\)</span> with restriction matrix <span class="math inline">\(Q\)</span>. The terms <span class="math inline">\(F\)</span> and <span class="math inline">\(P\)</span> are updated as <span class="math inline">\(F \leftarrow QF\)</span> , <span class="math inline">\(P \leftarrow QP\)</span> and the queue priority is updated accordingly. We then continue on to the next edge to collapse and repeat until we have reached the desired level of simplification.</p>
+</section>
+<section id="results" class="level3">
+<h3 class="anchored" data-anchor-id="results">Results</h3>
+<p>This method was practically evaluated and found to successfully preserve eigenvectors a lot better than purely geometric simplification techniques. This is shown below:</p>
+<p><img src="specMeshSimpResults.png" class="img-fluid"></p>
+<p>We see that the patterns for higher eigenvalues are also preserved very well with this method. They further highlight the possibility of using their method for downstream applications like shape matching.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="specMeshShapeMatching.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+<p>They numerically evaluate their method using a matrix <span class="math inline">\(C\)</span>, where</p>
+<p><span class="math display">\[
+C = \tilde{\phi}^{\top}P\phi
+\]</span></p>
+<p>Where <span class="math inline">\(\tilde{\phi}\)</span> represents the coarsened eigenvectors, <span class="math inline">\(\phi\)</span> represents the original eigenvectors and <span class="math inline">\(P\)</span> as usual is our restriction matrix. Intuitively, if the commutativity is perfect <span class="math inline">\(C\)</span> will be a diagonal matrix. The distance from a fully diagonal matrix is evaluated using norms that consider off-diagonal terms. Using this metric they compare their method with different geometric simplification techniques.</p>
+<p><img src="CEval.png" class="img-fluid"></p>
+
+</section>
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="doc-bibliography">
+<div id="ref-garland1997surface" class="csl-entry" role="doc-biblioentry">
+Garland, Michael, and Paul S Heckbert. 1997. <span>“Surface Simplification Using Quadric Error Metrics.”</span> In <em>Proceedings of the 24th Annual Conference on Computer Graphics and Interactive Techniques</em>, 209–16.
+</div>
+<div id="ref-kyng2016approximate" class="csl-entry" role="doc-biblioentry">
+Kyng, Rasmus, and Sushant Sachdeva. 2016. <span>“Approximate Gaussian Elimination for Laplacians-Fast, Sparse, and Simple.”</span> In <em>2016 IEEE 57th Annual Symposium on Foundations of Computer Science (FOCS)</em>, 573–82. IEEE.
+</div>
+<div id="ref-lescoat2020spectral" class="csl-entry" role="doc-biblioentry">
+Lescoat, Thibault, Hsueh-Ti Derek Liu, Jean-Marc Thiery, Alec Jacobson, Tamy Boubekeur, and Maks Ovsjanikov. 2020. <span>“Spectral Mesh Simplification.”</span> In <em>Computer Graphics Forum</em>, 39:315–24. 2. Wiley Online Library.
+</div>
+<div id="ref-levy2010spectral" class="csl-entry" role="doc-biblioentry">
+Lévy, Bruno, and Hao Zhang. 2010. <span>“Spectral Mesh Processing.”</span> In <em>ACM SIGGRAPH 2010 Courses</em>, 1–312.
+</div>
+<div id="ref-liu2019spectral" class="csl-entry" role="doc-biblioentry">
+Liu, Hsueh-Ti Derek, Alec Jacobson, and Maks Ovsjanikov. 2019. <span>“Spectral Coarsening of Geometric Operators.”</span> <em>arXiv Preprint arXiv:1905.05161</em>.
+</div>
+<div id="ref-ovsjanikov2012functional" class="csl-entry" role="doc-biblioentry">
+Ovsjanikov, Maks, Mirela Ben-Chen, Justin Solomon, Adrian Butscher, and Leonidas Guibas. 2012. <span>“Functional Maps: A Flexible Representation of Maps Between Shapes.”</span> <em>ACM Transactions on Graphics (ToG)</em> 31 (4): 1–11.
+</div>
+<div id="ref-sorkine2005laplacian" class="csl-entry" role="doc-biblioentry">
+Sorkine, Olga. 2005. <span>“Laplacian Mesh Processing.”</span> <em>Eurographics (State of the Art Reports)</em> 4: 4.
+</div>
+<div id="ref-sorkine2004least" class="csl-entry" role="doc-biblioentry">
+Sorkine, Olga, and Daniel Cohen-Or. 2004. <span>“Least-Squares Meshes.”</span> In <em>Proceedings Shape Modeling Applications, 2004.</em>, 191–99. IEEE.
+</div>
+<div id="ref-taubin1995curve" class="csl-entry" role="doc-biblioentry">
+Taubin, Gabriel. 1995. <span>“Curve and Surface Smoothing Without Shrinkage.”</span> In <em>Proceedings of IEEE International Conference on Computer Vision</em>, 852–57. IEEE.
+</div>
+</div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
