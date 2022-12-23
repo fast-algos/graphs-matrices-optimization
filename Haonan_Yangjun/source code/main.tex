@@ -1,0 +1,67 @@
+\documentclass[11pt]{article}
+%%%%%%%%% options for the file macros.tex
+
+\def\showauthornotes{1}
+\def\showkeys{0}
+\def\showdraftbox{0}
+% \allowdisplaybreaks[1]
+
+\input{macros}
+\allowdisplaybreaks
+
+\usepackage{tikz, mathtools}
+\usepackage[
+    backend=biber,
+% giveninits=true,
+% natbib=true,
+    style=alphabetic,
+    url=false, 
+ %   doi=true,
+    hyperref,
+    backref=true,
+    backrefstyle=none,
+    maxbibnames=10,
+    sortcites
+]{biblatex}
+%\usepackage{subfigure}
+% \usepackage{subcaption}
+\usepackage{graphicx}
+\addbibresource{ref.bib}
+
+%%%%%%%%% Authornotes
+\newcommand{\Snote}{\Authornote{S}}
+
+
+
+
+%\newcommand\eqdef{\stackrel{\mathclap{\normalfont\mbox{def}}}{=}}
+\newcommand\idenVec{\V{1}}
+% \DeclareMathOperator{\vol}{Vol}
+\newcommand\nuReq{y^\top\V{D}\V{1}=0}
+\newcommand\nuFrac{\frac{y^\top\V{L}y}{y^\top\V{D}y}}
+
+
+\addbibresource{refs.bib}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\newcommand{\coursenum}{{CSC 2240H}}
+\newcommand{\coursename}{{Graphs, Matrices, and Optimization}}
+\newcommand{\courseprof}{Sushant Sachdeva}
+
+\lecturetitle{1}{Generating Uniform Spanning Trees}{Haonan Duan, Yangjun Ruan}{\today}
+
+In this lecture, we introduce two randomized algorithms for generating spanning trees uniformly. Given a connected, undirected and unweighted graph
+$G(V, E)$ with $n$ vertices and $m$ edges, the goal is to generate a spanning tree $T$ of $G$ chosen \textbf{uniformly} at random among all spanning trees of $G$. Recall that a spanning tree $T$ of an undirected graph $G$ is a subgraph that is a tree which includes all vertices of $G$.
+
+\input{part1.tex}
+\input{part2.tex}
+
+% \bibliography{ref}
+% \bibliographystyle{plain}
+% \bibliographystyle{abbrv}%
+
+\printbibliography
+\end{document}
