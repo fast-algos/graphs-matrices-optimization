@@ -1,0 +1,799 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage{fullpage} % uses full page for writing
+\usepackage{mathtools, amsthm, amssymb} % loads math packages
+\usepackage{xspace} % handles spacing (in i.i.d. for example)
+\setlength{\parindent}{0pt}% removes paragraph indentation
+\usepackage{parskip} % adds space between paragraphs
+\usepackage{bbm} % allows writing the indicator function
+
+
+% Theorems
+\theoremstyle{plain}
+\newtheorem{lemma}{Lemma} 
+\newtheorem{proposition}[lemma]{Proposition} % the argument [lemma] makes the environment "proposition" follow the same counter as "lemma".
+\newtheorem{theorem}[lemma]{Theorem} 
+\newtheorem{corollary}[lemma]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[lemma]{Definition}
+\newtheorem{example}[lemma]{Example}
+
+\theoremstyle{remark}
+\newtheorem{remark}[lemma]{Remark}
+
+% Commands & Delimiters
+
+% Miscellaneous
+\newcommand{\defeq}{\vcentcolon=}
+\newcommand{\eqdef}{=\vcentcolon}
+\let\brack\undefined % undefines brack so I can define it in next line
+\DeclarePairedDelimiter{\brack}{\lbrack}{\rbrack}
+\let\brace\undefined
+\DeclarePairedDelimiter{\brace}{\lbrace}{\rbrace}
+\DeclarePairedDelimiter{\paren}{\lparen}{\rparen}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\toprop}{\mathrel{\mskip1mu\reflectbox{$\propto$}\mskip-1mu}}
+
+% Sets
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\C}{\mathbb{C}}
+\renewcommand{\S}{\mathbb{S}} % sphere
+
+\DeclareMathOperator*{\argmax}{\arg\!\max}
+\DeclareMathOperator*{\argmin}{\arg\!\min}
+
+% Functions
+\newcommand{\logp}[1]{\log{\left(#1\right)}}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+
+% Linear Algebra
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+\DeclarePairedDelimiterX{\inp}[2]{\langle}{\rangle}{#1, #2} % The X in declarepairedelimiterx allows us to format the two arguments, in this case, I want a comma between them and I don't want to type it everytime
+\newcommand{\lambdamin}[1]{\lambda_{\mathrm{min}}{#1}}
+\newcommand{\invlambdamin}[1]{\lambda_{\mathrm{min}}^{-1}{#1}}
+\DeclareMathOperator{\spann}{span}
+\renewcommand{\dim}[1]{\operatorname{dim}\left(#1\right)}
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\diag}{diag}
+
+% Probability
+\renewcommand{\P}[1]{\mathbb{P}\left(#1\right)}
+\newcommand{\E}[1]{\mathbb{E}\left[#1\right]}
+\newcommand{\Var}[1]{\text{Var}\left[#1\right]}
+\newcommand{\iid}{i.i.d.\@\xspace}
+
+% Algorithms
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\title{Report CS2240: $\ell_p$ Row Sampling by Lewis Weights}
+\author{Ayoub El Hanchi, Tyler Kastner}
+\date{December 2022}
+
+\begin{document}
+
+\maketitle
+
+\section{Problem statement}
+Given a matrix $F \in \R^{N \times d}$ for $N \gg d$ and $\eps > 0$, we would like to produce a matrix $\widehat{F} \in \R^{n \times d}$ with as small of an $n$ as possible such that:
+\begin{equation}
+\label{pb:1}
+    (1 - \eps) \norm{Fw}_p^p \leq \norm{\widehat{F}w}_p^p \leq (1 + \eps) \norm{Fw}_p^p \quad \forall w \in \R^{d}
+\end{equation}
+If this step can be achieved efficiently, then for many problems, one may replace $F$ with the smaller matrix $\widehat{F}$, leading to significant computational savings . We will assume that the columns of $F$ are linearly independent. 
+
+\section{An alternative formulation}
+We treat vectors $f \in R^{N}$ as elements of $\mathcal{L}([N], 2^{[N]}, U_N)$, the set of functions from the probability space $([N], 2^{[N]}, U_N)$ to $\R$ where $U_N$ is the uniform probability measure, i.e. $U_N(\brace{i}) = 1/N$ for all $i \in [N]$. We view the columns of $F$ as $d$ linearly independent functions $\brace{f_j}_{j=1}^{d}$, and their span $\mathcal{F} \defeq \spann{\brace{f_1, \dotsc, f_d}}$ as a subspace of $\mathcal{L}([N], 2^{[N]}, U_N)$. We denote by $w: \mathcal{F} \to \R^{d}$ the isormorphism (linear bijection) that sends every $f \in \mathcal{F}$ to the weights $w(f) \in \R^{d}$ satisfying $f = \sum_{j=1}^{d} w(f)_j f_j$ (this is well-defined since $\brace{f_j}_{j=1}^{d}$ is a basis of $\mathcal{F}$). 
+The $p$-norm of $f \in \mathcal{F}$ is given by $\norm{f}_p = \E{\abs{f(I)}^p}^{1/p} = \paren*{\frac{1}{N} \sum_{i=1}^{N} \abs{f(i)}^p}^{1/p}$. Solving problem (\ref{pb:1}) is then equivalent to producing functions $\brace{\hat{f}_j}_{j=1}^{d}$ in $\mathcal{L}([n], 2^{[n]}, U_n)$ such that:
+\begin{equation}
+\label{pb:2}
+    (1 - \eps) \norm*{\sum_{j=1}^{d} w(f)_j f_j}_p^p \leq \norm*{\sum_{j=1}^{d} w(f)_j \hat{f}_j}_p^p \leq (1 + \eps) \norm*{\sum_{j=1}^{d} w(f)_j f_j}_p^p \quad \forall f \in \mathcal{F}
+\end{equation}
+Given such functions, we can construct $\widehat{F}$ by setting the $j^{th}$ column of $\widehat{F}$ to $\frac{N}{n}\hat{f}_j$.
+
+\section{Method}
+Solving Problem \ref{pb:2} amounts to simultaneously estimating $\norm{f}_p^p$ for all $f \in \mathcal{F}$ up to a multiplicative factor. For any $f \in \mathcal{F}$, recall that:
+\begin{equation*}
+    \norm{f}_p^p = \E{\abs{f(I)}^p}
+\end{equation*}
+Since we are interested in estimating $\norm{f}_p^p$, we could sample $n$ \iid indices $(I_k)_{k=1}^{n}$ from the uniform probability measure $U_N$ and form the estimator:
+\begin{equation*}
+    \norm{f}_p^p \approx \frac{1}{n} \sum_{k=1}^{n} \abs{f(I_k)}^p
+\end{equation*}
+Clearly, we have:
+\begin{equation*}
+    \E{\frac{1}{n} \sum_{k=1}^{n} \abs{f(I_k)}^p} = \norm{f}_p^p
+\end{equation*}
+More generally, one may consider an importance sampling estimator: for a distribution $Q$ on $[N]$, sample $(I_k)_{k=1}^{n}$ \iid from $Q$ and estimate:
+\begin{equation*}
+    \norm{f}_p^p \approx \frac{1}{n} \sum_{k=1}^{n} \frac{1}{NQ(\brace{I_k})} \abs{f(I_k)}^p
+\end{equation*}
+which also satisfies:
+\begin{equation*}
+    \E{\frac{1}{n} \sum_{k=1}^{n} \frac{1}{NQ(\brace{I_k})} \abs{f(I_k)}^p} = \norm{f}_p^p
+\end{equation*}
+
+If we define:
+\begin{equation*}
+    \hat{f}_j \defeq \paren*{\frac{1}{N Q(I_1)} f_j(I_1), \dotsc, \frac{1}{N Q(I_n)}f_j(I_n)}
+\end{equation*}
+then our estimator can be written as:
+\begin{equation*}
+    \frac{1}{n} \sum_{k=1}^{n} \frac{1}{NQ(\brace{I_k})} \abs{f(I_k)}^p = \norm*{\sum_{j=1}^{d} w(f)_j \hat{f}_j}_p^p
+\end{equation*}
+This gives us our candidate for the choice of $\brace{\hat{f}_j}_{j=1}^{d}$. Algorithm \ref{alg:1} summarizes this method. For a matrix $F$, we use $F(i, :)$ to refer to its $i^{th}$ row. The algorithm takes as input the matrix $F$, the sampling distribution $Q$, and the number of samples $n$, and returns an approximation $\widehat{F}$ of $F$. The goal of the next sections will be to:
+\begin{itemize}
+    \item Given a confidence parameter $\delta \in [0, 1]$, an error parameter $\eps > 0$, and a distribution $Q$, upper bound the number of samples $n$ needed such that $\widehat{F}(F, Q, n)$ is an $\eps$-approximation of $F$ in the sense of (\ref{pb:1}) with probability at least $1-\delta$.
+    \item Propose computable choices of $Q$ such that the upper bound on $n$ is as small as possible.
+\end{itemize}
+
+\begin{algorithm}
+\caption{Matrix approximation by row importance sampling}
+\label{alg:1}
+\begin{algorithmic}[1]
+\Function{$\widehat{F}$}{$F, Q, n$}
+    \State{$\widehat{F} \gets 0 \in \R^{n \times d}$}
+    \For{$k \in [n]$}
+        \State{$I_k \sim Q$}
+        \State{$\widehat{F}(k, :) \gets \frac{1}{nQ(I_k)} \cdot F(I_k, :)$}
+    \EndFor
+    \State{\Return{$\widehat{F}$}}
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+
+
+\section{Analysis}
+Throughout this section, we fix $p \in [1, \infty)$. We start by defining the following random semi-norm on $\mathcal{F}$:
+\begin{equation*}
+    \norm{f}_n \defeq \paren*{\frac{1}{n} \sum_{k=1}^{n} \frac{1}{NQ(\brace{I_k})} \abs{f(I_k)}^p}^{1/p}
+\end{equation*}
+Condition (\ref{pb:2}) can then be rewritten as:
+\begin{equation*}
+    (1 - \eps) \norm{f}_p^p \leq \norm{f}_n^p \leq (1 + \eps) \norm{f}_p^p \quad \forall f \in \mathcal{F}
+\end{equation*}
+Denote by $S_p \defeq \brace*{f \in \mathcal{F} \mid \norm{f}_p = 1}$ the unit sphere in $(\mathcal{F}, \norm{\cdot}_p)$. The above condition is equivalent to:
+\begin{align*}
+    \inf_{f \in S_p} \norm{f}_{n}^p &\geq 1 - \eps \\ 
+    \sup_{f \in S_p} \norm{f}_n^p &\leq 1 + \eps
+\end{align*}
+We want to bound the probability of the event:
+\begin{equation*}
+    \mathcal{B} \defeq \brace*{(i_1, \dotsc, i_n) \mid \inf_{f \in S_p} \norm{f}_{n}^p < 1 - \eps \lor \sup_{f \in S_p} \norm{f}_n^p > 1 + \eps}
+\end{equation*}
+under the product measure $Q^{n}$. By the union bound, we have that:
+\begin{equation*}
+    Q^{n}(\mathcal{B}) \leq Q^{n}\paren*{\inf_{f \in S_p} \norm{f}_{n}^p < 1 - \eps} + Q^{n}\paren*{\sup_{f \in S_p} \norm{f}_n^p > 1 + \eps}
+\end{equation*}
+At a high-level, the standard technique to control these tail probabilities is the following:
+\begin{itemize}
+    \item Bound the tail probabilities $P(\norm{f}_n^p < 1 - \eps)$ and $P(\norm{f}_n^p > 1 + \eps)$  for any fixed $f \in S_{p}$.
+    \item Define a set $N_{\Delta}$, a discretization of the set $S_{p}$, and control the discretization error induced by considering only the set $N_{\Delta}$ instead of $S_p$.
+    \item Extend the pointwise bound to all of $S^p$ by first extending it to $N_{\Delta}$ using the union bound and to all of $S_{p}$ using the bound on the discretization error.
+\end{itemize}
+
+This is the approach we will take in the next subsections. See Chapter 5 of \cite{van2014probability} for a thorough introduction to the problem of obtaining tail bounds for maxima and minima of random variables.
+
+\subsection{Pointwise bound}
+Fix $f \in S_p$. The random variable $\norm{f}_n^p$ is an average of the \iid random variables:
+\begin{equation*}
+    X^f_k \defeq \frac{1}{NQ(\brace{I_k})} \abs{f(I_k)}^p \quad \text{for all } k \in [n]
+\end{equation*}
+which satisfy:
+\begin{equation*}
+    0 \leq X^f_k \leq \max_{i \in [N]} \brace*{\frac{1}{NQ(\brace{i})} \abs{f(i)}^p} \eqdef R_p(f, Q) \quad \text{for all } k \in [n]
+\end{equation*}
+and:
+\begin{equation*}
+    \E{X^f_k} = \norm{f}_p^p = 1
+\end{equation*}
+so that by the Chernoff bound, we have:
+\begin{align}
+    Q^{n}\paren*{\norm{f}_n^p \geq 1+\eps} &\leq \exp{\paren*{-\frac{\eps^2 n}{3 R_p(f, Q)}}} \label{bd:1} \\
+    Q^{n}\paren*{\norm{f}_n^p \leq 1-\eps} &\leq \exp{\paren*{-\frac{\eps^2 n}{3 R_p(f, Q)}}} \label{bd:2}
+\end{align}
+
+\subsection{Discretization}
+Recall the definition of a $\Delta$-net.
+\begin{definition}
+    Let $(T, d)$ be a metric space. Let $S \subset T$. A $\Delta$-net of $S$ in $d$ is a subset $N_{\Delta}$ of $S$ such that for all $x \in S$ there exists an $\pi(x) \in N_{\Delta}$ such that $d(x , \pi(x)) \leq \Delta$. The $\Delta$-covering number of $S$ in $d$ is defined by:
+    \begin{equation*}
+        N(S, d, \Delta) \defeq \inf\brace*{\abs{N} \mid N \text{ is $\Delta$-net of $S$ in $d$}}
+    \end{equation*}
+\end{definition}
+
+The main result of this section is the following result which discretizes the supremum and infimum we care about.
+\begin{proposition}
+\label{prop:1}
+    Let $\Delta \in (0, 1)$, and let $N_{\Delta}$ be a $\Delta$-net of $S_p$ in the metric induced by $\norm{\cdot}_p$. Then:
+    \begin{align*}
+        \sup_{f \in S_p} \norm{f}_n &\leq \frac{1}{1-\Delta} \sup_{f \in N_{\Delta}} \norm{f}_n \\
+        \inf_{f \in S_p} \norm{f}_n & \geq \inf_{f \in N_{\Delta}} \norm{f}_n - \Delta \sup_{f \in S_p} \norm{f}_n 
+    \end{align*}
+\end{proposition}
+\begin{proof}
+    Recall that for any $f \in S_p$, $\pi(f) \in N_{\Delta}$ satisfies $\norm{f - \pi(f)}_p \leq \Delta$. Now note that:
+    \begin{align*}
+        \sup_{f \in S_p} \brace*{\abs*{\norm{f}_n - \norm{\pi(f)}_n}} &\leq \sup_{f \in S_p} \norm{f - \pi(f)}_n \\
+        &= \sup_{f \in S_p} \norm{f - \pi(f)}_p \norm*{\frac{f - \pi(f)}{\norm{f - \pi(f)}_p}}_n \\
+        &\leq \Delta \sup_{f \in S^p} \norm*{\frac{f - \pi(f)}{\norm{f - \pi(f)}_p}}_n \\
+        &\leq \Delta \sup_{f \in S_p} \norm{f}_n
+    \end{align*}
+    where in the last line we used the fact that:
+    \begin{equation*}
+        \brace*{\frac{f - \pi(f)}{\norm{f - \pi(f)}_p} \mid f \in S_p} \subseteq S_p
+    \end{equation*}
+    The first inequality then follows from:
+    \begin{align*}
+        \sup_{f \in S_p} \norm{f}_n &= \sup_{f \in S_p} \brace*{\norm{f}_n - \norm{\pi(f)}_n + \norm{\pi(f)}_n} \\
+        &\leq \sup_{f \in S_p} \norm{\pi(f)}_n + \sup_{f \in S_p} \brace*{\norm{f}_n - \norm{\pi(f)}_n} \\
+        &\leq \sup_{f \in N_{\Delta}} \norm{f}_n + \Delta \sup_{f \in S_p} \norm{f}_n
+    \end{align*}
+    For the second inequality, we have similarly:
+    \begin{align*}
+        \inf_{f \in S_p} \norm{f}_n &= \inf_{f \in S_p} \brace*{\norm{f}_n - \norm{\pi(f)}_n + \norm{\pi(f)}_n} \\
+        &\geq \inf_{f \in S_p} \norm{\pi(f)}_n - \sup_{f \in S_p} \brace*{\norm{\pi(f)}_n - \norm{f}_n} \\
+        &\geq \inf_{f \in N_{\Delta}} \norm{f}_n - \Delta \sup_{f \in S_p} \norm{f}_n
+    \end{align*}
+\end{proof}
+
+\subsection{Uniformization}
+
+For our problem, we are interested in covering $S_p$ in the metric induced by the norm $\norm{\cdot}_p$. We recall the following standard result (see, e.g., \cite{van2014probability}, Chapter 5, section 5.2 and exercice 5.5)
+\begin{lemma}
+    Let $(V, \norm{\cdot})$ be a $d$-dimensional normed vector space. Let $S$ denote the unit sphere in $(V, \norm{\cdot})$ and let $d_{\norm{\cdot}}$ be the metric induced by $\norm{\cdot}$. Then for all $\Delta \in (0,1)$:
+    \begin{equation*}
+        N(S, d_{\norm{\cdot}}, \Delta) \leq \paren*{\frac{3}{\Delta}}^{d}
+    \end{equation*}
+\end{lemma}
+We are now ready to state our main theorem:
+\begin{theorem}
+\label{th:1}
+Define:
+\begin{equation*}
+    R_p(Q) \defeq \sup_{f \in S_p} R_p(f, Q)
+\end{equation*}
+then we have the following tail bounds:
+\begin{align*}
+    Q^{n}\paren*{\sup_{f \in S_p} \norm{f}_n^p > 1 + \eps} &\leq \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)} + d \logp{\frac{6p}{\eps}}}} \\
+    Q^{n}\paren*{\inf_{f \in S_p} \norm{f}_n^p < 1 - \eps} &\leq 2 \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)} + d \logp{\frac{6p}{\eps}}}}
+\end{align*}
+\end{theorem}
+\begin{proof}
+    We start by proving the first inequality. We have:
+    \begin{align*}
+        Q^{n}\paren*{\sup_{f \in S_p} \norm{f}_n^p > 1 + \eps} &\leq Q^{n}\paren*{\sup_{f \in N_{\Delta}} \norm{f}_n^p > (1 - \Delta)^{p}(1 + \eps)} \\
+        &= Q^{n}\paren*{\bigcup_{f \in N_{\Delta}} \brace*{\norm{f}_n^p > (1 - \Delta)^{p}(1 + \eps)}} \\
+        &\leq \sum_{f \in N_{\Delta}} Q^{n}\paren*{\norm{f}_n^p > (1 - \Delta)^{p}(1 + \eps)}
+    \end{align*}
+    where the first inequality follows from Proposition \ref{prop:1}, and the third by the union bound. Now we set: 
+    \begin{equation*}
+        \Delta \defeq \frac{\eps}{2(1 + \eps)p}
+    \end{equation*}
+    then we have:
+    \begin{equation*}
+        (1-\Delta)^p (1+\eps) \geq (1 - p\Delta) (1+\eps) = 1 + \frac{\eps}{2}
+    \end{equation*}
+    where the first inequality follows from Bernoulli's inequality. Now using (\ref{bd:1}) we have:
+    \begin{align*}
+        Q^{n}\paren*{\sup_{f \in S_p} \norm{f}_n^p > 1 + \eps} &\leq \sum_{f \in N_{\Delta}} Q^{n}\paren*{\norm{f}_n^p > (1 - \Delta)^{p}(1 + \eps)} \\
+        &\leq \sum_{f \in N_{\Delta}} Q^{n}\paren*{\norm{f}_n^p > 1 + \frac{\eps}{2}} \\
+        &\leq \sum_{f \in N_{\Delta}} \exp{\paren*{-\frac{\eps^2n}{12 R_p(f, Q)}}} \\
+        &\leq \sum_{f \in N_{\Delta}} \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)}}} \\
+        &\leq \abs{N_\Delta} \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)}}}
+    \end{align*}
+    since this bound holds for all $\Delta$-nets of $S_p$ in $d_{\norm{\cdot}_p}$, we have:
+    \begin{align*}
+        Q^{n}\paren*{\sup_{f \in S_p} \norm{f}_n^p > 1 + \eps} &\leq N(S_p, d_{\norm{\cdot}}, \Delta) \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)}}} \\
+        &\leq \paren*{\frac{3}{\Delta}}^{d} \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)}}} \\
+        &= \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)} + d \logp{\frac{3}{\Delta}}}} \\
+        &= \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)} + d \logp{\frac{6p}{\eps}}}}
+    \end{align*}
+    This proves the first inequality. For the second, we have by Propositon \ref{prop:1}:
+    \begin{equation*}
+        Q^{n}\paren*{\inf_{f \in S_p} \norm{f}_n^{p} < 1- \eps} \leq Q^{n}\paren*{\inf_{f \in N_{\Delta}} \norm{f}_n^p - \Delta \sup_{f \in S_p} \norm{f}_n^p < 1 - \eps}
+    \end{equation*}
+    Now define the events:
+    \begin{align*}
+        E &\defeq \brace*{\inf_{f \in N_{\Delta}} \norm{f}_n^p - \Delta \sup_{f \in S_p} \norm{f}_n^p < 1 - \eps}\\
+        E_1 &\defeq \brace*{\inf_{f \in N_{\Delta}} \norm{f}_n^p - \Delta \sup_{f \in S_p} \norm{f}_n^p < 1 - \eps} \bigcap \brace*{\Delta \sup_{f \in S_p} \norm{f}_n^p < \eps/2} \\
+        E_2 &\defeq \brace*{\inf_{f \in N_{\Delta}} \norm{f}_n^p - \Delta \sup_{f \in S_p} \norm{f}_n^p < 1 - \eps} \bigcap \brace*{\Delta \sup_{f \in S_p} \norm{f}_n^p \geq \eps/2}
+    \end{align*}
+    notice that $E = E_1 \cup E_2$. Now on $E_1$ we have:
+    \begin{equation*}
+        \inf_{f \in N_{\Delta}} \norm{f}_n^p < 1 - \eps + \Delta \sup_{f \in S_p} \norm{f}_n^p \quad \land \quad \Delta \sup_{f \in S_p} \norm{f}_n^p < \eps/2
+    \end{equation*}
+    which implies:
+    \begin{equation*}
+        \inf_{f \in N_{\Delta}} \norm{f}_{n}^p < 1-\frac{\eps}{2}
+    \end{equation*}
+    therefore:
+    \begin{equation*}
+        E_1 \subseteq \brace*{\inf_{f \in N_{\Delta}} \norm{f}_{n}^p < 1-\frac{\eps}{2}}
+    \end{equation*}
+    and by definition of $E_2$, we have:
+    \begin{equation*}
+        E_2 \subseteq \brace*{\Delta \sup_{f \in S_p} \norm{f}_n^p \geq \eps/2}
+    \end{equation*}
+    Hence:
+    \begin{align*}
+        Q^{n}\paren*{\inf_{f \in S_p} \norm{f}_n^{p} < 1- \eps} &\leq Q^{n}(E) \\
+        &= Q^{n}(E_1 \cup E_2) \\
+        &\leq Q^{n}(E_1) + Q^{n}(E_2) \\
+        &\leq Q^{n}\paren*{\inf_{f \in N_{\Delta}} \norm{f}_{n}^p < 1-\frac{\eps}{2}} + Q^{n}\paren*{\Delta \sup_{f \in S_p} \norm{f}_n^p \geq \eps/2} 
+    \end{align*}
+
+    We now bound each of the two terms separately. For the first, we have:
+    \begin{align*}
+        Q^{n}\paren*{\inf_{f \in N_{\Delta}} \norm{f}_n^p < 1 - \frac{\eps}{2}} &= \paren*{\bigcup_{f \in N_{\Delta}} \brace*{\norm{f}_n^p < 1 - \frac{\eps}{2})}} \\ 
+        &\leq \sum_{f \in N_{\Delta}} Q^{n}\paren*{\norm{f}_n^p < 1 - \frac{\eps}{2}} \\
+        &\leq \sum_{f \in N_{\Delta}} \exp{\paren*{-\frac{\eps^2n}{12 R_p(f, Q)}}} \\
+        &\leq \sum_{f \in N_{\Delta}} \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)}}} \\
+        &\leq \abs{N_\Delta} \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)}}}
+    \end{align*}
+
+    since this bound holds for all $\Delta$-nets of $S_p$ in $d_{\norm{\cdot}_p}$, we have:
+    \begin{align*}
+        Q^{n}\paren*{\inf_{f \in N_{\Delta}} \norm{f}_n^p < 1 - \frac{\eps}{2}} &\leq N(S_p, d_{\norm{\cdot}}, \Delta) \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)}}} \\
+        &\leq \paren*{\frac{3}{\Delta}}^{d} \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)}}} \\
+        &= \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)} + d \logp{\frac{3}{\Delta}}}}
+    \end{align*}
+
+    For the second term, we set:
+    \begin{equation*}
+        \Delta \defeq \frac{\eps}{2(1+\eps)}
+    \end{equation*}
+    Then:
+    \begin{align*}
+        Q^{n}\paren*{\Delta \sup_{f \in S_p} \norm{f}_n^p \geq \eps/2} &= Q^{n}\paren*{\sup_{f \in S_p} \norm{f}_n^p \geq 1 + \eps} \\
+        &\leq \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)} + d \logp{\frac{6p}{\eps}}}}
+    \end{align*}
+    where we used the first inequality we derived in the second line. Putting the bounds together we get:
+    \begin{align*}
+        Q^{n}\paren*{\inf_{f \in S_p} \norm{f}_n^{p} < 1- \eps} &\leq Q^{n}\paren*{\inf_{f \in N_{\Delta}} \norm{f}_{n}^p < 1-\frac{\eps}{2}} + Q^{n}\paren*{\Delta \sup_{f \in S_p} \norm{f}_n^p \geq \eps/2} \\
+        &\leq \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)} + d \logp{\frac{6}{\eps}}}} + \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)} + d \logp{\frac{6p}{\eps}}}} \\
+        &\leq 2 \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)} + d \logp{\frac{6p}{\eps}}}}
+    \end{align*}
+    where in the last line we used the fact that $p \geq 1$.
+
+    
+\end{proof}
+
+\begin{corollary}
+    \label{cor:1}
+    Let $\delta \in (0,1]$, and let $\eps > 0$. If:
+    \begin{equation*}
+        n \geq \frac{12 R_p(Q)}{\eps^2}
+        \logp{\frac{3}{\delta}} + \frac{12 R_p(Q) d}{\eps^2} \logp{\frac{6p}{\eps}}
+    \end{equation*}
+    then with probability $1-\delta$ the output $\widehat{F}(F, Q, n)$ of Algorithm \ref{alg:1} satisfies the inequalities (\ref{pb:1}).
+\end{corollary}
+
+\begin{proof}
+    The inequalities (\ref{pb:1}) hold precisely on the complement of the event $\mathcal{B}$. Now:
+    \begin{equation*}
+       Q^{n}(\mathcal{B}) \leq Q^{n}\paren*{\inf_{f \in S_p} \norm{f}_{n}^p < 1 - \eps} + Q^{n}\paren*{\sup_{f \in S_p} \norm{f}_n^p > 1 + \eps} \\
+       \leq 3 \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)} + d \logp{\frac{6p}{\eps}}}}
+    \end{equation*}
+    where the last inequality follows from Theorem \ref{th:1}. Now:
+    \begin{align*}
+        &\quad \delta \geq 3 \exp{\paren*{-\frac{\eps^2n}{12 R_p(Q)} + d \logp{\frac{6p}{\eps}}}} \\
+        &\Leftrightarrow \logp{\frac{\delta}{3}} \geq -\frac{\eps^2n}{12R_p(Q)} + d\logp{\frac{6p}{\eps}} \\
+        &\Leftrightarrow \logp{\frac{3}{\delta}} \leq \frac{\eps^2n}{12R_p(Q)} - d\logp{\frac{6p}{\eps}} \\
+        &\Leftrightarrow \frac{\eps^2n}{12 R_p(Q)} \geq \logp{\frac{3}{\delta}} + d \logp{\frac{6p}{\eps}} \\
+        &\Leftrightarrow n \geq \frac{12 R_p(Q)}{\eps^2}
+        \logp{\frac{3}{\delta}} + \frac{12 R_p(Q) d}{\eps^2} \logp{\frac{6p}{\eps}}
+    \end{align*}
+\end{proof}
+
+\subsection{Optimal sampling distribution $Q$}
+For any fixed choice of sampling distribution $Q$, Corollary \ref{cor:1} upper bounds the number of samples $n$ needed to achieve a fixed level of accuracy and confidence. In particular, the upper bound is proportional to $R_p(Q)$. As we would like to minimize the number of samples required, we would therefore like to pick the sampling distribution $Q$ that minimizes $R_p(Q)$. Our next result gives an explicit expression for this optimal distribution.
+
+\begin{lemma}
+    \label{lem:1}
+    Define the envelope function of $S_p$ by:
+    \begin{equation*}
+    F_p(i) \defeq \sup_{f \in S_p} f(i) = \sup_{f \in S_p} \abs{f(i)}
+    \end{equation*}
+    where the second equality follows from the fact that if $f \in S_p$, then $-f \in S_p$. Then the probability measure $Q_p^{*}$ on $([N], 2^{[N]})$ given by:
+    \begin{equation*}
+        Q_p^{*}(\brace{i}) \propto F_p^p(i)
+    \end{equation*}
+    minimizes $R_p(Q)$, i.e.:
+    \begin{equation*}
+        Q_p^{*} \in \argmin_{Q} R_p(Q)
+    \end{equation*}
+    and:
+    \begin{equation*}
+        R_p(Q_p^{*}) = \E{F_p^p(I)} = \norm{F_p}_p^p
+    \end{equation*}
+\end{lemma}
+
+\begin{proof}
+    We have:
+    \begin{align*}
+        R_p(Q) &= \sup_{f \in S_p} R_p(f, Q) \\
+        &= \sup_{f \in S_p} \max_{i \in [N]} \frac{1}{N Q(\brace{i})} \abs{f(i)}^p \\
+        &= \max_{i \in [N]} \frac{1}{NQ(\brace{i})} \sup_{f \in S_p} \abs{f(i)}^p
+    \end{align*}
+    and:
+    \begin{equation*}
+        R_p(Q_p^{*}) = \frac{1}{N} \sum_{i=1}^{N} \sup_{f \in S_p} \abs{f(i)}^{p} = \norm{F_p}_p^p
+    \end{equation*}
+    Now let $Q'$ be any other distribution on $([N], 2^{[N]})$. Then there exists $i \in [N]$ such that $Q'(\brace{i}) \leq Q(\brace{i})$. Therefore:
+    \begin{equation*}
+        R_p(Q') \geq \frac{1}{NQ'(\brace{i})} \sup_{f \in S_p} \abs{f(i)}^p \geq \frac{1}{NQ(\brace{i})} \sup_{f \in S_p} \abs{f(i)}^p = \frac{1}{N} \sum_{i=1}^{N}\sup_{f \in S_p} \abs{f(i)}^{p} = R_p(Q_p^{*})
+    \end{equation*}
+\end{proof}
+
+Lemma \ref{lem:1} gives us a closed form solution for the optimal distribution that minimizes the upper bound on the number of samples needed of Corollary \ref{cor:1}. However, two remaining questions remain:
+\begin{itemize}
+    \item How large is $R_p(Q_p^{*}) = \norm{F_p}_p^p$ ?
+    \item Can we efficiently sample from the optimal distribution $Q_p^{*}$ or an approximation of it ?
+\end{itemize}
+
+The goal of the next section is to answer these questions.
+
+\section{Sampling distribution}
+We start our investigation of the optimal distribution $Q_p^{*}$ and the optimal value $\norm{F_p}_p^p$ by first considering the special case $p=2$. We show that in this case we can explicitly compute $\norm{F_2}_{2}^{2} = d$. Furthermore, we show that the orthonormalization of the columns of $F$ is enough to exactly compute $Q_2^{*}$. It turns out that the main reason why we can obtain such strong results in the case $p=2$ is due to the fact that the $2$-norm is induced by an inner product.
+
+We next turn our attention to the case $p \neq 2$. The main idea here will be to approximate the $p$-norm with a norm induced by an inner product. A deep result from the functional analysis literature gives such an inner product, which allows us to:
+\begin{itemize}
+    \item Provide upper and lower bounds $d^{\min{\brace{p/2, 1}}} \leq \norm{F_p}_p^p \leq d^{\max{\brace{p/2, 1}}}$.
+    \item Propose an efficiently computable sampling distribution $\hat{Q}_p$ such that $R(\hat{Q}_p) \leq d^{\max{\brace{p/2, 1}}}$, matching the upper bound on $\norm{F_p}_p^p$.
+\end{itemize}
+
+\subsection{Case $p=2$}
+Recall that we are working on the space $(\mathcal{F}, \norm{\cdot}_2)$ where:
+\begin{equation*}
+    \norm{f}_2^2 = \frac{1}{N} \sum_{i=1}^{N} f^2(i)
+\end{equation*}
+Of course, the $2$-norm is the norm induced by the standard inner product:
+\begin{equation*}
+    \inp{f}{g} \defeq \frac{1}{N} \sum_{i=1}^{N} f(i)g(i)
+\end{equation*}
+Now let $\brace*{g_j}_{j=1}^{d}$ be an orthonormal basis of $(\mathcal{F}, \inp{\cdot}{\cdot})$. The main result of this section is an explicit expression of the envelope $F_2$.
+\begin{lemma}
+\label{lem:2}
+For all $i \in [N]$:
+    \begin{equation*}
+        F_2(i) = \paren*{\sum_{j=1}^{d} g(i)^2}^{1/2}
+    \end{equation*}
+\end{lemma}
+\begin{proof}
+    For any $f \in \mathcal{F}$, let $u: \mathcal{F} \to \R^{d}$ be the isomorphism (linear bijection) that sends $f$ to its coefficients with respect to the orthonormal basis $\brace{g_i}_{i=1}^{d}$ i.e. $f = \sum_{j=1}^{d}u(f)_j g_j$. We have the explicit expression:
+    \begin{equation*}
+        u(f) = \paren*{\inp{f}{g_1}, \dotsc, \inp{f}{g_d}}
+    \end{equation*}
+    It is clear that $u$ is a linear isometry between the spaces $(\mathcal{F}, \norm{\cdot}_2)$ and $(\R^d, \norm{\cdot})$ where $\norm{\cdot}$ is the standard Euclidean norm since:
+    \begin{equation*}
+        \norm{f}_2^2 = \inp{f}{f} = \inp*{\sum_{j=1}^{d} u(f)_j g_j}{\sum_{j=1}^{d} u(f)_j g_j} = \sum_{j=1}^{d} u(f)_j^2 \norm{g_j}_2^2 = \norm{u(f)}_2^2
+    \end{equation*}
+    Therefore $u(S_2) = S^{d-1}$ where $S^{d-1}$ is the standard Euclidean unit sphere in $R^{d}$.
+    Now let $i \in [N]$. Define:
+    \begin{equation*}
+        \phi(i) \defeq \paren*{g_1(i), \dotsc, g_d(i)}
+    \end{equation*}
+    Then
+    \begin{align*}
+        F_2(i) &= \sup_{f \in S_2} f(i) \\
+        &= \sup_{f \in S_2} \sum_{j=1}^{d} u(f)_j g_j(i) \\
+        &= \sup_{f \in S_2} \inp{u(f)}{\phi(i)} \\
+        &= \sup_{u \in S^{d-1}} \inp{u}{\phi(i)} \\
+        &= \norm{\phi(i)}
+    \end{align*}
+    where in the penultimate line we used that $u(S_2) = S^{d-1}$.
+\end{proof}
+
+Using this explicit expression of $F_2$, we can immediately compute $\norm{F_2}_2^2$.
+\begin{corollary}
+    \begin{equation*}
+        \norm{F_2}_2^2 = d
+    \end{equation*}
+\end{corollary}
+\begin{proof}
+    Using Lemma \ref{lem:2}, we have:
+    \begin{equation*}
+        \norm{F_2}_2^2 = \E{F_2^2(I)} = \E{\sum_{j=1}^{d}g^2(I)} = \sum_{j=1}^{d} \E{g^2(I)} = d
+    \end{equation*}
+\end{proof}
+
+Similarly, by Lemma \ref{lem:1}, we have:
+\begin{equation*}
+    Q^{*}_2(\brace{i}) \propto F^2_2(i) = \sum_{j=1}^{d} g^2_j(i)
+\end{equation*}
+Therefore to compute $Q^{*}$, it is enough to orthonormalize the columns $\brace{f_j}_{j=1}^{d}$ of $F$ (using Householder transformations for example).
+
+\subsection{Case $p \neq 2$}
+A quick inspection of the proof of Lemma \ref{lem:2} shows that it relies on the inner product structure of $\paren*{\mathcal{F}, \norm{\cdot}_2}$. Unfortunately, this structure does not persist for $p \neq 2$. Consequently, the results of the previous section do not generalize in a straightforward way. The idea will be to approximate the $p$-norm with a norm induced by an inner product. An amazing result of Lewis \cite{lewis1978finite} from the functional analysis literature allows us to accomplish just that. For our setup, the theorem translates to:
+\begin{theorem}
+\label{th:2}
+    Fix $p \in [1, \infty)$. There exists a basis $\brace{g_{p, j}}_{j=1}^{d}$ of $\mathcal{F}$ with the following properties. Let $g_p \defeq \paren*{\sum_{j=1}^{d}g_{p, j}^2}^{1/2}$ and define the inner product, for any $f, h \in \mathcal{F}$:
+    \begin{equation*}
+        \inp{f}{h}_p \defeq \E{f(I)h(I) g_p^{p-2}(I)} = \frac{1}{N} \sum_{i=1}^{N} f(i) h(i) g_p^{p-2}(i)
+    \end{equation*}
+    denote by $n_{p}(\cdot) \defeq \sqrt{\inp{\cdot}{\cdot}_p}$ the induced norm, and $B_{n_p}$ be the unit ball of $(\mathcal{F}, n_p)$. Then:
+    \begin{itemize}
+        \item $\brace*{g_{p, j}}_{j=1}^{d}$ is an orthonormal basis of $\paren{\mathcal{F}, \inp{\cdot}{\cdot}_p}$. \\
+        \item $\norm{g_p}_p = d^{1/p}$ \\
+        \item If $p \in [1,2]$, then for all $f \in \mathcal{F}$:
+        \begin{equation*}
+            n_p(f) \leq \norm{f}_p \leq d^{1/p - 1/2} n_p(f)
+        \end{equation*}
+        \item If $p \in [2, \infty)$, then for all $f \in \mathcal{F}$:
+        \begin{equation*}
+            d^{1/p - 1/2}n_p(f) \leq \norm{f}_p \leq n_p(f)
+        \end{equation*}
+    \end{itemize}
+\end{theorem}
+The proof of this statement is quite involved and difficult to motivate. We refer the reader to Theorem 2.1 in \cite{schechtman2001embedding} for a relatively simple but hard to motivate proof. See also section III.B of \cite{wojtaszczyk1996banach}.
+
+
+\subsubsection{Upper and lower bounds on $R_p(Q^*_p)$}
+The estimates in the last two items of Theorem \ref{th:2} immediately allows to prove upper and lower bounds on $R_p(Q^*_p) = \norm{F_p}_p^p$:
+\begin{lemma}
+\label{lem:3}
+    \begin{equation*}
+         d^{\min{\brace{p/2, 1}}} \leq \norm{F_p}_p^p \leq d^{\max{\brace{p/2, 1}}}
+    \end{equation*}
+\end{lemma}
+
+\begin{proof}
+    Fix $p \in [1,2]$. Then by the third item of Theorem \ref{th:2}, we have:
+    \begin{equation*}
+        n_p(f) \leq \norm{f}_p \leq d^{1/p - 1/2} n_p(f)
+    \end{equation*}
+    which implies:
+    \begin{equation*}
+        d^{1/2 - 1/p} B_{n_p} \subseteq B_{p} \subseteq B_{n_p}
+    \end{equation*}
+    therefore on the one hand we have:
+    \begin{equation*}
+        F_p(i) = \sup_{f \in B_p} f(i) \leq \sup_{f \in B_{n_p}} f(i) = \paren*{\sum_{j=1}^{d} g^2_{p,j}(i)}^{1/2} = g_{p}(i)
+    \end{equation*}
+    where the inequality follows from $B_p \subseteq B_{n_p}$, the second equality follows from the same calculation as in the proof of Lemma \ref{lem:2}, and the last equality is by definition of $g_p$. Similarly, we have:
+    \begin{equation*}
+        F_p(i) = \sup_{f \in B_p} f(i) \geq \sup_{f \in d^{1/2 - 1/p} B_{n_p}} f(i) = d^{1/2 - 1/p} \sup_{f \in  B_{n_p}} f(i) = d^{1/2 - 1/p} g_{p}(i)
+    \end{equation*}
+    combining the upper and lower bounds, taking the $p$-norm of all sides, and using the second item of Theorem \ref{th:2}, we get:
+    \begin{equation*}
+         d^{p/2} = d^{p/2 - 1} \norm{g_p}_p^p \leq \norm{F_p}_p^p \leq \norm{g_p}_p^p = d 
+    \end{equation*}
+    which finishes the proof of the case $p \in [1,2]$. The case $p \in [2,\infty)$ is similar, with the upper and lower bounds reversed.
+\end{proof}
+
+\subsubsection{A candidate distribution $\hat{Q}_p$}
+The result of the previous subsection gives us an explicit upper and lower bounds on $R(Q^{*}_p)$ in terms of the dimension. This in turn gives us an explicit bound on the number of samples $n$ such that the output of $\widehat{F}(F, Q_p^{*}, n)$ from Algorithm \ref{alg:1} is with high probability a good approximation of $F$ in the sense of (\ref{pb:1}).
+
+However, it remains unclear how and whether we can compute $Q^{*}_p$ efficiently (it is likely hard,  but I don't have a statement in mind). Here we instead design a distribution $\hat{Q}_p$ with $R(\hat{Q}_p) = d^{\max{\brace{p/2, 1}}}$, matching the upper bound on $R(Q_p^{*})$ derived in the previous subsection. In the next subsection, we will show that it is efficiently computable (for the case $p \in [1,4)$; we provide a reference for $p \geq 4$).
+
+Denote by $F_{n_p}: [N] \to [0, \infty)$ the envelope of $(\mathcal{F}, n_p)$ which is given by:
+\begin{equation*}
+    F_{n_p}(i) \defeq \sup_{f \in B_{n_p}} f(i)
+\end{equation*}
+In the proof of Lemma \ref{lem:3}, we showed that:
+\begin{equation*}
+    \min{\brace{1, d^{1/2 - 1/p}}} F_{n_p}(i) \leq F_{p}(i) \leq \max{\brace{1, d^{1/2 - 1/p}}} F_{n_p}(i)
+\end{equation*}
+In other words, $F_{n_p}$ is a good pointwise approximation of $F_p$. Now recall from Lemma \ref{lem:1} that:
+\begin{equation*}
+    Q_p^{*}(\brace{i}) \propto F_{p}^p(i)
+\end{equation*}
+Therefore, it makes sense to consider:
+\begin{equation*}
+    \hat{Q}_{p}(\brace{i}) \propto F_{n_p}^{p}(i)
+\end{equation*}
+as an approximation of $Q_p^{*}$.
+
+\begin{lemma}
+\label{lem:4}
+    \begin{equation*}
+        R(\hat{Q}_p) \leq d^{\max{\brace{p/2, 1}}}
+    \end{equation*}
+\end{lemma}
+\begin{proof}
+    We have:
+    \begin{align*}
+        R_p(\hat{Q}^p) &= \sup_{f \in S_p} R_p(f, \hat{Q}_p) \\
+        &= \sup_{f \in S_p} \max_{i \in [N]} \frac{1}{N \hat{Q}_p(\brace{i})} \abs{f(i)}^p \\
+        &= \max_{i \in [N]} \frac{1}{N\hat{Q}_p(\brace{i})} \sup_{f \in S_p} \abs{f(i)}^p \\
+        &= \max_{i \in [N]} \paren*{\frac{1}{N} \sum_{j=1}^{N} F_{n_p}^p(j)} \frac{F_p^p(i)}{F^{p}_{n_p}(i)} \\
+        &= \norm{F_{n_p}}_p^p \cdot \max_{i \in [N]} \brace*{\frac{F_p^p(i)}{F^{p}_{n_p}(i)}} \\
+        &\leq \norm{F_{n_p}}_p^p \cdot \max{\brace*{1, d^{p/2 - 1}}} \\
+        &= d^{\max{\brace{p/2, 1}}}
+    \end{align*}
+    where the last line follows from the fact that $\norm{F_{n_p}}_p^p = d$ as can be seen from the proof of Lemma \ref{lem:3}.
+\end{proof}
+
+Lemma \ref{lem:3} shows that $\hat{Q}_{p}$ is a "good" sampling distribution in that we have matching upper bounds for $R(Q_p^*)$ and $R(\hat{Q}_p)$. How can we sample from $\hat{Q}_p$ ? This is the subject of the next subsection.
+
+\subsubsection{Computing $\hat{Q}_p$}
+How do we go about computing $\hat{Q}_p$ ? Here we provide an answer for $p \in (1 ,4)$, which was given by \cite{cohen2015lp}. For $p \geq 4$, we refer to the recent paper \cite{fazel2022computing}.
+
+The first key observation we make is that, just like in the case $p=2$, we have the explicit expression:
+\begin{equation}
+\label{eq:1}
+    F_{n_p}(i) = g_{p}(i) = \paren*{\sum_{j=1}^{n} g_{p, j}^{2}(i)}^{1/2}
+\end{equation}
+Furthermore, note that the two expressions on the right are independent of the choice of orthonormal basis of $(\mathcal{F}, \inp{\cdot}{\cdot}_p)$. A quick way to see this is that $F_{n_p}$ is a basis-independent quantity that depends only on $(\mathcal{F}, \inp{\cdot}{\cdot}_p)$.
+
+Now, unfortunately, we are not provided with the inner product $\inp{\cdot}{\cdot}_p$, and therefore we cannot readily form an orthonormal basis of $(\mathcal{F}, \inp{\cdot}{\cdot}_p)$ as we did in the case of $p = 2$. Nevertheless, let us think about how we could form such an orthonormal basis assuming we had access to it.
+
+Since we are given a basis $\brace{f_j}_{j=1}^{d}$ of $\mathcal{F}$ through the columns of $F$, we can orthonormalize them by forming the Gram matrix $G \in \R^{d \times d}$:
+\begin{equation}
+\label{eq:2}
+    G_{ij} \defeq \inp{f_i}{f_j}_p = \frac{1}{N}\sum_{k=1}^{N} f_i(k) f_j(k) F_{n_p}^{p-2}(k)
+\end{equation}
+It is then straightforward to verify that the functions $\brace{h_j}_{j=1}^{d}$ given by, for all $i \in [d]$:
+\begin{equation}
+\label{eq:3}
+    h_i \defeq \sum_{j=1}^{d} G^{-1/2}_{ij} f_j
+\end{equation}
+are orthonormal in $\paren*{\mathcal{F}, \inp{\cdot}{\cdot}_p}$. 
+
+Let us rewrite equations (\ref{eq:1}), (\ref{eq:2}), and (\ref{eq:3}) in matrix form. For a vector $v$, we use $\diag{\paren{v}}$ to denote the diagonal matrix with $v$ on its diagonal. We overload notation, and for a matrix $A$, we use $\diag{\paren{A}}$ to denote the vector obtained by taking the diagonal of the matrix $A$. Finally, for a real number $a \in \R$ and a vector $v$, we denote by $v^{a}$ the vector whose entries are the entries of $v$ raised to the power $a$. For convenience, define the vector $w_p \in \R^{N}$ by:
+\begin{equation*}
+    w_{p, i} \defeq F_{n_p}^{p}(i) \toprop \hat{Q}_p(\brace{i})
+\end{equation*}
+
+We call $w_{p,i}$ the $p$-Lewis weight of the $i^{th}$ row of the matrix $F$, following the terminology of \cite{cohen2015lp}. Our goal is therefore to compute these $p$-Lewis weights. We can rewrite equation (\ref{eq:2}) as:
+\begin{equation}
+\label{eq:4}
+    G = F^{T} \diag{\paren*{w_p^{1 - 2/p}}} F
+\end{equation}
+Letting $H \in \R^{N \times d}$ be the matrix whose $j^{th}$ column is $h_j$, we can rewrite equation (\ref{eq:3}) as:
+\begin{equation}
+\label{eq:5}
+    H = F G^{-1/2}
+\end{equation}
+Finally using equation (\ref{eq:1}) with the orthonormal basis $\brace{h_j}_{j=1}^{d}$ and squaring both sides yields:
+\begin{equation}
+\label{eq:6}
+    w_p^{2/p} = \diag{\paren*{H H^{T}}}
+\end{equation}
+Plugging equation (\ref{eq:4}) and (\ref{eq:5}) into (\ref{eq:6}) yields the following equation for $w_p$ in terms of $F$ only:
+\begin{proposition}
+\label{prop:2}
+    \begin{equation*}
+        w_p^{2/p} = \diag{\paren*{F \brace*{F^{T} \diag{\paren*{w_p^{1-2/p}}}F}F^{T}}}
+    \end{equation*}
+\end{proposition}
+This gives us an equation that the $p$-Lewis weights must satisfy. However, it is unclear at this point:
+\begin{itemize}
+    \item whether the $p$-Lewis weights are the only solution to this equation.
+    \item how to compute solutions of this equation.
+\end{itemize}
+
+We investigate these questions next. First we make the following trivial observation:
+\begin{lemma}
+\label{lem:5}
+    Let $i \in [N]$. If $(f_1(i), \dotsc, f_d(i)) = 0$, then $w_{p,i} = 0$ for all $p \in [1,\infty)$.
+\end{lemma}
+\begin{proof}
+    We have:
+    \begin{equation*}
+        w_{p, i} = F_{n_{p}(i)} = \sup_{f \in B_{n_p}} f(i)
+    \end{equation*}
+    Now let $f \in B_{n_p}$. Since $\brace*{f_j}_{j=1}^{d}$ is a basis of $\mathcal{F}$, there exists $w(f) \in \R^{d}$ such that:
+    \begin{equation*}
+        f = \sum_{j=1}^{d} w(f)_j f_j
+    \end{equation*}
+    and in particular:
+    \begin{equation*}
+        f(i) = \sum_{j=1}^{d} w(f)_j f_j(i) = \sum_{j=1}^{d} w(f)_j \cdot 0 = 0
+    \end{equation*}
+    therefore $f(i) = 0$ for all $f \in B_{n_p}$, from which it follows that $w_{p, i} = 0$.
+\end{proof}
+In light of Lemma \ref{lem:5}, we will assume without loss of generality that the rows of $F$ are non-zero. (If not, we set the $p$-Lewis weights of the zero rows to zero, and restrict our attention to the remaining rows.)
+
+In preparation of the main result, we introduce a few definitions. Define the set:
+\begin{equation*}
+    \R_{++}^{N} \defeq \brace*{x \in \R^{N} \mid x_i > 0 \quad \forall i \in [N]}
+\end{equation*}
+and the function $d: \R_{++}^{N} \times \R_{++}^{N} \to [0, \infty)$ given by:
+\begin{equation*}
+    d(x, y) \defeq \max_{i \in [N]} \abs*{\logp{\frac{x_i}{y_i}}} 
+\end{equation*}
+Then we have:
+\begin{lemma}
+\label{lem:6}
+    $(\R_{++}^{N}, d)$ is a complete metric space.
+\end{lemma}
+\begin{proof}
+    Consider the metric space $(\R^{N}, d_{\infty})$ where $d_{\infty}$ is the metric induced by the norm $\norm{\cdot}_{\infty}$. This is a complete metric space (by applying completeness of $(\R, \abs{\cdot})$, which is true by definition of $\R$, on each of the coordinates).
+    
+    Now note that the coordinate-wise exponential function is a bijection from $\R^{N}$ to $\R_{++}^{N}$, whose inverse is the coordinate-wise natural logarithm. Then, for all $x, y \in \R_{++}^{N}$, we have:
+    \begin{equation*}
+        d(x, y) = d_{\infty}(\logp{x}, \logp{y})
+    \end{equation*}
+    It is then straightforward to verify that $d$ is a metric using the fact that the logarithm is a bijection. 
+    
+    Finally, let $(x_n)_{n=1}^{\infty}$ be a Cauchy sequence in $(\R^{N}_{++}, d)$. Let $\eps > 0$. Then there exists $N \in \N$ such that for all $n, m \geq N$, we have $d(x_n, x_m) \leq \eps$, i.e. $d_{\infty}(\logp{x_n}, \logp{x_m}) \leq \eps$. Therefore the sequence $(\logp{x_n})_{n=1}^{\infty}$ is Cauchy in $(\R^{N}, d_{\infty})$, and by completeness, there exists $y \in \R^{N}$ such that $\lim_{n \to \infty} \logp{x_n} = y$. Defining $x \defeq \exp{(y)}$, this last statement is equivalent to $\lim_{n \to \infty} \abs{\logp{x_n} - \logp{x}} = \lim_{n \to \infty} d(x_n, x) = 0$. Therefore $\lim_{n \to \infty} x_n = x$, so the Cauchy sequence converges in $\R_{++}^{N}$, showing completeness of $(\R^{N}_{++}, d)$. 
+\end{proof}
+
+We introduce some more preliminary results before proving our main result. We define the following notation, for $\alpha \geq 1$:
+\begin{align*}
+    x \approx_{\alpha} y &\Leftrightarrow \frac{1}{\alpha} y \leq x \leq \alpha y \text{ for } x,y \in (0, \infty) \\
+    v \approx_{\alpha} u &\Leftrightarrow \forall i \in [N] \quad u_i \approx_{\alpha} v_i \text{ for } v, u \in \R_{++}^{N} \\
+    A \approx_{\alpha} B &\Leftrightarrow \frac{1}{\alpha} B \preceq A \preceq \alpha B \text{ for } A, B \in \mathbb{S}_{++}^{d}
+\end{align*}
+where $\mathbb{S}_{++}^{d}$ is the set of positive definite matrices. We make the following simple observation:
+\begin{lemma}
+\label{lem:7}
+    Let $x, y \in \R_{++}^{d}$. Then:
+    \begin{equation*}
+        d(x, y) = \min{\brace*{\logp{\alpha} \mid \alpha \in (1, \infty) \land x \approx_{\alpha} y}}
+    \end{equation*}
+\end{lemma}
+\begin{proof}
+    We have the equivalences, for any $i \in [N]$ and $\alpha \geq 1$:
+    \begin{align*}
+        \logp{\frac{x_i}{y_i}} &\leq \log{\alpha} \Leftrightarrow \frac{x_i}{y_i} \leq \alpha \Leftrightarrow x_i \leq \alpha y_i \\
+        \logp{\frac{y_i}{x_i}} &\leq \log{\alpha} \Leftrightarrow \frac{y_i}{x_i} \leq \alpha \Leftrightarrow \frac{y_i}{\alpha} \leq x_i
+    \end{align*}
+    which shows:
+    \begin{equation*}
+        d(x, y) = \max_{i \in [N]} \abs*{\logp{\frac{x_i}{y_i}}} \leq \log{\alpha} \Leftrightarrow x \approx_{\alpha} y
+    \end{equation*}
+\end{proof}
+
+Finally, we have the following facts. The proofs are relatively straightforward and we omit them.
+\begin{lemma}
+    \label{lem:8}
+    Let $\alpha \geq 1$, $x, y \in (0,\infty)$ with $x \approx_{\alpha} y$, $v, u \in \R_{++}^{N}$ with $v \approx_{\alpha} u$, $A, B \in \mathbb{S}_{++}^{d}$ with $A \approx_{\alpha} B$. Then the following holds:
+    \begin{enumerate}
+        \item $x^p \approx_{\alpha^{\abs{p}}} y^p$ and $v^{p} \approx_{\alpha^{\abs{p}}} u^p$ for all $p \in \R$.
+        \item $\diag{(v)} \approx_{\alpha} \diag{(u)}$.
+        \item $C^{T} A C \approx_{\alpha} C^{T} B C$ for all $C \in \R^{N \times d}$
+        \item $A^{-1} \approx_{\alpha} B^{-1}$.
+        \item $x^{T}Ax \approx_{\alpha} x^{T}Bx$ for all $x \in \R^{d}$
+    \end{enumerate}
+\end{lemma}
+We now state and prove the main result of this section.
+\begin{theorem}
+    Fix $p \in [1, \infty)$. The map $T_p: \R^{N}_{++} \to \R^{N}_{++}$ given by:
+    \begin{equation*}
+        T_p(v) \defeq \diag{\paren*{F \brace*{F^{T} \diag{\paren*{v^{1-2/p}}F}}F^{T}}}^{p/2}
+    \end{equation*}
+    satisfies, for all $v, u \in \R^{N}$:
+    \begin{equation*}
+        d(T_p(v), T_p(u)) \leq \abs{p/2 - 1} \cdot d(v, u)
+    \end{equation*}
+\end{theorem}
+\begin{remark}
+    Before proving this statement, we note that for $p \in [1,4)$, $T_p$ is a contraction. Since $(\R_{++}^{N}, d)$ is complete, by the Banach fixed point theorem, it has a unique fixed point. Proposition \ref{prop:2} shows that this unique fixed point are the $p$-Lewis weights $w_p$. Therefore, to compute them, it is enough to start from some initial guess $w_p^{0} \in \R^{N}_{++}$ and repeatedly apply the contractive map $T_p$ until the desired accuracy is reached. 
+\end{remark}
+\begin{proof}
+    Let $u, v \in \R_{++}^{N}$, and set $\alpha \defeq \exp{(d(u,v))}$. Recall that $\phi(i) = (f_1(i), \dotsc, f_d(i))$ is the $i^{th}$ row of $F$. Then we have:
+    \begin{align*}
+        v \approx_{\alpha} u &\Rightarrow v^{1-2/p} \approx_{\alpha^{\abs{1-2/p}}} u^{1 - 2/p} \\
+        &\Rightarrow \diag{(v^{1-2/p})} \approx_{\alpha^{\abs{1-2/p}}} \diag{(u^{1-2/p})} \\
+        &\Rightarrow F^{T}\diag{(v^{1-2/p})} F \approx_{\alpha^{\abs{1-2/p}}} F^{T} \diag{(u^{1-2/p})} F \\
+        &\Rightarrow \brace*{F^{T}\diag{(v^{1-2/p})} F}^{-1} \approx_{\alpha^{\abs{1-2/p}}} \brace*{F^{T} \diag{(u^{1-2/p})} F}^{-1} \\
+        &\Rightarrow \phi(i)^{T} \brace*{F^{T}\diag{(v^{1-2/p})} F}^{-1}\phi(i) \approx_{\alpha^{\abs{1-2/p}}} \phi(i)^{T} \brace*{F^{T} \diag{(u^{1-2/p})} F}^{-1} \phi(i) \quad \forall i \in [N] \\
+        &\Rightarrow \paren*{\phi(i)^{T} \brace*{F^{T}\diag{(v^{1-2/p})} F}^{-1}\phi(i)}^{p/2} \approx_{\alpha^{\abs{p/2-1}}} \paren*{\phi(i)^{T} \brace*{F^{T} \diag{(u^{1-2/p})} F}^{-1} \phi(i)} \quad \forall i \in [N] \\
+        &\Rightarrow T_p(v)_i \approx_{\alpha^{\abs{p/2-1}}} T_p(u)_i \quad \forall i \in [N] \\
+        &\Rightarrow T_p(v) \approx_{\alpha^{\abs{p/2-1}}} T_p(u) \\
+        &\Rightarrow d(T_p(v), T_p(u)) \leq \logp{\alpha^{{\abs{p/2-1}}}} = \abs{p/2-1} \cdot d(u, v)
+    \end{align*}
+    The top left statement follows from Lemma \ref{lem:7}, the first six implications follow from Lemma \ref{lem:8} using items 1, 2, 3, 4, 5, 1 respectively. The seventh implication is by definition of $T_p$, the eighth by definition of $\approx_{\alpha}$ for vectors, and the last again by Lemma \ref{lem:7} and the definition of $\alpha$.
+\end{proof}
+
+\section*{Notes}
+The analysis presented in section 4 is simple, accessible, and new to the best of my knowledge, although likely known to experts. Sadly, it is suboptimal: the second term in Corollary \ref{cor:1} has a factor of $d$ coming from the $\Delta$-covering of the sphere. Perhaps surprisingly, this factor can be removed with a more careful analysis. For the case $p=2$, we can frame the problem as that of matrix estimation (instead of bounding extrema of random variables over the sphere), and use the matrix Chernoff bound. The resulting bound replaces the factor of $d$ with $\log{d}$, a significant improvement. For the case $p \neq 2$, the situation is more complicated, but significantly better bounds are known \cite{bourgain1989approximation, talagrand1990embedding, talagrand1995embedding}. See \cite{cohen2015lp} for a summary of the best known bounds. 
+The derivation of the sampling distribution proportional to the $p$-Lewis weights as an approximation of the bound-minimizing optimal distribution $Q_p^{*}$ is to the best of my knowledge new. The remaining results of section 5 are taken from \cite{cohen2015lp}.
+
+\newpage
+\nocite{*}
+\bibliography{references}
+\bibliographystyle{plain}
+
+\end{document}
