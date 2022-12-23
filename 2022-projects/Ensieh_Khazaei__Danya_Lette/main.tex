@@ -1,0 +1,61 @@
+\documentclass[11pt]{article}
+%%%%%%%%% options for the file macros.tex
+
+\def\showauthornotes{1}
+\def\showkeys{0}
+\def\showdraftbox{0}
+% \allowdisplaybreaks[1]
+
+\input{macros}
+\allowdisplaybreaks
+
+\usepackage{tikz}
+\usepackage[backend=biber]{biblatex}
+\addbibresource{papers.bib}
+%\usepackage[
+%    backend=biber,
+% giveninits=true,
+% natbib=true,
+%    style=alphabetic,
+%    url=false, 
+ %   doi=true,
+%    hyperref,
+%    backref=true,
+%    backrefstyle=none,
+%    maxbibnames=10,
+%    sortcites
+%]{biblatex}
+%\addbibresource{papers.bib}
+
+%%%%%%%%% Authornotes
+\newcommand{\Snote}{\Authornote{S}}
+
+% \renewcommand\vec{\V}
+\renewcommand\overrightarrow{\vec}
+\newcommand\itxt[1]{\intertext{\indent#1}}
+
+\addbibresource{papers.bib}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\newcommand{\coursenum}{{CSC 2240H}}
+\newcommand{\coursename}{{Graphs, Matrices, and Optimization}}
+\newcommand{\courseprof}{Sushant Sachdeva}
+
+\lecturetitle{}{Solving Laplacians using low-stretch spanning trees}{Ensieh Khazaei, Danya Lette}{23 Dec 2022}
+
+\input{sections/intro.tex}
+\input{sections/background.tex}
+\input{sections/algo.tex}
+\input{sections/conv.tex}
+\input{sections/geom.tex}
+
+\printbibliography
+
+% \bibliographystyle{IEEEtran}
+% \bibliography{auv}
+
+
+\end{document}
