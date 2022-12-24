@@ -1,0 +1,420 @@
+We will now discuss the deterministic algorithm for approximating the matrix $A$. The algorithm takes an iterative approach and follows $N$ iterations. At each iteration, it will pick a vector $v_i$ which corresponds to an edge and will add $s_i v_i v_i^T$ to the current accumulated matrix. After $k$ iterations it will give a good approximation for the matrix $A$. But before we present the bulk of the algorithm, let's start by laying some groundwork and presenting some useful intuitions.
+
+### Geometric interpretation
+
+
+Note that for any pair of matrices $A$ and $B$, having the same null-space we have that $A \succeq B \Longleftrightarrow I \succeq A^{+/2} B A^{+/2}$. Hence, 
+$$A \approx_\epsilon B \Longleftrightarrow \Pi \approx_\epsilon A^{+/2} B A^{+/2}$$
+where $\Pi = A^{+/2} A A^{+/2}$ is the identity in the subspace orthogonal to the null space of $A$ and is an *idempotent* matrix. In other words, $\Pi^2 = \Pi$. Therefore, without loss of generality, we may assume that $A$ in @def-matrix-approximation is an idempotent matrix $\Pi$ via the transformation described where $A$ is replaced by $A^{+/2} A A^{+/2}$ and $v_i = A^{+/2} v_i$ for all $1 \le i \le m$.
+
+With that in mind, thinking about idempotent matrices yields nice intuitions on how to think about the problem geometrically. Furthermore, for any positive semi-definite matrix $M$ we can define an ellipsoid $\{x | x^T M x = 1\}$ and for $M = \Pi$ being an idempotent matrix the ellipsoid corresponds to the sphere in the linearly transformed subspace of $\Pi$:
+$$x^T \Pi x = x^T \Pi \Pi x = ||\Pi x||_2^2 = 1.$$
+
+Therefore, if we consider everything in the mapped subspace, i.e., replacing every vector $x$ with $\Pi x$ automatically, then we want to find a linear combination of their cross product such that the ellipsoid corresponding to that combination approximates a regular spherical shape. In other words, 
+\begin{align*}
+&A \approx_\epsilon \sum s_i v_i v_i^T = \hat{A}  \\
+\Longleftrightarrow & ~ \Pi =  A^{+/2} A A^{+/2} \approx_\epsilon \sum s_i (A^{+/2}) v_i (A^{+/2} v_i)^T = \hat{\Pi}\\
+\Longleftrightarrow & ~ (1 - \epsilon) \Pi \preceq \hat{\Pi} \preceq (1 + \epsilon) \Pi \\
+\Longleftrightarrow & ~ \forall x : (1 - \epsilon) ||\Pi x||_2^2 \le [\Pi x]^T \hat{\Pi} [\Pi x] \le (1 + \epsilon) ||\Pi x||_2^2 \\
+\end{align*}
+
+Therefore, the ellipsoid projected using $\Pi$ is sandwiched between two spheres off by $\epsilon$ in their radius. In turn, the algorithm takes an iterative approach to solve this geometric problem and instead of approximating matrix $A$, it tries to approximate the matrix $\Pi$ and then obtains $\hat{A}$ by $A^{1/2} \hat{\Pi} A^{1/2}$. It first starts off with $X^{(0)} = \emptyset$ and then iteratively picks a vector $v_i$ and assigns a weight $s_i$ to it such that the ellipsoid $X^{(i+1)} = X^{(i)} + s_i v_i v_i^T$ becomes iteratively more like a sphere (for example, by pushing on the directions that are more contracted). 
+
+To formalize the algorithm, it always bounds $X^{(i)}$ the corresponding ellipsoid between two spheres of radius $l^{(i)}$ and $u^{(i)}$. At each iteration, the lower bound $l^{(i)}$ will be increased by some $\delta_l$ and the lower bound $u^{(i)}$ will be increased by some $\delta_u$ and the algorithm will try to find a vector $v_i$ and a weight $s_i$ such that the new ellipsoid $\hat{A}^{(i+1)}$ stays sandwiched between $l^{(i+1)} = l^{(i)} + \delta_l$ and $u^{(i+1)} = u^{(i)} + \delta_u$. Moreover, a key idea here is to cleverly pick $\delta_l$ and $\delta_u$ values such that after $k$ iterations the gap between the two spheres is close and the ratio of their radius is off by at most $\epsilon$. In other words, the following should hold:
+$$\frac{u^{(0)} + k \delta_u}{l^{(k)} + k \delta_l} = \frac{u^{(k)}}{l^{(k)}} \le \frac{1 + \epsilon}{1 - \epsilon}.$$
+This will ensure that the shape of the ellipsoid becomes more and more spherical as the algorithm progresses, and finally, a simple scaling on $X^{(N)}$ will yield an approximate unit sphere $\hat{P}$ which approximates $\Pi$.
+
+For illustration, @fig-ellipsoid shows the algorithm in action. The algorithm starts with an initial ellipsoid that is not spherical and then iteratively picks a vector $v_i$ and a weight $s_i$ such that it remains sandwiched between the two spheres.
+Note that in this example $\delta_l$ and $\delta_u$ are equal (but this is not the case for the final algorithm), therefore, for a large enough $k$ the ellipsoid will become more and more spherical because their radius grows while the gap between them remains constant.
+
+```{python}
+#| label: fig-ellipsoid
+#| fig-cap: "The geometric intuition behind the algorithm."
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse
+import random 
+
+# set a seed for reproducibility
+random.seed(42)
+
+# a function to plot an ellipse
+def plot_ellipse(ax, A, color, alpha):
+  if len(A.shape) == 1:
+    A = np.diag(A)
+
+  w, v = np.linalg.eig(A)
+  w = np.sqrt(w)
+  ell = Ellipse(
+    xy = (0, 0), 
+    width = 2 * w[0], 
+    height = 2 * w[1], 
+    angle = np.rad2deg(np.arccos(v[0, 0])), 
+    color = color, 
+    alpha = alpha
+  )
+  # plot the ellipse no fill
+  ell.set_facecolor('none')
+  ax.add_artist(ell)
+
+
+level = 6
+eps = 1e-1
+# create 6 plots in a 2 by 3 grid
+fig, axs = plt.subplots(2, 3, figsize=(9, 6))
+lower_ellipse = np.array([0.25, 0.25])
+upper_ellipse = np.array([1, 1])
+middle_ellipse = np.array([0.25 + eps, 1-eps])
+
+for i in range(level):
+  # get the axs object
+  ax = axs[i // 3, i % 3] if i // 3 == 0 else axs[i // 3, 2 - i % 3]
+
+  ax.set_title(f'Iteration {i}' if i < level - 1 else 'after rescaling')
+  ax.set_xlim(-2.5, 2.5)
+  ax.set_ylim(-2.5, 2.5)
+  ax.set_aspect('equal')
+  plot_ellipse(ax, lower_ellipse, 'blue', 1)
+  plot_ellipse(ax, upper_ellipse, 'blue', 1)
+  plot_ellipse(ax, middle_ellipse, 'red', 1)
+
+  lower_ellipse += np.array([1, 1])
+  upper_ellipse += np.array([1, 1])
+  
+  # flip a coin to decide which direction to push
+  if random.random() > 0.5:
+    middle_ellipse[0] = lower_ellipse[0] + eps
+    middle_ellipse[1] = upper_ellipse[1] - eps
+  else:
+    middle_ellipse[0] = upper_ellipse[0] - eps
+    middle_ellipse[1] = lower_ellipse[1] + eps
+
+  if i == level - 2:
+    # do rescaling
+    lower_ellipse = lower_ellipse / (level - 1.0)
+    upper_ellipse = upper_ellipse / (level - 1.0)
+    middle_ellipse = middle_ellipse / (level - 1.0)
+plt.show()
+```
+
+## Physical View and the Expected behavior
+
+The fact that $X^{(i)}$ should be bounded between two spheres translates into all the eigenvalues of $X^{(i)}$ being bounded between the two radiuses except for the trivial eigenvalues that their corresponding eigenvector is in the null-space of $\Pi$. For Laplacians, this corresponds to the all one's vector which is in the null-space of $L_G$ and $\Pi = L_G^{+/2} L_G L_G^{+/2}$. For simplicity, we assume that all the matrices are full rank and $\Pi = I$. Using this, we can establish theories that easily generalize to the case where $\Pi$ is not the identity matrix via projection.
+
+An important observation is to monitor what happens to the eigenvalues of $X^{(i)}$ when $vv^T$ is being added at each iteration. To do so, we consider the characteristic polynomial of $X$ at each iteration written as $p_X(\lambda) = \det(\lambda I - X)$. There are two important lemmas when analyzing $A + vv^T$ matrices, one is the Sherman-Morrison lemma which states that:
+
+::: {#lem-sherman-morrison}
+Suppose $A$ is an invertible square matrix and $u, v$ are column vectors. Then $A + uv^T$ is invertible iff $1 + v^T A^{-1} u \neq 0$. In this case,
+$$(A + uv^T)^{-1} = A^{-1} - \frac{A^{-1}uv^TA^{-1}}{1 + v^TA^{-1}u}$$
+:::
+
+The other is the matrix determinant lemma which states that:
+
+::: {#lem-matrix-determinant}
+Suppose $A$ is an invertible square matrix and $u, v$ are column vectors. Then
+$$\det(A + uv^T) = \det(A) (1 + v^T A^{-1} u)$$
+:::
+
+Moreover, plugging these into the characteristic polynomial of $X + vv^T$ yields the following:
+
+\begin{align*}
+p_{X + vv^T}(\lambda) &= \det(\lambda I - X - vv^T) \\
+& = \det(\lambda I - X) (1 - v^T \left(\lambda I - X \right)^{-1}u) \\
+& = \det (\lambda I - X) \left(1 - v^T \left[\sum_{i=1}^n \frac{1}{\lambda - \lambda_i} u_i u_i^T\right] v\right)\\
+& = p_X(\lambda) \left(1 -  \sum_{i=1}^n \frac{(v^Tu_i)^2}{\lambda - \lambda_i}\right)\\
+\end{align*}
+
+Furthermore, we can assume particles being set on certain points of the $x$-axis with the $i$th one on $\lambda_i$ having a charge equal to $(v^Tu_i)^2$. The new set of equilibrium points for this particle set will entail the new eigenvalues of $X + vv^T$ which are the roots of $p_{X + vv^T}(\lambda)$. Note that for $u_i$ values such that $v^Tu_i=0$ the charge is zero and therefore, the new eigenvalues will be the same as the old ones.
+
+The following figure illustrates the matrix case $X$ with three different vectors $v_1$, $v_2$ and $v_3$. Each color corresponds to the characteristic polynomial for different $v$ values where,
+
+$$X = \lambda_1 u_1 u_1^T + \lambda_2 u_2 u_2^T + \lambda_3 u_3 u_3^T
+ = \begin{bmatrix}
+1.6 & -0.2 & -0.33\\
+-0.2 & 3.4 & -0.33\\
+-0.33 & -0.33 & 1
+\end{bmatrix}$$
+$$\begin{bmatrix}\lambda_1 \\ \lambda_2 \\ \lambda_3\end{bmatrix} = \begin{bmatrix}0.79 \\ 1.75 \\ 3.46\end{bmatrix}, u_1 = \begin{bmatrix}
+-0.41\\
+-0.15\\
+-0.9
+\end{bmatrix}, u_2 = \begin{bmatrix}
+-0.9 \\
+-0.03 \\
+0.42
+\end{bmatrix}, u_3 = \begin{bmatrix}
+0.08\\
+-0.99\\
+0.12\\
+\end{bmatrix}$$
+We note that $\langle v_i, u_j \rangle^2$ is the charge of particle $j$ when adding $v_i$ to $X$ and we can summarize all the charged particles in the following matrix:
+$$v_1 = \begin{bmatrix}
+0\\
+1\\
+1\\
+\end{bmatrix}, v_2 = \begin{bmatrix}
+1\\
+1\\
+0\\
+\end{bmatrix}, 
+C = \begin{bmatrix}
+1.10 & 0.15 & 0.75\\
+0.31 & 0.87 & 0.82
+\end{bmatrix}, C_{ij} = \langle v_i, u_j \rangle^2$$
+
+
+```{python}
+#| label: fig-matrix-determinant
+#| fig-cap: "The characteristic polynomial of $X + vv^T$ for different $v$ values, the higher the charge the more it will repel the new eigenvalues from the old ones."
+#| fig-subcap: 
+#|  - "The characteristic polynomial after adding $v_1$ to X."
+#|  - "The characteristic polynomial after adding $v_2$ to X."
+#| layout-ncol: 2
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_characteristic_polynomial(w, u, v, color):
+  x = np.linspace(-25, 50, 1000)
+  # plot the determinant of xI - (X + vv^T)
+  # for X = u w u^T
+
+  y = []
+  roots = []
+  prv = 0
+  for i in x:
+    val = 1 - np.sum(1/(i - w) * (v @ u)**2)
+    if prv < 0 and val > 0:
+      roots.append(i)
+    prv = val
+    y.append(val)
+  plt.plot(x, y, color = color, \
+    label='characteristic polynomial of X + vv^T')
+  plt.scatter(roots, np.zeros(len(roots)), color = color,\
+    marker = 'o', label='new-eigenvalues')
+
+# create an orthonormal 3 by 3 matrix U
+U = np.array([[-0.41, -0.15, -0.9],
+              [-0.9, -0.03, 0.42], 
+              [0.08, -0.99, 0.12]]).T
+w = np.array([0.79, 1.75, 3.46])
+A = U @ np.diag(w) @ U.T
+vz = [[0, 1, 1], [1, 1, 0]]
+
+# plot two different graphs
+colors = ['blue', 'red']
+
+for col, v in zip(colors, vz):
+  plt.scatter(w, np.zeros(w.shape), color = 'black', \
+    marker = 'x', label='previous eigenvalues')
+  # add text with textbox equal to np.sum(w)
+  # on top of each eigenvalue
+  for i, wi in enumerate(w):
+    t = plt.text(wi - 0.5, 0.1 * (4 * (i % 2) - 2.5), \
+      f"c={(v @ U[:,i])**2:.2f}", color = 'black')
+    t.set_bbox(dict(facecolor='white', alpha=0.5, \
+       edgecolor=col))
+
+  plot_characteristic_polynomial(w, U, v, col)
+  plt.xlim(0, 5.5)
+  plt.ylim(-2, 2)
+  plt.legend()
+  plt.show()
+
+```
+
+The goal is to pick a $v$ such that the particles are set in a way that all the eigenvalues are uniformly pushed forward so that they can stay between the new ranges $l^{(i+1)}$ and $u^{(i+1)}$. To get a sense, let's pick one of the $m$ vectors with uniform probability and add it to $X$. In that case, the expected charges can be written as:
+$$E[\langle v, u_j \rangle^2] = \frac{1}{m} \sum_{i=1}^m \langle v_i, u_j \rangle^2 = \frac{1}{m} u_j^T \left( \sum_{i=1}^m v_i v_i^T \right)u_j = \frac{||\Pi u_j||_2^2}{m} = \frac{1}{m}$$
+Hence, on expectation, all the particles have a charge of $1/m$ and the expected deterministic polynomial is:
+
+\begin{align*}
+E[p_{X + v}(\lambda)] &= p_X(\lambda) E\left[1 - \sum_{i=1}^m \frac{\langle u_i, v\rangle^2}{\lambda - \lambda_i}\right] = p_X(\lambda) \left(1 - \sum_{i=1}^m \frac{E\langle u_i, v\rangle^2}{\lambda - \lambda_i}\right)\\
+& = p_X(\lambda) \left(1 - \sum_{i=1}^m \frac{1/m}{\lambda - \lambda_i}\right) = p_X(\lambda) - \frac{1}{m} \sum_{i=1}^m \frac{p_X(\lambda)}{\lambda - \lambda_i}\\
+& = p_X(\lambda) - \frac{1}{m} \sum_{i=1}^m \prod_{1 = j\neq i}^m (\lambda - \lambda_j)\\
+&= p_X(\lambda) - \frac{1}{m} p'_X(\lambda)\\
+\end{align*}
+
+Therefore, if we start with the matrix $p_{X^{(0)}}(\lambda) = \lambda^n$, after $nd$ iterations the expected polynomial is a set of associate Laguerre polynomials that are well studied [@dette1995some], and in particular, it has been proven that the ratio between the largest and smallest root for these polynomials is bounded by the value below:
+
+$$\frac{d + 1 + 2\sqrt{d}}{d + 1 - 2\sqrt{d}} \xrightarrow{\epsilon = \frac{2\sqrt{d}}{d+1}} \frac{1 + \epsilon
+}{1 - \epsilon}$$
+
+Although this is just speculation and no $v_i$ values will necessarily exist with the expected behavior, we can still get an idea of the goal $\epsilon$ and come up with the following proposition:
+
+::: {#prp-final-form}
+For any matrix $A = \sum_{i=1}^m v_i v_i^T$ we can choose a subset $\mathcal{S}$ of $v_i$ and a set of coefficients $s_i$ with size $nd$ such that:
+$$\hat{A} = \sum_{i \in \mathcal{S}} s_i \cdot v_i v_i^T,~~ (1 - \frac{2\sqrt{d}}{d+1}) A \preceq \hat{A} \preceq (1 + \frac{2\sqrt{d}}{d+1}) A$$
+:::
+
+The graph formulation of @prp-final-form is as follows:
+
+::: {#cor-final-form}
+For any graph $G$ and any $\epsilon$ we can choose a subset of $\mathcal{O}(n/\epsilon^2)$ edges with arbitrary edge weights to obtain $H$ such that $H$ is an $\epsilon$-sparsifier of $G$: $L_G \approx_\epsilon L_H$.
+:::
+
+This is set using $\epsilon = \frac{2\sqrt{d}}{d + 1}$ where $\frac{n}{\epsilon^2} = \mathcal{O}(nd)$. In the next section, we will see how we can choose $v_i$ and $s_i$ at each step such that after $nd$ iterations this happens.
+
+### Potential Functions
+
+The big question is, how can we quantize the boundedness of the matrix $X$ at each step? We want $X^{(i)}$ to have eigenvalues that are bounded by $l^{(i+1)}$ and $u^{(i+1)}$; and so, we use a family of **potential functions** that explode when the eigenvalues approach the bounds. A set of such potentials can be chosen using the fact that $uI - X$ or $A - lX$ will have infinitely small eigenvalues when the eigenvalues of $X$ approach $u$ or $l$ respectively; therefore, their inverse will be ill-conditioned and have infinitely large eigenvalues. We can use the following potential functions:
+
+$$\Phi^u_l(X) = \Phi^u(X) + \Phi_l(X) = Tr[(uI - X)^{-1}] + Tr[(X - l I)^{-1}]$$
+
+In summary, the main idea is to choose $v_i$ and $s_i$ such that the potential for the matrix $X^{(i)}$ in the next iteration does not explode. To do so, we can ensure that the potentials remain monotonically decreasing:
+
+$$\infty \gg \Phi^{u^{(0)}}(X^{(0)}) \ge \Phi^{u^{(1)}}(X^{(1)}) \ge ... \ge \Phi^{u^{(nd)}}(X^{(nd)})$$
+$$\infty \gg \Phi_{\ell^{(0)}}(X^{(0)}) \ge \Phi_{\ell^{(1)}}(X^{(1)}) \ge ... \ge \Phi_{\ell^{(nd)}}(X^{(nd)})$$
+
+
+With that in mind, let's assume we are going to assign $s_k$ to any vector $v_k$ such that after the increase in our upper and lower bound, the potential remains non-increasing. Now let us separately consider the upper and lower bound potentials.
+
+When increasing $l^{(i)}$, the eigenvalues come closer to the lower bound, and hence, the potential of the lower bound will increase; therefore, for any vector $v_k$, the coefficient $s_k$ should be bounded by some value $L_{X^{(i)}}(v_k)$ such that after adding $s_k \cdot v_k v_k^T$ to $X^{(i)}$, spectrum shifts forward and the increase in the potential cancels out. That said, for any matrix $X$ and any vector $v$ we have:
+
+\begin{align*}
+&\Phi^{\overset{l'}{\overbrace{l + \delta_l}}}(X + s \cdot vv^T) \le \Phi^l(X)\\
+\Phi_{l'}(X + s \cdot vv^T) & = Tr(X + s \cdot vv^T - l'I)^{-1}  \qquad \text{Sherman-Morrison}\\
+& = Tr\left((X - l'I)^{-1}\right) + Tr\left(\frac{s \cdot (X - l'I)^{-1} v v^T (X - l'I)^{-1}}{1 + s \cdot v^T (X - l' I)^{-1} v}\right)\\
+&= \Phi_{l'}(X) - \frac{s \cdot v^T (X - l'I)^{-2}v}{1 + s \cdot v^T  (X - l'I)^{-1}v} \le \Phi^l(X)
+\end{align*}
+
+\begin{align*}
+\Leftrightarrow &~ \underset{\Delta}{\underbrace{\Phi_{l'}(X) - \Phi^l(X)}} \le \frac{s \cdot v^T (X - l'I)^{-2}v}{1 + s \cdot v^T  (X - l'I)^{-1}v}\\
+\Leftrightarrow &~ s\cdot \left[v^T (X - l'I)^{-2}v  - \Delta v^T(X - l' I)^{-1} v\right] \ge \Delta \\ 
+\Leftrightarrow &~ s \ge \frac{\Delta}{v^T \left( (X - l'I)^{-2} - \Delta (X - l' I)^{-1} \right) v} = L_X(v)
+\end{align*}
+
+
+which means,
+
+\begin{equation} \tag{1}\label{eq:lower-bound-potential}
+s \ge L_X(v) = \frac{\Delta}{v^T \left((X - l' I)^{-2} - \Delta (X - l' I)^{-1} \right) v}
+\end{equation}
+
+
+On the other hand, a similar thing can be said for the upper-bound potential. when increasing $u^{(i)}$, the eigenvalues are further away from the upper bound which gives us the freedom to shift the eigenvalues forward. However, this shifting should not be so extreme that the potential at most increases to offset the decrease introduced after adding $\delta_u$ to $u^{(i)}$:
+$$ 
+\Phi^{\overset{u'}{\overbrace{u + \delta_u}}}(A + s \cdot vv^T) \le \Phi^u(A).
+$$
+Similar to $\eqref{eq:lower-bound-potential}$, if we negate $s$ and $A$ then the upper-bound potential will act similarly to the lower-bound potential. Therefore, we can write the following:
+
+\begin{equation} \tag{2}\label{eq:upper-bound-potential}
+s \le U_X(v) = \frac{\Delta}{v^T \left((u' I - X)^{-2} - \Delta (u' I - X)^{-1}\right)v}
+\end{equation}
+
+Where $\Delta$ is the difference between $\Phi^u(X)$ and $\Phi^{u'}(X)$.
+
+Finally, for every vector $v_i$ at each step, we can introduce an upper and lower bound for the coefficient corresponding to that vector. However, this is not enough to ensure that at least one $v_i$ exists such that $L_X(v_i) \le U_X(v_i)$; in other words, it might be the case that for each vector the upper and lower bounds are contradictory which will put the algorithm in a stale-mate state. To avoid this, we pick the values $\delta_u$ and $\delta_l$ carefully and introduce a nice lemma in the next section that ensures such a vector always exists.
+
+### The Existence of a good Vector
+
+We will now present the following lemma, that for the potentials having a certain condition, a good vector $v_k$ and a good coefficient $s_k$ always exist. This is the meat and bones of the algorithm:
+
+::: {#lem-good-vector-existance}
+
+For any set of vectors $\langle v_1, v_2, ..., v_m \rangle$ that sum up to an idempotent matrix $\Pi = \sum v_i v_i^T$ and a matrix $X$ being an arbitrary linear combination of their rank one cross product, if $\Phi^u(X) \le \epsilon_U$ and $\Phi_l(X) \le \epsilon_L$ and $\epsilon_u, \epsilon_l, \delta_u, \delta_l$ satisfy the following conditions:
+$$0 \le \delta_u^{-1} + \epsilon_u \le \delta_l^{-1} - \epsilon_l,$$
+Then, there exists a vector $v_k$ such that:
+$$L_X(v_k) \le U_X(v_k)$$
+, and hence, by adding $s \cdot v_k v_k^T$ to $X$ for $s \in [L_A(v_k), U_A(v_k)]$, we can ensure that $\Phi^{u + \delta_u}(X + s \cdot v_k v_k^T) \le \Phi^{u}(X)$ and $\Phi_{l + \delta_l}(X + s \cdot v_k v_k^T) \le \Phi_l(X)$.
+:::
+
+::: {.solution}
+The proof idea is to show that the sum of all the lower bound values for all the vectors $v_k$ is less than or equal to the sum of all the upper bounds for all vectors $v_k$. In other words,
+$$\sum_{k=1}^m L_X(v_k) \le \sum_{k=1}^m U_X(v_k)$$
+The proof in [@batson2009twice] shows that the left-hand-side is bounded by $\frac{1}{\delta_l^{-1} - \epsilon_l}$ and the right-hand-side is bounded by $\frac{1}{\delta_u^{-1} + \epsilon_u}$. Therefore, the lemma is proven using the conditions mentioned.
+
+To show these two bounds, a lot of algebra is required. The proof is hidden here for brevity but you can check out the proof of Lemma 3.5 and Claim 3.6 in [@batson2009twice] for more details; although, they have used a different notation and instead of bounding $s_k$ values they bound their reciprocals. 
+:::
+
+Now we should pick values that adhere to the conditions:
+$$\delta_l = 1, \delta_u = \frac{\sqrt{d} + 1}{ \sqrt{d} - 1}, l^{(0)} = -n \sqrt{d}, u^{(0)} = \frac{n(d+\sqrt{d})}{(\sqrt{d} -1)}$$
+
+Note that in this case, in the first step (starting off with $X^{(0)} = 0$), the upper and lower potentials are upper-bounded as follows:
+$$\Phi^u(X^{(0)}) = Tr(u^{(0)}I)^{-1} = \frac{n}{u^{0}} = \frac{\sqrt{d} - 1}{\sqrt{d} + d} = \epsilon_u$$
+$$\Phi_l(X^{(0)}) = Tr(-l^{(0)} I)^{-1} = \frac{n}{l^{0}} = \frac{1}{\sqrt{d}} = \epsilon_l$$ 
+
+Hence, if we plug in the criteria we have,
+$$
+0 \le 
+\frac{d-1}{d + \sqrt{d}} = \underset{\delta_u^{-1}}{\underbrace{\frac{\sqrt{d} - 1}{\sqrt{d} + 1}}} + \underset{\epsilon_u}{\underbrace{\frac{\sqrt{d}-1}{\sqrt{d}+d}}} = \underset{\delta_l^{-1}}{\underbrace{1}} - \underset{\epsilon_l}{\underbrace{\frac{1}{\sqrt{d}}}} = \frac{\sqrt{d} - 1}{\sqrt{d}}
+$$
+which is satisfactory.
+
+Finally, we know that after $nd$ iterations $X^{(nd)}$ will be bounded between the two following spheres:
+
+\begin{align*}
+&~~(l^{(0)} + nd \cdot \delta_l) I \preceq X^{(nd)} \preceq (u^{(0)} + nd \cdot \delta_u) I\\
+\Leftrightarrow & ~~ (nd - n \sqrt{d}) I \preceq X^{(nd)} \preceq \left(\frac{nd (\sqrt{d} + 1)}{\sqrt{d} - 1} + \frac{n(d + \sqrt{d})}{\sqrt{d} - 1}\right) I
+\end{align*}
+
+Then by rescaling both sides of the equations by $\gamma = \frac{\sqrt{d} - 1}{n(d+1)\sqrt{d}}$, we have that,
+
+\begin{equation} \tag{3} \label{eq:rescaling}
+(1 - \frac{2\sqrt{d}}{d+1}) I \preceq \gamma \cdot X^{(nd)} \preceq (1 + \frac{2\sqrt{d}}{d+1}) I
+\end{equation}
+If we multiply both sides with $A^{+/2}$ and setting $\epsilon = \frac{2\sqrt{d}}{d + 1}$, we get that,
+$$
+(1 - \epsilon) A \preceq \gamma \cdot A^{1/2} X^{(nd)} A^{1/2} \preceq (1 + \epsilon) A
+$$
+In turn, $A^{1/2} X^{(nd)} A^{1/2}$ would give us the Laplacian $L_H$ in the original problem.
+
+### The Deterministic Algorithm
+
+Now that we have a general sense of the algorithm, we can do a recap of what the algorithm does:
+
+1. We will first map each edge to a vector $v_e = \sqrt{w_e} L_G^{+/2} (\chi_{e_1} - \chi_{e_2})$ where $w_e$ is the weight of the edge and $\chi_{e_i}$ is the indicator vector of the vertex $e_i$.
+
+2. We start with the all-zeros matrix $X$ which is intended to approximate the spherically shaped idempotent matrix $\Pi = L_G^{+/2} L_G L_G^{+/2}$.
+
+2. To do so, we run $nd$ iterations and pick an edge corresponding to a vector $v_i$ in each iteration such that the potentials remain monotonically non-increasing. 
+    i. For that, we compute the lower and upper bounds for the coefficients. For all the potential computations, we consider the edges in the $n-1$-dimensional subspace after applying $L_G^{+/2}$ to both sides.
+    ii. We pick a vector $v_i$ such that the lower bound for that vector is less than the upper bound and pick a coefficient between those two bounds.
+
+3. We add $X$ with $s \cdot v_i v_i$ each step to get a large spherical matrix $X^{(nd)}$.
+
+4. Finally we multiply $L_G^{1/2}$ to both sides of $X^{(nd)}$ and do a rescale to obtain the Laplacian $L_H$.
+
+**Complexity Analysis** For analyzing the time complexity, we note that the reduction takes $\mathcal{O}(n^3)$ times to compute $L^{+/2}$ and $\mathcal{O}(m \cdot n^2)$ to compute $v_i = \sqrt{w_i} L_G^{+/2} L_i$. Then, the algorithm takes $\mathcal{O}(nd)$ time to run the iterations and at each iteration upper bound and lower bound values should be computed for all vectors $v_i$. To compute these upper and lower bounds, recall that in both $\eqref{eq:upper-bound-potential}$ and $\eqref{eq:lower-bound-potential}$ we need to compute the inverse of $uI - X^{(i)}$ and $X^{(i)} - l I$. As a precompute step, we calculate both of them using $\mathcal{O}(n^3)$ algorithm and then compute every upper and lower bound by $m \times \mathcal{O}(n^2)$ operations for finding the quadratic form. Therefore, the total time complexity of the algorithm is $\mathcal{O}(n^3 + m \cdot n^2 + nd \cdot m \cdot n^2) = \mathcal{O}(m n^3 d)$. Although the algorithm is not fast in particular, it is the first approach that gives near-linear edge counts. Other follow-up works have produced faster results with [@tat2015constructing] giving an almost linear algorithm to find almost linear sparsifiers.
+
+### Experimental Details
+We implemented the algorithm in Python and tested it on a set of graphs. Our package is available [here](https://github.com/HamidrezaKmK/twice-ramanujan-sparsifiers) and @fig-barbell demonstrates the results of the algorithm on a barbell graph.
+
+
+```{python}
+#| label: fig-barbell
+#| fig-cap: "The Twice-Ramanujan sparsifier in action edges with more strength correspond to larger weights."
+#| fig-subcap: 
+#|  - "Checking the algorithm on a barbell graph."
+#|  - "Checking the algorithm on a complete graph."
+
+# preliminariy steps to include the package
+import sys
+import math
+import networkx as nx
+sys.path.append('..')
+
+# importing the package
+from src.TwiceRamanujan import TwiceRamanujan
+
+# get the laplacian of a barbell graph
+graphs = [nx.barbell_graph(5,0), nx.complete_graph(7)]
+ds = [2, 3]
+
+for g, d in zip(graphs, ds):
+  
+  # calculate epsilon according to d
+  eps = 2 * math.sqrt(d) / (d + 1)
+
+  # setup a twice-Ramanujan solver on the graph with d = 2
+  tr = TwiceRamanujan(g, d=d, verbose=1)
+  sparsified_laplacian = tr.sparsify()
+
+  # draw both graphs
+  tr.juxtapose()
+
+  # verify
+  tr.verify(eps=eps)
+```
+
+There were some subtleties in the implementation when numerical issues were encountered. For example, in the algorithm, we need to compute the inverse of $uI - X^{(i)}$ and $X^{(i)} - l I$ for the upper and lower bound values. This introduced a lot of accuracy issues, to circumvent this, we also implemented a binary search-based implementation to find the upper and lower bound for each vector $v_i$; this turned out to be far superior although it impeded the runtime. You can simply trigger this mode by setting `fast=True` in the constructor of `TwiceRamanujan` class.

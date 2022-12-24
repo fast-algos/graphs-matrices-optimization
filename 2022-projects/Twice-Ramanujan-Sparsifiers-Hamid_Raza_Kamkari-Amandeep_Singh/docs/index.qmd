@@ -1,0 +1,47 @@
+---
+title: "Twice Ramanujan Sparsifiers"
+bibliography: references.bib
+authors: "Hamid R. Kamkari, Amandeep Singh"
+format:
+  html:
+    code-fold: true
+    toc: true
+    toc-title: "Overview"
+    max-width: 800px
+  pdf:
+    author: "Hamid R. Kamkari, Amandeep Singh"
+    thanks: "We have published this document as a blog post in our repository using Quarto, for a better visualization please check out our post at https://hamidrezakmk.github.io/twice-ramanujan-sparsifiers/docs/"
+    keep-tex: true
+    include-in-header:
+      text: |
+        \usepackage{hyperref}
+        \usepackage{caption}
+        \usepackage{subcaption}
+        \usepackage{algorithm}
+        \usepackage{algpseudocode}
+    biblio-style: biblatex
+jupyter: python3
+---
+
+{{< include sections/intro.qmd >}}
+
+
+## Recap and Preliminaries
+
+{{< include sections/prelims.qmd >}}
+
+## Main Method
+
+{{< include sections/method.qmd >}}
+
+## Sparsification of Complete Graphs
+
+{{< include sections/expanders.qmd >}}
+
+## Conclusions
+{{< include sections/conclusions.qmd >}}
+<!-- 
+## References -->
+<!-- 
+::: {#refs}
+::: -->

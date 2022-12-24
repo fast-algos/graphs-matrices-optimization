@@ -1,0 +1,89 @@
+
+Here we will cover some preliminaries on spectral sparsification and then we will discuss the effective resistance-based algorithm for spectral sparsification. We will also discuss an important reduction to the matrix problem which lays the groundwork for the final algorithm.
+
+### Spectral Sparsification
+
+Before everything, we should define what a spectral sparsifier is. A spectral sparsifier is a sparse graph that approximates the Laplacian of a graph with high accuracy. In other words, a sparsifier is a graph that has a lot of the same properties as the original graph; formally,
+
+::: {#def-spectral-sparsification}
+A $(k, \epsilon)$-spectral sparsifier of a graph $G = (V, E, w)$ is a graph $H$ with $k$ edges such that,
+$$L_G \approx_\epsilon L_H : (1 - \epsilon) L_G \preceq L_H \preceq (1 + \epsilon) L_G$$
+where $L_G$ is the Laplacian of $G$ and $L_H$ is the Laplacian of $H$. 
+:::
+
+
+### Reduction to the Matrix Problem
+
+Here, we will present an analog problem for the sparsification of matrices that is tightly connected to the spectral sparsification problem. The problem is as follows:
+
+::: {#def-matrix-approximation}
+**$(k, \epsilon)$-approximation of matrices** Given a set of $m$ vectors $v_1, \ldots, v_m \in \mathbb{R}^n$ if $A = \sum_{i=1}^m v_iv_i^T$ is a positive semi-definite matrix, then we intend to find a subset of vectors $\mathcal{S} \subseteq \{1, \ldots, m\}$ of size $k$ and a set of coefficients $s_i \in \mathbb{R}^+$ such that $\hat{A} = \sum_{i \in \mathcal{S}} s_i \cdot v_i v_i^T$ and $A \approx_\epsilon \hat{A}$.
+:::
+
+Now we will show that one can solve the $(k, \epsilon)$ problem in @def-matrix-approximation then plug it into the graph sparsification problem and obtain a $(k, \epsilon)$-spectral sparsifier. To do so, observe that if we set $A = L_G$ and $v_{ab} = \sqrt{w_G(a,b)} (\chi_a - \chi_b)$ and $s_{ab} = \frac{w_H(a,b)}{w_G(a,b)}$, then the problem in @def-matrix-approximation is equivalent to the spectral sparsification problem:
+
+\begin{align*}
+A = L_G &= \sum_{(a,b) \in E(G)} w_G(a,b) L_{ab} \\
+&= \sum_{(a,b) \in E(G)} \sqrt{w_G(a,b)}^2 (\chi_a - \chi_b) (\chi_a - \chi_b)^T\\
+& = \sum_{ab \in E(G)} v_{ab} v_{ab}^T\\
+\hat{A} = L_H &= \sum_{(a, b) \in E(H)} w_H(a,b) L_{ab} \\
+&= \sum_{(a, b) \in E(H)} \frac{w_H(a,b)}{w_G(a,b)} \sqrt{w_G(a,b)}^2 (\chi_a - \chi_b) (\chi_a - \chi_b)^T\\
+&= \sum_{(a,b) \in E(H)} s_{ab} v_{ab} v_{ab}^T
+\end{align*}
+
+### Sampling-based Sparsification
+
+As alluded to previously, the problem of spectral sparsification can be approached from an edge-sampling perspective. In particular, one can assign importance weights to each edge and then come up with a sampling scheme that samples edges according to their importance. For example, an edge that is crucial for the connectivity of the graph has high importance for spectral sparsifiers. To that end, a set of edges can be independently sampled according to this scheme and after sampling each edge the graph becomes more and more similar to the original one. However, since this sampling is done according to the measure of importance, even after sampling a small number of edges, the graph always tends to be a good approximation of the original graph.
+
+One can also formulate the same thing for the matrix approximation problem. Assume that for each vector $i$, we have a corresponding matrix $X_i = s_i v_i v_i^T$ which will be picked with probability $p_i$ and we will consider $\hat{A} = \sum_{i \in \mathcal{S}} X_i$ where $\mathcal{S}$ is the set of indices of the sampled vectors. This directly entails the following:
+$$E[\hat{A}] = \sum_{i=1}^m p_i X_i$$
+One can bound the number of sampled vectors by coming up with good probabilities $p_i$ such that $E[|\mathcal{S}|] = \sum_{i=1}^m p_i$ is bounded. Bounding the error of the approximation is typically done using matrix concentration bounds. However, these algorithms tend to have the following problems:
+
+1. The algorithm is not deterministic meaning that there is a very low chance of producing a large set $\mathcal{S}$.
+2. The algorithm is not deterministic meaning that there is a very low chance of producing an approximate $\hat{A}$ which is not close to $A$.
+3. Because these algorithms rely on exponential concentration bounds, typically they require to sample $\mathcal{O}(n \cdot polylog(n))$ vectors to achieve a good approximation -- this is the greatest problem of these algorithms.
+
+Although flawed, these solutions are easy to use and a set of sampling techniques have been proposed to tackle sparsification with the most famous among them being the **effective-resistance** based sparsifiers [@spielman2008graph]. We will briefly cover the main idea and intuition behind this and redirect the reader to other resources for further detailed reading.
+
+The effective resistance between two nodes $a$ and $b$ is the equivalent resistance if we assume that the rest of the nodes are harmonic and only one external current is given to $a$ and one external current is taken from $b$; then, the measured voltage difference between these two nodes will denote the effective resistance which can be written as $(\chi_a - \chi_b)^T L^+_G (\chi_a - \chi_b)$ using Laplacians. Moreover, effective resistances have a combinatorial interpretation as well. If we assume we sample spanning trees proportional to their weight products, then the effective resistance between two nodes is proportional to the probability of the edge between those two nodes appearing. This means that a crucial edge in the connectivity, will have a high probability of appearing in the sampled spanning trees and thus will have a high effective resistance; that said, this will yield a high importance weight for that edge and thus it will be sampled more often:
+
+**Effective-resistance based sparsifier**   For each edge $(a, b) \in E$, sample $(a,b)$ with probability $p(a,b) = \min\left(1, C \cdot (\log n) \epsilon^{-2} w(a,b) R_{eff}(a, b)\right)$. Where $R_{eff}(a, b)$ is the effective resistance between $a$ and $b$. Using Rudelson concentration lemma [@rudelson1999random], [@spielman2008graph] shows that for a certain constant $C \approx 4$ after picking $\mathcal{O}(n\log n /\epsilon)$ edges the resulting graph is a $\epsilon$-spectral sparsifier with high probability.
+
+<!-- To show that, we use the following concentration-bound theorem:
+
+::: {#thm-rudelson}
+Let $X_1, \ldots, X_n$ be independent random positive semidefinite matrices such that $||X_i|| \le R$ almost surely. Let $X = \sum X_i$ and let $\mu_{\min}$ and $\mu_{\max}$ be the minimum and maximum eigenvalues of $E[X]$. Then, for $1 > \epsilon > 0$,
+$$Pr\left[ \lambda_{\min} (\sum X_i) \le (1 - \epsilon) \mu_{\min} \right] \le n \left( \frac{e^{-\epsilon}}{(1 - \epsilon)^{(1 - \epsilon)}} \right)^{\mu_{\min}/R} \le e^{-\epsilon^2 / 2},$$
+and for $\epsilon > 0$,
+$$Pr\left[ \lambda_{\max} (\sum X_i) \le (1 + \epsilon) \mu_{\max} \right] \le n \left( \frac{e^{-\epsilon}}{(1 + \epsilon)^{(1 + \epsilon)}} \right)^{\mu_{\max}/R} \le e^{-\epsilon^2 / 3}.$$
+:::
+
+Now if we return to the idempotent matrix $\Pi$ in the previous section and plug in the Laplacians in the formula we obtain $\Pi = L_G^{+/2} L_G L_G^{+/2}$. Then, approximating $\Pi$ using $\hat{\Pi}$ will yield a graph that is a spectral sparsifier.
+Now the idea is to assign a random positive semi-definite matrix to each edge $(a, b)$ and pick that matrix with a probability $p(a,b)$ which will give us a set of random matrices $X_{ab}$ that sum up to $\hat{\Pi}$. By applying a simple union bound we can show that:
+$$Pr[\hat{\Pi} \approx_\epsilon \Pi] \ge 1 - Pr[\hat{\Pi} \succ (1 + \epsilon) \Pi]- Pr[\hat{\Pi} \prec (1 - \epsilon) \Pi]$${#eq-randomized-sparsification}
+Hence, since $\Pi$ has only eigenvalues equal to one or zero, then we can apply @thm-rudelson with $\mu_{\min} = 1$ and $\mu_{\max} = 1$ because we only consider the space orthogonal to the kernel. Then we can show that both the values in the right-hand side of @eq-randomized-sparsification are at most $n 
+\cdot e^{-\epsilon^2 / 3R}$ if the lemma conditions hold. We will indeed show that for $X_{ab} = w(a,b) / p(a,b) \cdot L_G^{+/2} L_{ab} L_G^{+/2}$, this is the case:
+
+1. $\forall a, b \in V: ||X_{ab}|| \le R$
+
+    Note that for $R = \frac{1}{C \log n \epsilon^{-2}}$ we can prove this:
+    \begin{align*}
+    ||X_{ab}|| &\le Tr(X_{ab}) = w(a,b) / p(a,b) \cdot Tr(L_G^{+/2} L_{ab} L_G^{+/2}) \\ 
+    &\le w(a,b) / p(a,b) \cdot Tr(L_G^{+/2} (\chi_a - \chi_b) (\chi_a - \chi_b)^T L_G^{+/2}) \\ 
+    & = w(a,b) / p(a,b) \cdot Tr((\chi_a - \chi_b)^T L_G^+ (\chi_a - \chi_b)) \\
+    & = w(a,b) / p(a,b) \cdot R_{eff}(a, b) \le \frac{1}{C (\log n) \epsilon^{-2}}\\
+    \end{align*}
+2. $E[\sum_{a,b} X_{ab}] = \Pi$
+
+
+    This can be easily shown by plugging in the formula:
+    \begin{align*}
+    E[\sum_{a,b} X_{ab}] &= \sum_{a,b} E[X_{ab}] = \sum_{a,b} p(a,b) \frac{w(a,b)}{p(a,b)} \cdot L_G^{+/2} L_{ab} L_G^{+/2}\\
+    & = L_G^{+/2} \left( \sum_{a,b} w(a,b) L_{ab} \right) L_G^{+/2} = L_G^{+/2} L_{G} L_G^{+/2} = \Pi
+    \end{align*}
+
+
+
+
+::: {#cor-randomized-sparsification}
+::: -->
