@@ -1,0 +1,395 @@
+%% Shamelessly adapted from a scribe template by Sanjeev Arora
+
+%%%%%%%%%%%%%% Packages
+% \usepackage[active,tightpage]{preview}
+% \renewcommand{\PreviewBorder}{1in}
+\usepackage{hyperref}
+\usepackage{amsmath,amssymb,amsthm,amstext,amsfonts,bbm,algorithm,algorithmicx,xspace,nicefrac,
+  algpseudocode}
+\usepackage{color,stmaryrd,enumerate,latexsym,bm,amsfonts,
+  subcaption,wrapfig,verbatim,tabularx,textcomp}
+\usepackage{comment} 
+\usepackage{epsfig} 
+\usepackage{latexsym,nicefrac,bbm}
+\usepackage{xspace}
+\usepackage{color,fancybox,graphicx,url}
+\usepackage{enumitem, fullpage}
+\usepackage{booktabs}
+\usepackage{commath}
+\usepackage{mdframed}
+\usepackage{pdfsync}
+\usepackage{tikz}
+\usetikzlibrary {positioning}
+
+%%%%%%%%%%%%%% Use for definitions
+\newcommand{\defeq}{\stackrel{\textup{def}}{=}}
+
+%%%%%%%%%%%%%% Theorem Environments
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{problem}[theorem]{Problem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{remark}[theorem]{Remark}
+
+%%%%%%%%%%%%%% Probability stuff
+\DeclareMathOperator*{\pr}{\bf Pr}
+\DeclareMathOperator*{\av}{\mathbbm{E}}
+\DeclareMathOperator*{\var}{\bf Var}
+
+%%%%%%%%%%%%%% Matrix stuff
+\newcommand{\tr}[1]{\mathop{\mbox{Tr}}\left({#1}\right)}
+\newcommand{\diag}[1]{{\bf Diag}\left({#1}\right)}
+
+%% Notation for integers, natural numbers, reals, fractions, sets, cardinalities
+%%and so on
+\newcommand{\nfrac}[2]{\nicefrac{#1}{#2}}
+\def\abs#1{\left| #1 \right|}
+\renewcommand{\norm}[1]{\ensuremath{\left\lVert #1 \right\rVert}}
+
+\newcommand{\floor}[1]{\left\lfloor\, {#1}\,\right\rfloor}
+\newcommand{\ceil}[1]{\left\lceil\, {#1}\,\right\rceil}
+
+\newcommand{\pair}[1]{\left\langle{#1}\right\rangle} %for inner product
+
+\newcommand\B{\{0,1\}}      % boolean alphabet  use in math mode
+\newcommand\bz{\mathbb Z}
+\newcommand\nat{\mathbb N}
+\newcommand\rea{\mathbb R}
+\newcommand\com{\mathbb{C}}
+\newcommand\plusminus{\{\pm 1\}}
+\newcommand\Bs{\{0,1\}^*}   % B star use in math mode
+\newcommand{\ones}{\mathbbm{1}}
+\newcommand{\eye}{\mathbbm{I}}
+
+
+
+\newcommand{\V}[1]{\mathbf{#1}\ignorespaces}
+\renewcommand\AA{\boldsymbol{\mathit{A}}}
+\newcommand\LL{\boldsymbol{\mathit{L}}}
+
+% Used to denote bold commands
+                                % e.g. vectors, matrices
+\DeclareRobustCommand{\fracp}[2]{{#1 \overwithdelims()#2}}
+\DeclareRobustCommand{\fracb}[2]{{#1 \overwithdelims[]#2}}
+\newcommand{\marginlabel}[1]%
+{\mbox{}\marginpar{\it{\raggedleft\hspace{0pt}#1}}}
+\newcommand\card[1]{\left| #1 \right|} %cardinality of set S; usage \card{S}
+\renewcommand\set[1]{\left\{#1\right\}} %usage \set{1,2,3,,}
+\renewcommand\complement{\ensuremath{\mathsf{c}}}
+\newcommand\poly{\mbox{poly}}  %usage \poly(n)
+\newcommand{\comp}[1]{\overline{#1}}
+\newcommand{\smallpair}[1]{\langle{#1}\rangle}
+\newcommand{\ol}[1]{\ensuremath{\overline{#1}}\xspace}
+\newcommand{\eps}{\epsilon}
+\DeclareMathOperator{\vol}{\mathsf{vol}}
+
+
+%%%%%%%%%%%%%% Mathcal shortcuts
+\newcommand\calF{\mathcal{F}}
+\newcommand\calP{\mathcal{P}}
+\newcommand\calS{\mathcal{S}}
+\newcommand\calG{\mathcal{G}}
+\newcommand\calH{\mathcal{H}}
+\newcommand\calC{\mathcal{C}}
+\newcommand\calD{\mathcal{D}}
+\newcommand\calI{\mathcal{I}}
+\newcommand\calV{\mathcal{V}}
+\newcommand\calK{\mathcal{K}}
+\newcommand\calN{\mathcal{N}}
+\newcommand\calX{\mathcal{X}}
+\newcommand\calU{\mathcal{U}}
+\newcommand\calE{\mathcal{E}}
+
+%%%%%%%%%%%%%% {{{ authornotes }}}
+\definecolor{Mygray}{gray}{0.8}
+
+ \ifcsname ifcommentflag\endcsname\else
+  \expandafter\let\csname ifcommentflag\expandafter\endcsname
+                  \csname iffalse\endcsname
+\fi
+
+\ifnum\showauthornotes=1
+\newcommand{\todo}[1]{\colorbox{Mygray}{\color{red}#1}}
+\else
+\newcommand{\todo}[1]{#1}
+\fi
+
+\ifnum\showauthornotes=1
+\newcommand{\Authornote}[2]{{\sf\small\color{red}{[#1: #2]}}}
+\newcommand{\Authoredit}[2]{{\sf\small\color{red}{[#1]}\color{blue}{#2}}}
+\newcommand{\Authorcomment}[2]{{\sf \small\color{gray}{[#1: #2]}}}
+\newcommand{\Authorfnote}[2]{\footnote{\color{red}{#1: #2}}}
+\newcommand{\Authorfixme}[1]{\Authornote{#1}{\textbf{??}}}
+\newcommand{\Authormarginmark}[1]{\marginpar{\textcolor{red}{\fbox{%\Large
+#1:!}}}}
+\else
+\newcommand{\Authornote}[2]{}
+\newcommand{\Authoredit}[2]{}
+\newcommand{\Authorcomment}[2]{}
+\newcommand{\Authorfnote}[2]{}
+\newcommand{\Authorfixme}[1]{}
+\newcommand{\Authormarginmark}[1]{}
+\fi
+
+
+%%%%%%%%%%%%%% Logical operators
+\newcommand\true{\mbox{\sc True}}
+\newcommand\false{\mbox{\sc False}}
+\def\scand{\mbox{\sc and}}
+\def\scor{\mbox{\sc or}}
+\def\scnot{\mbox{\sc not}}
+\def\scyes{\mbox{\sc yes}}
+\def\scno{\mbox{\sc no}}
+
+%% Parantheses
+\newcommand{\paren}[1]{\unskip\left({#1}\right)}
+\newcommand{\sqparen}[1]{\unskip\left[{#1}\right]}
+\newcommand{\curlyparen}[1]{\unskip\left\{{#1}\right\}}
+\newcommand{\smallparen}[1]{\unskip({#1})}
+\newcommand{\smallsqparen}[1]{\unskip[{#1}]}
+\newcommand{\smallcurlyparen}[1]{\unskip\{{#1}\}}
+
+%% short-hands for relational simbols
+
+\newcommand{\from}{:}
+\newcommand\xor{\oplus}
+\newcommand\bigxor{\bigoplus}
+\newcommand{\logred}{\leq_{\log}}
+\def\iff{\Leftrightarrow}
+\def\implies{\Rightarrow}
+
+
+
+
+%% macros to write pseudo-code
+
+\newlength{\pgmtab}  %  \pgmtab is the width of each tab in the
+\setlength{\pgmtab}{1em}  %  program environment
+ \newenvironment{program}{\renewcommand{\baselinestretch}{1}%
+\begin{tabbing}\hspace{0em}\=\hspace{0em}\=%
+\hspace{\pgmtab}\=\hspace{\pgmtab}\=\hspace{\pgmtab}\=\hspace{\pgmtab}\=%
+\hspace{\pgmtab}\=\hspace{\pgmtab}\=\hspace{\pgmtab}\=\hspace{\pgmtab}\=%
+\+\+\kill}{\end{tabbing}\renewcommand{\baselinestretch}{\intl}}
+\newcommand {\BEGIN}{{\bf begin\ }}
+\newcommand {\ELSE}{{\bf else\ }}
+\newcommand {\IF}{{\bf if\ }}
+\newcommand {\FOR}{{\bf for\ }}
+\newcommand {\TO}{{\bf to\ }}
+\newcommand {\DO}{{\bf do\ }}
+\newcommand {\WHILE}{{\bf while\ }}
+\newcommand {\ACCEPT}{{\bf accept}}
+\newcommand {\REJECT}{\mbox{\bf reject}}
+\newcommand {\THEN}{\mbox{\bf then\ }}
+\newcommand {\END}{{\bf end}}
+\newcommand {\RETURN}{\mbox{\bf return\ }}
+\newcommand {\HALT}{\mbox{\bf halt}}
+\newcommand {\REPEAT}{\mbox{\bf repeat\ }}
+\newcommand {\UNTIL}{\mbox{\bf until\ }}
+\newcommand {\TRUE}{\mbox{\bf true\ }}
+\newcommand {\FALSE}{\mbox{\bf false\ }}
+\newcommand {\FORALL}{\mbox{\bf for all\ }}
+\newcommand {\DOWNTO}{\mbox{\bf down to\ }}
+
+% Theorem-type environments
+% \theoremstyle{break} 
+% \theoremheaderfont{\scshape}
+% \theorembodyfont{\slshape}
+% \newtheorem{Thm}{Theorem}[section]
+% \newtheorem{Lem}[Thm]{Lemma}
+% \newtheorem{Cor}[Thm]{Corollary}
+% \newtheorem{Prop}[Thm]{Proposition}
+% % \theoremstyle{plain} 
+% % \theorembodyfont{\rmfamily} 
+% \newtheorem{Ex}[Thm]{Exercise}
+% \newtheorem{Exa}[Thm]{Example}
+% \newtheorem{Rem}[Thm]{Remark}
+% % \theorembodyfont{\itshape}
+% \newtheorem{Def}[Thm]{Definition}
+% \newtheorem{Conj}[Thm]{Conjecture}
+% \newtheorem{Obs}[Thm]{Observation}
+% \newtheorem{Ques}[Thm]{Question}
+%\newenvironment{proof}{\noindent {\sc Proof:}}{$\Box$ \medskip} 
+\newenvironment{problems} % Definition of problems
+ {\renewcommand{\labelenumi}{\S\theenumi}
+	\begin{enumerate}}{\end{enumerate}}
+
+
+%%%%%%%%%%%%%%%%% Proof Environments
+
+\def\FullBox{\hbox{\vrule width 6pt height 6pt depth 0pt}}
+%
+%\def\qed{\ifmmode\qquad\FullBox\else{\unskip\nobreak\hfil
+%\penalty50\hskip1em\null\nobreak\hfil\FullBox
+%\parfillskip=0pt\finalhyphendemerits=0\endgraf}\fi}
+
+\def\qedsketch{\ifmmode\Box\else{\unskip\nobreak\hfil
+\penalty50\hskip1em\null\nobreak\hfil$\Box$
+\parfillskip=0pt\finalhyphendemerits=0\endgraf}\fi}
+
+%\newenvironment{proof}{\begin{trivlist} \item {\bf Proof:~~}}
+ %  {\qed\end{trivlist}}
+
+\newenvironment{proofsketch}{\begin{trivlist} \item {\bf
+Proof Sketch:~~}}
+  {\qedsketch\end{trivlist}}
+
+\newenvironment{proofof}[1]{\begin{trivlist} \item {\bf Proof
+#1:~~}}
+  {\qed\end{trivlist}}
+
+\newenvironment{claimproof}{\begin{quotation} \noindent
+{\bf Proof of claim:~~}}{\qedsketch\end{quotation}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+\newlength{\tpush}
+\setlength{\tpush}{2\headheight}
+\addtolength{\tpush}{\headsep}
+
+\newcommand{\handout}[5]{
+   \noindent
+   \begin{center}
+   \framebox{ \vbox{ \hbox to \textwidth { {\bf \coursenum\ :\  \coursename} \hfill #5 }
+       \vspace{3mm}
+       \hbox to \textwidth { {\Large \hfill #2  \hfill} }
+       \vspace{1mm}
+       \hbox to \textwidth { {\it #3 \hfill #4} }
+     }
+   }
+   \end{center}
+   \vspace*{4mm}
+   \newcommand{\lecturenum}{#1}
+   \addcontentsline{toc}{chapter}{Lecture #1 -- #2}
+}
+
+\newcommand{\lecturetitle}[4]{\handout{#1}{#2}{Lecturer: \courseprof
+  }{Report: #3}{#4}}
+\newcommand{\guestlecturetitle}[5]{\handout{#1}{#2}{Lecturer:
+    #4}{Scribe: #3}{Lecture #1 - #5}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Commands to include figures
+
+
+%% PSfigure
+
+\newcommand{\PSfigure}[3]{\begin{figure}[t] 
+  \centerline{\vbox to #2 {\vfil \psfig{figure=#1.eps,height=#2} }} 
+  \caption{#3}\label{#1} 
+  \end{figure}} 
+\newcommand{\twoPSfigures}[5]{\begin{figure*}[t]
+  \centerline{%
+    \hfil
+    \begin{tabular}{c}
+        \vbox to #3 {\vfil\psfig{figure=#1.eps,height=#3}} \\ (a)
+    \end{tabular}
+    \hfil\hfil\hfil
+    \begin{tabular}{c}
+        \vbox to #3 {\vfil\psfig{figure=#2.eps,height=#3}} \\ (b)
+    \end{tabular}
+    \hfil}
+  \caption{#4}
+  \label{#5}
+%  \sublabel{#1}{(a)}
+%  \sublabel{#2}{(b)}
+  \end{figure*}}
+
+\newcounter{fignum}
+
+% fig
+%command to insert figure. usage \fig{name}{h}{caption}
+%where name.eps is the postscript file and h is the height in inches
+%The figure is can be referred to using \ref{name}
+\newcommand{\fig}[3]{%
+\begin{minipage}{\textwidth}
+\centering\epsfig{file=#1.eps,height=#2}
+\caption{#3} \label{#1}
+\end{minipage}
+}%
+
+
+% ffigure
+% Usage: \ffigure{name of file}{height}{caption}{label}
+\newcommand{\ffigure}[4]{\begin{figure} 
+  \centerline{\vbox to #2 {\hfil \psfig{figure=#1.eps,height=#2} }} 
+  \caption{#3}\label{#4} 
+  \end{figure}} 
+
+% ffigureh
+% Usage: \ffigureh{name of file}{height}{caption}{label}
+\newcommand{\ffigureh}[4]{\begin{figure}[!h] 
+  \centerline{\vbox to #2 {\vfil \psfig{figure=#1.eps,height=#2} }} 
+  \caption{#3}\label{#4} 
+  \end{figure}} 
+
+
+% {{{ draftbox }}}
+\ifnum\showdraftbox=1
+\newcommand{\draftbox}{\begin{center}
+  \fbox{%
+    \begin{minipage}{2in}%
+      \begin{center}%
+%        \begin{Large}%
+          \large\textsc{Working Draft}\\%
+%        \end{Large}\\
+        Please do not distribute%
+      \end{center}%
+    \end{minipage}%
+  }%
+\end{center}
+\vspace{0.2cm}}
+\else
+\newcommand{\draftbox}{}
+\fi
+
+
+%% Complexity classes
+\newcommand\p{\mbox{\bf P}\xspace}
+\newcommand\np{\mbox{\bf NP}\xspace}
+\newcommand\cnp{\mbox{\bf coNP}\xspace}
+\newcommand\sigmatwo{\mbox{\bf $\Sigma_2$}\xspace}
+\newcommand\ppoly{\mbox{\bf $\p_{\bf /poly}$}\xspace}
+\newcommand\sigmathree{\mbox{\bf $\Sigma_3$}\xspace}
+\newcommand\pitwo{\mbox{\bf $\Pi_2$}\xspace}
+\newcommand\rp{\mbox{\bf RP}\xspace}
+\newcommand\zpp{\mbox{\bf ZPP}\xspace}
+\newcommand\bpp{\mbox{\bf BPP}\xspace}
+\newcommand\ph{\mbox{\bf PH}\xspace}
+\newcommand\pspace{\mbox{\bf PSPACE}\xspace}
+\newcommand\npspace{\mbox{\bf NPSPACE}\xspace}
+\newcommand\dl{\mbox{\bf L}\xspace}
+\newcommand\ma{\mbox{\bf MA}\xspace}
+\newcommand\am{\mbox{\bf AM}\xspace}
+\newcommand\nl{\mbox{\bf NL}\xspace}
+\newcommand\conl{\mbox{\bf coNL}\xspace}
+\newcommand\sharpp{\mbox{\#{\bf P}}\xspace}
+\newcommand\parityp{\mbox{$\oplus$ {\bf P}}\xspace}
+\newcommand\ip{\mbox{\bf IP}\xspace}
+\newcommand\pcp{\mbox{\bf PCP}}
+\newcommand\dtime{\mbox{\bf DTIME}}
+\newcommand\ntime{\mbox{\bf NTIME}}
+\newcommand\dspace{\mbox{\bf SPACE}\xspace}
+\newcommand\nspace{\mbox{\bf NSPACE}\xspace}
+\newcommand\cnspace{\mbox{\bf coNSPACE}\xspace}
+\newcommand\exptime{\mbox{\bf EXP}\xspace}
+\newcommand\nexptime{\mbox{\bf NEXP}\xspace}
+\newcommand\genclass{\mbox{$\cal C$}\xspace}
+\newcommand\cogenclass{\mbox{\bf co$\cal C$}\xspace}
+\newcommand\size{\mbox{\bf SIZE}\xspace}
+\newcommand\sig{\mathbf \Sigma}
+\newcommand\pip{\mathbf \Pi}
+
+%%Computational problems
+\newcommand\sat{\mbox{SAT}\xspace}
+\newcommand\tsat{\mbox{3SAT}\xspace}
+\newcommand\tqbf{\mbox{TQBF}\xspace}

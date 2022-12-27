@@ -1,0 +1,388 @@
+\documentclass[11pt]{article}
+%%%%%%%%% options for the file macros.tex
+
+\def\showauthornotes{1}
+\def\showkeys{0}
+\def\showdraftbox{0}
+% \allowdisplaybreaks[1]
+
+\input{macros}
+\allowdisplaybreaks
+
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{hobby,calc}
+\usetikzlibrary{arrows.meta}
+\usetikzlibrary{patterns}
+\usepackage{pgfplots}
+
+\usepackage{thmtools}
+\usepackage{thm-restate}
+
+
+\usepackage[
+    backend=biber,
+% giveninits=true,
+% natbib=true,
+    style=alphabetic,
+    url=false, 
+ %   doi=true,
+    hyperref,
+    backref=true,
+    backrefstyle=none,
+    maxbibnames=10,
+    sortcites
+]{biblatex}
+\addbibresource{refs.bib}
+
+%%%%%%%%% Authornotes
+\newcommand{\Snote}{\Authornote{S}}
+
+\newenvironment{tight_enumerate}{
+\begin{enumerate}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{enumerate}}
+\newenvironment{tight_itemize}{
+\begin{itemize}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{itemize}}
+
+
+\renewcommand\vec{\V}
+\newcommand\itxt[1]{\intertext{\indent#1}}
+
+\addbibresource{papers.bib}
+
+\newcommand{\cov}{\mathbf{cov}}
+\newcommand{\hit}{\mathbf{hit}}
+\newcommand{\infec}{\mathbf{infec}}
+
+
+\newcommand{\E}{\mathbb E}
+\renewcommand{\Pr}{\mathbb P}
+\newcommand{\ind}{\mathbb I}
+
+\theoremstyle{remark}
+\newtheorem*{sketch}{Proof sketch}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\newcommand{\coursenum}{{CSC 2421H}}
+\newcommand{\coursename}{{Graphs, Matrices, and Optimization}}
+\newcommand{\courseprof}{Sushant Sachdeva}
+
+\lecturetitle{1}{The Coalescing-Branching Random Walk on Expanders}{Sasha Voitovych}{Dec 22 2022}
+
+\section{The Coalescing-Branching Random Walk}
+
+\subsection{Refresher on random walks}
+
+We first give a refresher on some concepts from 
+the study of random walks on graphs. For simplicity, let's consider an undirected unweighted graph.
+
+\begin{definition}
+\label{def:random-walk}
+    Let $G = (V,E)$ be an undirected unweighted graph. Then random walk started at $s \in V$ is a Markov process $(X_t)_{t \ge 0}$ such that $X_0 = s$ and $X_{t+1} \mid X_t$ follows a uniform distribution over the neighbourhood of $X_t$ in $G$ for every $t \ge 0$.
+\end{definition}
+
+Simply speaking, a random walk can be described by movement of a particle, which at each step moves to a uniformly at random chosen neighbour of its current position. Figure~\ref{fig:cobra1} gives a simple example of a random walk moving for three time steps. 
+
+We call the \emph{cover time} $\cov(v)$ of the vertex $v \in V$ the minimum time the random walk visits all vertices in the graph $G$. We call the cover time $\cov(G)$ of the graph $G$ the maximal expected cover time $\cov(v)$ across all $v \in V$. In other words,
+\[
+\cov(G) = \max_{v \in V} \E\left[\cov(v)\right].
+\]
+Work of \cite{Aldous1989LowerBF} showed that that cover time of \emph{any} graph must be in $\Omega(n\log(n))$. On the other hand, the cover time of any $(d,\lambda)$ expander with $\lambda < 1$ is in $O(n\log(n))$ (see, e.g., Theorem 5 of~\cite{Broder1988BoundsOT}). In other words, expander graphs give an optimal cover time by a random walk.
+
+\subsection{Introducing $k$-COBRA walk}
+
+We introduce a generalized version of a simple random walk, called \emph{a $k$-coalescing branching random walk}, or $k$-COBRA walk for short.
+
+First, we give a verbal description. Let $k\in \nat$ and consider a graph $G = (V,E)$ and a single particle located at a vertex $v \in V$. At each time step, each particle \emph{branches} into $k$ particles, which travel neighbouring chosen independently and uniformly at random. Then, at the end of the time step, all particles at the same location \emph{coalesce} into one particle. See Figure~\ref{fig:cobra2} for a simple realization of a $2$-COBRA walk after three time steps. 
+
+We give a more formal definition below. For a non-empty set $S$, let $\mathcal U_k(S)$ be a distribution over the subsets of $S$ obtained by picking $k$ elements of $S$ uniformly at random \emph{with replacement}.  
+
+\input{tikz/cobra.tex}
+\begin{definition}
+\label{def:cobra}
+    Let $k\in \nat$ and let $G = (V,E)$ be an undirected unweighted graph. 
+    Then a $k$-COBRA walk started at $v \in V$ is a Markov process $(C_t)_{t\ge0}$ such that $C_0 = \{v\}$ and the distribution $C_{t+1} \mid C_t$ can be described as follows. For for all $u \in C_t$, consider independent random variables $B(u) \sim \mathcal U_k(N(u))$. Then $C_{t+1} \mid C_t$ is the same in law as $\cup_{u \in C_t} B(u)$.
+\end{definition}
+
+We will call $C_t$ \emph{the active set} of the COBRA walk at time $t$. Note that for $k = 1$, $k$-COBRA walk is just a simple random walk. For simplicity of exposition, we will focus in the rest of the report on analyzing a $2$-COBRA walk. We aim to establish the following theorem about the covering time of $2$-COBRA walk on expanders\footnote{In fact, result for $2$-COBRA walk also implies the result for $k$-COBRA walk with $k \ge 3$.}.
+\begin{theorem}
+    \label{thm:main}
+    Let $G$ be a $(d,\lambda)$-expander with $n-1 \ge d \ge 3$ and constant $\lambda < 1$. Then covering time of the $2$-COBRA walk on $G$ is in $O(\log(n))$ in expectation and with high probability. 
+\end{theorem}
+In this report, ``with high probability'' means with probability at least $1 - O\left(1/n\right)$. In other words, $2$-COBRA walk has an \emph{exponential speed up} in covering time compared to a simple random walk (a.k.a., $1$-COBRA walk), which has covering time in $\Omega(n\log(n))$.
+
+% \subsection{Motivation}
+
+% \subsection{Heuristics for covering by a COBRA walk}
+
+\section{Dual BIPS process}
+
+Covering time of a COBRA walk is challenging to analyze directly, for which we give a heuristic explanation. Consider the evolution of a $2$-COBRA walk on the graph $G = (V,E)$, and let us look at the moment when the size of the active set $C_t$ is roughly half of the size of $V$. Then the probability that any two particles coalesce in the following round is also roughly $1/2$. Then the size of the next active set $C_{t+1}$ will be roughly $1/2\cdot 2|C_t|$ (where factor $2$ comes from every particle branching, and $1/2$ comes from the probability of coalescing). In other words, after time $t$ the size of the active set \emph{doesn't grow}, but just shuffles through $V$. 
+
+It's very difficult to analyze how exactly this set shuffles through $V$ due to the collisions. We circumvent this by considering an alternative process on $G$ called Biased Infection with Persistent Source (or BIPS), which relates to a COBRA walk, but does not not have the ``shuffling'' phase. 
+
+\subsection{Biased Infection with Persistent Source}
+
+We first give a verbal description of $k$-BIPS process. Consider graph $G = (V,E)$ and a single infected node $v \in V$. We will call $v$ the source of the infection, and $v$ will stay permanently infected. At every time step, every node (except $v$) selects $k$ of its neighbours uniformly at random with replacement. If one of its neighbours is infected, the node becomes infected. It can be defined more formally in the following way.
+
+\begin{definition}
+\label{def:bips}
+    Let $k\in \nat$ and let $G = (V,E)$ be an undirected unweighted graph. 
+    Then a $k$-BIPS walk started at $v \in V$ is a Markov process $(A_t)_{t\ge0}$ such that $A_0 = \{v\}$ and the distribution $A_{t+1} \mid A_t$ can be described as follows. For all $u \in V$, consider independent random variables $B'(u) \sim \mathcal U_k(N(u))$. Then $A_{t+1} \mid A_t$ is the same in law as $\{v\} \cup \left\{u \in V: A_t \cap B'(u)\not = \emptyset \right\}$.
+ \end{definition}
+
+We note that if all nodes become infected (i.e., $A_t = V$), then the graph will stay infected (i.e., $A_{t+1} = V$). We will show that not only this happens with probability $1$, but also that it happens quite fast, e.g., in $O(\log(n))$ time.
+
+\subsection{Duality with COBRA walk}
+
+The hitting times of a COBRA walk can be upper bounded using the BIPS process. We will denote $\hit(C,v)$ to be the \emph{hitting time} of a vertex $v$ by a $2$-COBRA walk started from an active set $C_0 = C$. The following result relates hitting times of a COBRA walk to infection times of the BIPS process.
+
+\begin{lemma}
+\label{lemma:dual}
+    Let $C \subseteq V$ and $v \in V$. Let $A_t$ be the infected set of $2$-BIPS process. For every $t \ge 0$
+    \[\Pr\left[\hit(C,v) > t \right] = \Pr\left[A_t \cap C = \emptyset \mid A_0 = \{v\} \right]. \]
+\end{lemma}
+\begin{proof}
+    We will prove the statement by induction. For $t = 0$, both probabilities are $1$ if $v \in C$ and both are $0$ if $v \not \in C$. This establishes the induction base. 
+
+    Suppose the lemma statement holds for $t$. We will show it also holds for $t + 1$. First, consider $\Pr\left[A_{t+1} \cap C = \emptyset\right]$. Consider the $k$-BIPS process at time step $t + 1$ and consider $k$ random neighbours each node from $C$ selects. For $u \in C$, let $B'(u) \sim \mathcal U_k(N(u))$ be such random subset of neighbours. Node $u$ does not become infected at step $t+1$ if and only if $B'(u) \cap A_t = \emptyset$ (i.e., node $u$ didn't sample an infected node among it's neighbours). Denote $B'(C) = \cup_{u \in C} B'(u)$.
+    Then none of the nodes in $C$ are infected at round $t+1$ iff $B'(C) \cap A_t = \emptyset$. In other words,
+    \begin{equation}
+    \label{eq:dual-bips}
+    \Pr\left[A_{t+1} \cap C = \emptyset\right] =  \sum_{B \subseteq V} \Pr\left[A_{t} \cap B = \emptyset\right] \Pr[B'(C) = B]= \sum_{B\subseteq V} \Pr[\hit(B,v) > t] \Pr[B'(C) = B],
+    \end{equation}
+    where second transition is by induction hypothesis.
+    On the other hand, consider the COBRA walk starting with $C_0 = C$ at step $0$. For $u\in C$, let $B(u) \sim \mathcal C_k(u)$ to be the random set of neighbours to which particles travel from $u$ in the next round. Then $B(C) = \cup_{u \in C} B(u)$ will be the active set of the COBRA walk at time $1$. Then
+    \begin{equation}
+    \label{eq:dual-cobra}
+    \Pr\left[\hit(C, v) > t + 1\right] = \sum_{B \subseteq V}  \Pr\left[\hit(B,v) > t\right] \Pr[B(C) = B].
+    \end{equation}
+    On the other hand, $B'(u)$ is the same in law as $B(u)$. Then $B'(C) = \cup_{u \in C} B'(u)$ is the same in law as $B(C) = \cup_{u \in C} B(u)$. Then, for any $B$, we have $\Pr[B(C) = B] = \Pr[B'(C) = B]$. Then, from (\ref{eq:dual-bips}) and (\ref{eq:dual-cobra}) we may conclude 
+    \[\Pr\left[A_t \cap C = \emptyset \mid A_0 = \{v\} \right] = \Pr\left[\hit(v) > t \mid C_0 = C \right].\]
+\end{proof}
+
+Let $\infec(v)$ be the time it takes for the $2$-BIPS process to infect the whole graph. Letting $C = \{u\}$ in Lemma~\ref{lemma:dual}, we obtain \begin{equation}
+\label{eq:infec}
+\Pr[\infec(v) > t] \ge \Pr\left[u \in A_t \mid A_0 = \{v\} \right] = \Pr\left[\hit(u,v) > t \right].
+\end{equation}
+In the rest of the report we will aim to show that $\infec(v) \in O(\log(n))$ with probability at least $1 - O\left(\frac{1}{n^3}\right)$. This will imply that for a fixed $u$, $\cov(u) \in O(\log(n))$ with probability $1 - O\left(\frac{1}{n^2}\right)$, which also implies the result in expectation\footnote{Here and in the rest of the report $\cov(u)$ refers to the cover time of a $2$-COBRA walk started from vertex $v$}.
+
+\section{Covering time of $2$-BIPS process}
+
+We now give a result for the expected growth rate of the $2$-BIPS process, which is essential to the rest of the proof. Unlike $2$-COBRA walk, infected set of the $2$-BIPS set grows (in expectation) at every step. 
+
+\begin{lemma}
+    \label{lemma:bips-growth}
+    Let $A_t$ be the infected set of the $2$-BIPS process at step $t$. Then for any $A \subseteq V$
+    \[
+    \E\left[|A_{t+1}| \mid A_t = A\right] \ge |A|\left(1 + (1-\lambda^2)\left(1- \frac{|A|}{n}\right)\right).
+    \]
+\end{lemma}
+\begin{proof}
+    Suppose $A_t = A$. Let $\ind(u \in A_{t+1})$ be the indicator random variable of the event $u \in A_{t+1}$
+    \[
+    |A_{t+1}| = \sum_{u \in V} \ind(u \in A_{t+1}).
+    \]
+    Note that $\ind(v \in A_{t+1})$ is always $1$, and for $u \not = v$ we have
+    \[
+    \E[\ind(u \in A_{t+1}) \mid A_t = A] = \left(1 - \left(1 - \frac{\deg_A(u)}{d}\right)^2\right) = \frac{2\deg_A(u)}{d} - \frac{\deg_A(u)^2}{d^2}.
+    \] 
+    Therefore,
+    \begin{align*}
+    \E[|A_{t+1}| \mid A_{t} = A ] &= 1 
+ + \sum_{u \in V\setminus \{v\}} \left(\frac{2\deg_A(u)}{d} - \frac{\deg_A(u)^2}{d^2}\right) \ge 
+ \sum_{u \in V} \left(\frac{2\deg_A(u)}{d} - \frac{\deg_A(u)^2}{d^2}\right) \\
+    &= 2|A| - \sum_{u \in V} \left(\frac{\deg_A(u)^2}{d^2}\right).
+    \end{align*}
+    Let $\bf{A}$ be the adjacency matrix of $G$ and let $\Hat{\bf{A}} = \frac{1}{d}\bf{A}$ be its normalized version. Consider the vector $\Hat{\bf{A}} \ones_A$. It's $u^\text{th}$ coordinate will be equal to
+    \[
+    \left(\Hat{\bf{A}} \ones_A\right)_u = \frac{\deg_A(u)}{d}.
+    \]
+    Then
+    \[
+    \sum_{u \in V} \left(\frac{\deg_A(u)^2}{d^2}\right) = \left(\Hat{\bf{A}} \ones_A\right)^\top \left(\Hat{\bf{A}} \ones_A\right) = \ones_A^\top \bf{A}^2\ones_A.
+    \]
+    Next, we express $\ones_A$ as a sum of (1) it's projection onto $\ones$ and (2) component orthogonal to $\ones$. More precicely
+    \[
+    \ones_A = \ones_A^{\parallel} + \ones_A^{\perp},
+    \]
+    where $\ones_A^{\parallel} = \frac{\langle \ones_A, \ones \rangle}{\norm{\ones}_2^2} \ones = \frac{|A|}{n} \ones$ and $\langle \ones_A^\perp, \ones \rangle = 0$. Then
+    \begin{align*}
+    \sum_{u \in V} \left(\frac{\deg_A(u)^2}{d^2}\right) &= \ones_A^\top \bf{A}^2\ones_A 
+    \intertext{since $\ones_A^{\parallel} $ and $\ones_A^{\perp}$ are orthogonal}
+    &= (\ones_A^\parallel)^\top \Hat{\bf{A}}^2 (\ones_A^\parallel) + (\ones_A^\perp)^\top \Hat{\bf{A}}^2 (\ones_A^\perp) \\
+    &= \frac{|A|^2}{n^2}\ones^\top \Hat{\bf{A}}^2 \ones + (\ones_A^\perp)^\top \Hat{\bf{A}}^2 (\ones_A^\perp) 
+    \intertext{since $\ones$ is an eigenvector of $\Hat{\bf{A}}$}
+    &= \frac{|A|^2}{n} + (\ones_A^\perp)^\top \Hat{\bf{A}}^2 (\ones_A^\perp)
+    \intertext{since all eigenvalues of $\bf{A}$ are upper bounded by $\lambda$ in absolute value}
+    &\le \frac{|A|^2}{n} + \lambda^2 (\ones_A^\perp)^\top  (\ones_A^\perp) \\
+    &= \frac{|A|^2}{n} + \lambda^2 \norm{\ones_A^{\perp}}_2^2.
+    \end{align*}
+    By Pythagorean theorem,
+    \[
+    \norm{\ones_A}^2 = \norm{\ones_A^\parallel}^2 + \norm{\ones_A^\perp}^2 \Rightarrow \norm{\ones_A^\perp}^2 = \norm{\ones_A}^2 - \norm{\ones_A^\parallel}^2 = |A| - \frac{|A|^2}{n}.
+    \]
+    Hence,
+    \[
+    \sum_{u \in V} \left(\frac{\deg_A(u)^2}{d^2}\right) \le \frac{|A|^2}{n} + \lambda^2 \left(|A| - \frac{|A|^2}{n}\right) = \left(1 - \lambda^2\right)\frac{|A|^2}{n} + \lambda^2|A|.
+    \]
+    Therefore,
+    \[
+    \E[|A_{t+1}| \mid A_{t} = A ] \ge 2|A| - \left(1 - \lambda^2\right)\frac{|A|^2}{n} - \lambda^2|A| = |A|\left(1 + (1-\lambda^2)\left(1- \frac{|A|}{n}\right)\right).
+    \]
+\end{proof}
+
+\input{tikz/bipsgrowth.tex}
+
+Due to space limitations, we only give the skeleton for the rest of the proof. We first observe that if $|A_t|/n \in 1 - \Omega_n(1)$, then $|A_{t+1}|$ is larger in expectation than $|A_t|$ by at least a constant factor. In other words, $|A_t|$ grows exponentially in expectation as long as $|A_t|/n$ is bounded away from $1$ by a constant. However, we need to prove a stronger statement than that, namely that $A_t$ grows \emph{with high probability}.
+
+Notice that we can write $|A_{t+1}|$ as a sum of indicator random variables $\ind(u \in A_{t+1})$ as follows
+\begin{equation}
+\label{eq:indicators}
+|A_{t+1}| = \sum_{u \in V} \ind(u \in A_{t+1}).
+\end{equation}
+Moreover, it follows from Definition~\ref{def:bips} that if we condition on $A_t$, the indicators $\ind(u \in A_{t+1})$ are \emph{independent} Bernoulli variables. Then, if $\E[|A_{t+1}| \mid A_t]$ is sufficiently large (but still far from $n$), we can show that $|A_{t+1}|$ is larger than $|A_t|$ by at least a constant fraction via \emph{Chernoff bounds}. This observation lays the base for the following proof structure (it's illustrated in Figure~\ref{fig:growth-bips}).
+
+\paragraph{Phase I: Growth on small sets}
+
+First, we show that the infected set $A_t$ grows to size $\Omega(\log(n))$ in at most $O(\log(n))$ time steps. The proof is similar in spirit to Chernoff bounds. We define $E_t$ to be the event that all $A_0, A_1, \ldots, A_t$ are less than some $K\log(n)$. By applying an exponential Markov inequality to $|A_t|$ and using indicator representation as in (\ref{eq:indicators}) we obtain $\Pr[E_t]$ is less than $\Pr[E_{t-1}]$ by at least a constant factor for every $t$. Then, by induction, probability $\Pr[E_t]$ is in $1/n^3$ (for a suitable choice of $t$). Formal statement is given below. 
+
+\begin{restatable}{lemma}{PhaseOne}
+    \label{lemma:phase1}
+    Let $(A_t)_{t\ge 0}$ be $2$-BIPS process started from an arbitrary vertex $v\in V$. Then for any constant $K > 0$, there exist constant $c_1 = c_1(K)$ and $t_1 \le c_1\log(n)$ such that $|A_{t_1}| \ge K\log(n)$ with probability at least $1 - O\left(\frac{1}{n^3}\right)$. 
+\end{restatable}
+
+\paragraph{Phase II: Steady growth}
+
+Now, suppose $|A_t| \ge K\log(n)$ for sufficiently large $K$. Then we can apply Chernoff bounds to (\ref{eq:indicators}) and obtain that with probability $1 - O(1/n^4)$, the active set grows by at least a constant factor. Then, in $O(\log(n))$ rounds, the active set grows to the size $\ge 9/10 n$ with probability $1 - O(1/n^3)$. The formal statement is given below.
+
+\begin{restatable}{lemma}{PhaseTwo}
+    \label{lemma:phase2}
+    Let $(A_t)_{t\ge 0}$ be $2$-BIPS process. Suppose $t_1 > 0$ is such that $A_{t_1} \ge K\log(n)$ for large enough constant $K$. Then there exist a constant $c_2 = c_2(K)$ such that for $t_2 = t_1 + c_2\log(n)$, we have $|A_{t_2}| \ge 9/10 n$ with probability $1 - O\left(\frac{1}{n^3}\right)$.
+\end{restatable}
+
+\paragraph{Phase III: Infecting everyone}
+Now, suppose $|A_t| \ge 9/10 n$. We look at $V\setminus A_t$ (i.e. set of uninfected nodes). We can show that with very high probability it shrinks by a constant factor in expectation at each time step. Then, in $O(\log(n))$ rounds, we will have $\E[|V\setminus A_t|] \le 1/n^3$, which by Markov inequality implies $\Pr[|V\setminus A_t| \ge 1] \le 1/n^3$.
+
+
+\begin{restatable}{lemma}{PhaseThree}
+    \label{lemma:phase3}
+    Let $(A_t)_{t\ge 0}$ be $2$-BIPS process. Suppose $t_2 > 0$ is such that $A_{t_2} \ge \frac{9}{10}n$. Then there exist a constant $c_3$ such that for $t_3 = t_2 + c_3\log(n)$, we have $A_{t_3} = V$ with probability $1 - O\left(\frac{1}{n^3}\right)$.
+\end{restatable}
+
+
+\paragraph{Proof of Theorem~\ref{thm:main}} By gluing Lemmas~\ref{lemma:phase1},~\ref{lemma:phase2},~\ref{lemma:phase3} together with Lemma~\ref{lemma:dual} we obtain the proof of Theorem~\ref{thm:main}.
+
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+    Lemmas~\ref{lemma:phase1},~\ref{lemma:phase2},~\ref{lemma:phase3} together imply that there exist $c > 0$ such that for any $v\in V$ we have $\infec(v) \le t =  c\log(n)$ with probability $1 - O\left(\frac{1}{n^3}\right)$. 
+
+    Then, by Lemma~\ref{lemma:dual} for $C = \{u\}$, we have 
+    \[
+    \Pr\left[\hit(u,v) > t \right] = \Pr\left[u \not \in A_t \mid A_0 = \{v\} \right] \le \Pr\left[\infec(v) > t\right] \in O\left(\frac{1}{n^3}\right).
+    \]
+    Then
+    \[
+    \Pr[\cov(u) > t] \le \sum_{v\in V} \Pr\left[\hit(u,v) > t \right] \in O\left(\frac{1}{n^2}\right).
+    \]
+    Then $\cov(u) < t$ with high probability. 
+
+    Now we establish a bound in expectation. Consider the cobra walk at time $t$. Suppose it didn't cover $G$ yet, which happens with probability at most $O\left(\frac{1}{n^2}\right)$. Then we will follows a single branch of such a COBRA walk starting step $t$. It follows in distribution a simple random walk, which covers the graph in $O(n\log(n))$ expected steps. Then
+    \[
+    \E\left[\cov(u)\right] \in t + O\left(\frac{1}{n^2}\right) \cdot O(t + O(n\log(n))) \subseteq O(\log(n)).
+    \]
+\end{proof}
+
+\printbibliography
+
+% \appendix
+
+% \section{Omitted proofs}
+
+% \PhaseOne*
+% \begin{sketch}
+%     Let $m = K\log(n)$ and $\phi = \log\left(\frac{3 - \lambda}{2}\right) > 0$. For $t \ge 0$, let $E_{t}$ be the event that $|A_0|, |A_1|, \ldots, |A_t| < m+1$. We apply exponential Markov inequality
+%     \begin{align*}    
+%     \Pr[E_t] &= \Pr[E_{t-1}, |A_t| - |A_0| < m] =  \Pr[E_{t-1}, e^{-\phi(|A_t| - |A_0|)} > e^{-\phi m}] \\
+%     &=\Pr[\ind(E_{t-1}) e^{-\phi(|A_t| - |A_0|)} > e^{-\phi m}] \le  e^{\phi m} \E[\ind(E_{t-1}) e^{-\phi(|A_t| - |A_0|)}]
+%     \end{align*}
+%     Let $G_t(\phi) =  \E[\ind(E_{t-1}) e^{-\phi(|A_t| - |A_0|)}]$. We aim to upper bound $G_t(\phi)$ in terms of $G_{t-1}(\phi)$. Let $\mathcal F_t = \sigma(A_0,\ldots, A_t)$ be the sigma algebra generated by $A_0,\ldots, A_t$. Using the law of total expectation and after grouping terms we get
+%     \begin{equation}   
+%     \label{eq:potential}
+%     G_t(\phi) = \E\left[\underbrace{e^{-\phi(A_{t-1} - A_0)} \ind(E_{t-2})}_{\text{expression from $G_{t-1}(\phi)$}} \times \underbrace{\ind(A_{t-1} < m +1) \E[e^{-\phi(A_t - A_{t-1})} \mid \mathcal F_{t-1}]}_{\text{residual term}}\right]
+%     \end{equation}
+%     We will now show a universal upper bound on the residual term. Let $m$ be large enough so that $n = K\log(n) \le \frac{n}{2}$. We know that given $A_t$, the events $u \in A_{t+1}$ independent. Then, after conditioning on $A_{t-1}$, we may write $|A_t|$ as a sum of independent indicators $|A_t| = \sum_{u \in V} \ind(u \in A_{t})$. After some technical transitions we get
+%     \[
+%     \E[e^{-\phi(A_t - A_{t-1})} \mid \mathcal F_{t-1}] \le e^{\phi A_{t-1} - (e^{-\phi} - 1) \E[|A_{t}| \mid A_{t-1}]}
+%     \]
+%     Then, by Lemma~\ref{lemma:bips-growth} and by our choice of $\phi$ we can get $\E[|A_{t}| \mid A_{t-1}]] \ge e^{\phi} |A_{t-1}|$. Then
+%     \[
+%     \E[e^{-\phi(A_t - A_{t-1})} \mid \mathcal F_{t-1}] \le e^{|A_{t-1}|\left(\phi - e^{\phi} + 1\right)} \le e^{\phi - e^{\phi} + 1}
+%     \]
+%     Then, from~\ref{eq:potential}
+%     \[
+%     G_t(\phi) \le\E\left[e^{-\phi(A_{t-1} - A_0)} \ind(E_{t-2})\right] \times e^{\phi - e^{\phi} + 1} = G_{t-1}(\phi) \times e^{\phi - e^{\phi} + 1} 
+%     \]
+%     Hence, by induction 
+%     \[
+%     G_t(\phi) \le e^{t(\phi - e^{\phi} + 1)} 
+%     \]
+%     which implies
+%     \[
+%     \Pr[E_t] \le e^{\phi m} e^{t(\phi - e^{\phi} + 1)} 
+%     \]
+%     Since $\phi \in \Theta(1)$, we have $e^{\phi} -\phi - 1 \in \Theta(1)$. Then for every $m \in \Theta(\log(n))$ we can find $t \in \Theta(\log(n))$ such that $ \Pr[E_t] \le 1/n^3$. This implies the claim.
+% \end{sketch}
+
+
+% \PhaseTwo*
+% \begin{sketch}
+%     Let $\ind(u \in A_{t+1]})$ be the indicator random variable of the event $u \in A_{t+1}$. Then $A_{t+1} = \sum_{u \in V} \ind(u \in A_{t+1]})$. Note that conditioned on $A_t$, the indicators $\ind(u \in A_{t+1]})$ are independent, i.e., $|A_{t+1}|$ is a sum of independent Bernoulli random variables. Additionally, for any $|A_t| \le 9/10 n$ by Lemma~\ref{lemma:bips-growth}
+%     \[
+%     \E[|A_{t+1}| \mid A_t] \ge \left(1 + \frac{1 - \lambda^2}{10}\right) |A_{t}| \ge \left(1 + \frac{1 - \lambda^2}{10}\right) K\log(n)
+%     \]
+%     Then, taking $K$ large enough, we may conclude $\E[|A_{t+1}| \mid A_t] \ge (1 + \Omega(1))|A_{t}|$ with probability at least $1 - O\left(\frac{1}{n^4}\right)$ by Chernoff bounds. Then, by a union bound, in constant number of steps the size of $A_t$ doubles, and in logairthmic number of steps the size of $A_t$ will reach $9/10 n$ with probability at least 
+%     \[1 - O\left(\frac{\log(n)}{n^4}\right) \subseteq 1 - O\left(\frac{1}{n^3}\right).\]
+% \end{sketch}
+
+% \PhaseThree*
+% \begin{sketch}
+%     Let $A_t '= V\setminus A_t$. By Lemma~\ref{lemma:bips-growth} 
+%     \[
+%     \E[|A_{t+1}'| \mid A_t] \le n - |A_t|\left(1 - (1-\lambda^2)\left(1 - \frac{|A_t|}{n}\right)\right) = |A_t'| \left(1 - (1-\lambda^2)|A_t|/n\right)
+%     \]
+%     Then
+%     \begin{align*}
+%     \E[|A_{t+1}'|] &= \E\left[|A_{t+1}'| \cdot \ind(|A_{t}| \ge 9/10n) \right] + \E\left[|A_{t+1}'|\cdot \ind(|A_{t}| < 9/10n)\right] \\
+%                    &\le \E\left[|A_t'|\right] \left(1 - \frac{9(1-\lambda^2)}{10}\right) + n\Pr\left[|A_{t}| < 9/10n\right]
+%     \end{align*}
+%     Then
+%     \[
+%     \E[|A_{t_0+t}'|] \le \E[|A_{t_0}'|] \left(1 - \frac{9(1-\lambda^2)}{10}\right)^t + n\sum \Pr[|A_{t}| < 9/10n]
+%     \]
+%     Similarly to proof of Lemma~\ref{lemma:phase2}, we can prove by Chernoff bounds that if $|A_t| \ge 9/10n$, then $|A_{t +1} \ge 9/10|$ with probability $1 - O(n^8)$. Then for every $t \ge t_0$, we have $|A_t|\ge 9/10$ with probability at least $1 - O(n^7)$ by a union bound. 
+%     Then,  by Markov inequality
+%     \[
+%     \Pr[|A_{t_0 + t}'| \ge 1] \le \E[|A_{t_0}'|] \left(1 - \frac{9(1-\lambda^2)}{10}\right)^t + n\sum \Pr[|A_{t}| < 9/10n]
+%     \]
+%     Picking $c(K)$ large enough, we can get for $t = c(K)\log(n)$
+%     \[
+%     \Pr[|A_{t_0 + t}'| \ge 1] \le \frac{1}{n^3}
+%     \]
+%     Which establishes the claim.
+% \end{sketch}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
