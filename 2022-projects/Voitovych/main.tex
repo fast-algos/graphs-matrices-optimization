@@ -6,8 +6,10 @@
 \def\showdraftbox{0}
 % \allowdisplaybreaks[1]
 
+
 \input{macros}
 \allowdisplaybreaks
+
 
 \usepackage{float}
 \usepackage{tikz}
@@ -81,8 +83,7 @@
 
 \subsection{Refresher on random walks}
 
-We first give a refresher on some concepts from 
-the study of random walks on graphs. For simplicity, let's consider an undirected unweighted graph.
+We first give a refresher on some concepts from the study of random walks on graphs. For simplicity, let's consider an undirected unweighted graph.
 
 \begin{definition}
 \label{def:random-walk}
@@ -95,13 +96,13 @@ We call the \emph{cover time} $\cov(v)$ of the vertex $v \in V$ the minimum time
 \[
 \cov(G) = \max_{v \in V} \E\left[\cov(v)\right].
 \]
-Work of \cite{Aldous1989LowerBF} showed that that cover time of \emph{any} graph must be in $\Omega(n\log(n))$. On the other hand, the cover time of any $(d,\lambda)$ expander with $\lambda < 1$ is in $O(n\log(n))$ (see, e.g., Theorem 5 of~\cite{Broder1988BoundsOT}). In other words, expander graphs give an optimal cover time by a random walk.
+Work of~\cite{Aldous1989LowerBF} showed that that cover time of \emph{any} graph must be in $\Omega(n\log(n))$. On the other hand, the cover time of any $(d,\lambda)$-expander with $\lambda < 1$ is in $O(n\log(n))$ (see, e.g., Theorem 5 of~\cite{Broder1988BoundsOT}). In other words, expander graphs give an optimal cover time by a random walk.
 
 \subsection{Introducing $k$-COBRA walk}
 
-We introduce a generalized version of a simple random walk, called \emph{a $k$-coalescing branching random walk}, or $k$-COBRA walk for short.
+We introduce a generalized version of a simple random walk, called \emph{a $k$-coalescing branching random walk}, or $k$-COBRA walk for short. It was first introduced in~\cite{Dutta2013Cobra}. This report is based on the results of~\cite{DualCobra}.
 
-First, we give a verbal description. Let $k\in \nat$ and consider a graph $G = (V,E)$ and a single particle located at a vertex $v \in V$. At each time step, each particle \emph{branches} into $k$ particles, which travel neighbouring chosen independently and uniformly at random. Then, at the end of the time step, all particles at the same location \emph{coalesce} into one particle. See Figure~\ref{fig:cobra2} for a simple realization of a $2$-COBRA walk after three time steps. 
+First, we give a verbal description. Let $k\in \nat$ and consider a graph $G = (V,E)$ and a single particle located at a vertex $v \in V$. At each time step, each particle \emph{branches} into $k$ particles, which travel neighbouring chosen independently and uniformly at random. Then, at the end of the time step, all particles at the same location \emph{coalesce} into one particle. We will use $C_t \subseteq V$ to denote the set of locations of particles at time $t$. We will call $C_t$ \emph{the active set} of the COBRA walk at time $t$. See Figure~\ref{fig:cobra2} for a simple realization of a $2$-COBRA walk after three time steps. 
 
 We give a more formal definition below. For a non-empty set $S$, let $\mathcal U_k(S)$ be a distribution over the subsets of $S$ obtained by picking $k$ elements of $S$ uniformly at random \emph{with replacement}.  
 
@@ -109,10 +110,10 @@ We give a more formal definition below. For a non-empty set $S$, let $\mathcal U
 \begin{definition}
 \label{def:cobra}
     Let $k\in \nat$ and let $G = (V,E)$ be an undirected unweighted graph. 
-    Then a $k$-COBRA walk started at $v \in V$ is a Markov process $(C_t)_{t\ge0}$ such that $C_0 = \{v\}$ and the distribution $C_{t+1} \mid C_t$ can be described as follows. For for all $u \in C_t$, consider independent random variables $B(u) \sim \mathcal U_k(N(u))$. Then $C_{t+1} \mid C_t$ is the same in law as $\cup_{u \in C_t} B(u)$.
+    Then a $k$-COBRA walk started at $v \in V$ is a Markov process $(C_t)_{t\ge0}$ such that $C_0 = \{v\}$ and the distribution $C_{t+1} \mid C_t$ can be described as follows. For all $u \in C_t$, consider independent random variables $B(u) \sim \mathcal U_k(N(u))$. Then $C_{t+1} \mid C_t$ is the same in law as $\cup_{u \in C_t} B(u)$.
 \end{definition}
 
-We will call $C_t$ \emph{the active set} of the COBRA walk at time $t$. Note that for $k = 1$, $k$-COBRA walk is just a simple random walk. For simplicity of exposition, we will focus in the rest of the report on analyzing a $2$-COBRA walk. We aim to establish the following theorem about the covering time of $2$-COBRA walk on expanders\footnote{In fact, result for $2$-COBRA walk also implies the result for $k$-COBRA walk with $k \ge 3$.}.
+ Note that for $k = 1$, $k$-COBRA walk is just a simple random walk. For simplicity of exposition, we will focus in the rest of the report on analyzing a $2$-COBRA walk. We aim to establish the following theorem about the covering time of $2$-COBRA walk on expanders\footnote{In fact, result for $2$-COBRA walk also implies the result for $k$-COBRA walk with $k \ge 3$.}.
 \begin{theorem}
     \label{thm:main}
     Let $G$ be a $(d,\lambda)$-expander with $n-1 \ge d \ge 3$ and constant $\lambda < 1$. Then covering time of the $2$-COBRA walk on $G$ is in $O(\log(n))$ in expectation and with high probability. 
@@ -127,11 +128,11 @@ In this report, ``with high probability'' means with probability at least $1 - O
 
 Covering time of a COBRA walk is challenging to analyze directly, for which we give a heuristic explanation. Consider the evolution of a $2$-COBRA walk on the graph $G = (V,E)$, and let us look at the moment when the size of the active set $C_t$ is roughly half of the size of $V$. Then the probability that any two particles coalesce in the following round is also roughly $1/2$. Then the size of the next active set $C_{t+1}$ will be roughly $1/2\cdot 2|C_t|$ (where factor $2$ comes from every particle branching, and $1/2$ comes from the probability of coalescing). In other words, after time $t$ the size of the active set \emph{doesn't grow}, but just shuffles through $V$. 
 
-It's very difficult to analyze how exactly this set shuffles through $V$ due to the collisions. We circumvent this by considering an alternative process on $G$ called Biased Infection with Persistent Source (or BIPS), which relates to a COBRA walk, but does not not have the ``shuffling'' phase. 
+It's very difficult to analyze how exactly this set shuffles through $V$ due to the collisions. We circumvent this by considering a \emph{dual} process on $G$ called Biased Infection with Persistent Source (or BIPS), which relates to a COBRA walk, but does not not have the ``shuffling'' phase. 
 
 \subsection{Biased Infection with Persistent Source}
 
-We first give a verbal description of $k$-BIPS process. Consider graph $G = (V,E)$ and a single infected node $v \in V$. We will call $v$ the source of the infection, and $v$ will stay permanently infected. At every time step, every node (except $v$) selects $k$ of its neighbours uniformly at random with replacement. If one of its neighbours is infected, the node becomes infected. It can be defined more formally in the following way.
+We first give a verbal description of $k$-BIPS process. Consider graph $G = (V,E)$ and a single infected node $v \in V$. We will call $v$ the source of the infection, and $v$ will stay permanently infected. At every time step, every node (except $v$) selects $k$ of its neighbours uniformly at random with replacement. If one of its neighbours is infected, the node becomes infected. We will use $A_t$ to denote the infected set of the BIPS process at time $t$. It can be defined more formally in the following way.
 
 \begin{definition}
 \label{def:bips}
@@ -160,22 +161,22 @@ The hitting times of a COBRA walk can be upper bounded using the BIPS process. W
     \Pr\left[A_{t+1} \cap C = \emptyset\right] =  \sum_{B \subseteq V} \Pr\left[A_{t} \cap B = \emptyset\right] \Pr[B'(C) = B]= \sum_{B\subseteq V} \Pr[\hit(B,v) > t] \Pr[B'(C) = B],
     \end{equation}
     where second transition is by induction hypothesis.
-    On the other hand, consider the COBRA walk starting with $C_0 = C$ at step $0$. For $u\in C$, let $B(u) \sim \mathcal C_k(u)$ to be the random set of neighbours to which particles travel from $u$ in the next round. Then $B(C) = \cup_{u \in C} B(u)$ will be the active set of the COBRA walk at time $1$. Then
+    On the other hand, consider the COBRA walk starting with $C_0 = C$ at step $0$. For $u\in C$, let $B(u) \sim \mathcal U_k(u)$ to be the random set of neighbours to which particles travel from $u$ in the next round. Then $B(C) = \cup_{u \in C} B(u)$ will be the active set of the COBRA walk at time $1$. Then
     \begin{equation}
     \label{eq:dual-cobra}
     \Pr\left[\hit(C, v) > t + 1\right] = \sum_{B \subseteq V}  \Pr\left[\hit(B,v) > t\right] \Pr[B(C) = B].
     \end{equation}
     On the other hand, $B'(u)$ is the same in law as $B(u)$. Then $B'(C) = \cup_{u \in C} B'(u)$ is the same in law as $B(C) = \cup_{u \in C} B(u)$. Then, for any $B$, we have $\Pr[B(C) = B] = \Pr[B'(C) = B]$. Then, from (\ref{eq:dual-bips}) and (\ref{eq:dual-cobra}) we may conclude 
-    \[\Pr\left[A_t \cap C = \emptyset \mid A_0 = \{v\} \right] = \Pr\left[\hit(v) > t \mid C_0 = C \right].\]
+    \[\Pr\left[A_{t+1} \cap C = \emptyset \mid A_0 = \{v\} \right] = \Pr\left[\hit(v) > t+1 \mid C_0 = C \right].\]
 \end{proof}
 
 Let $\infec(v)$ be the time it takes for the $2$-BIPS process to infect the whole graph. Letting $C = \{u\}$ in Lemma~\ref{lemma:dual}, we obtain \begin{equation}
 \label{eq:infec}
-\Pr[\infec(v) > t] \ge \Pr\left[u \in A_t \mid A_0 = \{v\} \right] = \Pr\left[\hit(u,v) > t \right].
+\Pr[\infec(v) > t] \ge \Pr\left[u \not\in A_t \mid A_0 = \{v\} \right] = \Pr\left[\hit(u,v) > t \right].
 \end{equation}
 In the rest of the report we will aim to show that $\infec(v) \in O(\log(n))$ with probability at least $1 - O\left(\frac{1}{n^3}\right)$. This will imply that for a fixed $u$, $\cov(u) \in O(\log(n))$ with probability $1 - O\left(\frac{1}{n^2}\right)$, which also implies the result in expectation\footnote{Here and in the rest of the report $\cov(u)$ refers to the cover time of a $2$-COBRA walk started from vertex $v$}.
 
-\section{Covering time of $2$-BIPS process}
+\section{Infection time of $2$-BIPS process}
 
 We now give a result for the expected growth rate of the $2$-BIPS process, which is essential to the rest of the proof. Unlike $2$-COBRA walk, infected set of the $2$-BIPS set grows (in expectation) at every step. 
 
@@ -217,7 +218,7 @@ We now give a result for the expected growth rate of the $2$-BIPS process, which
     where $\ones_A^{\parallel} = \frac{\langle \ones_A, \ones \rangle}{\norm{\ones}_2^2} \ones = \frac{|A|}{n} \ones$ and $\langle \ones_A^\perp, \ones \rangle = 0$. Then
     \begin{align*}
     \sum_{u \in V} \left(\frac{\deg_A(u)^2}{d^2}\right) &= \ones_A^\top \bf{A}^2\ones_A 
-    \intertext{since $\ones_A^{\parallel} $ and $\ones_A^{\perp}$ are orthogonal}
+    \intertext{since $\Hat{\bf{A}}\ones_A^{\parallel} = \ones_A^\parallel$ and $\ones_A^{\perp}$ are orthogonal}
     &= (\ones_A^\parallel)^\top \Hat{\bf{A}}^2 (\ones_A^\parallel) + (\ones_A^\perp)^\top \Hat{\bf{A}}^2 (\ones_A^\perp) \\
     &= \frac{|A|^2}{n^2}\ones^\top \Hat{\bf{A}}^2 \ones + (\ones_A^\perp)^\top \Hat{\bf{A}}^2 (\ones_A^\perp) 
     \intertext{since $\ones$ is an eigenvector of $\Hat{\bf{A}}$}
@@ -253,7 +254,7 @@ Moreover, it follows from Definition~\ref{def:bips} that if we condition on $A_t
 
 \paragraph{Phase I: Growth on small sets}
 
-First, we show that the infected set $A_t$ grows to size $\Omega(\log(n))$ in at most $O(\log(n))$ time steps. The proof is similar in spirit to Chernoff bounds. We define $E_t$ to be the event that all $A_0, A_1, \ldots, A_t$ are less than some $K\log(n)$. By applying an exponential Markov inequality to $|A_t|$ and using indicator representation as in (\ref{eq:indicators}) we obtain $\Pr[E_t]$ is less than $\Pr[E_{t-1}]$ by at least a constant factor for every $t$. Then, by induction, probability $\Pr[E_t]$ is in $1/n^3$ (for a suitable choice of $t$). Formal statement is given below. 
+First, we show that the infected set $A_t$ grows to size $\Omega(\log(n))$ in at most $O(\log(n))$ time steps. The proof is similar in spirit to Chernoff bounds. We define $E_t$ to be the event that all $A_0, A_1, \ldots, A_t$ are less than some $K\log(n)$. By applying an exponential Markov inequality to $|A_t|$ and using indicator representation as in (\ref{eq:indicators}) we obtain $\Pr[E_t]$ is less than $\Pr[E_{t-1}]$ by at least a constant factor for every $t$. Then, by induction, probability $\Pr[E_t]$ is in $O(1/n^3)$ (for a suitable choice of $t$). Formal statement is given below. 
 
 \begin{restatable}{lemma}{PhaseOne}
     \label{lemma:phase1}
@@ -262,7 +263,7 @@ First, we show that the infected set $A_t$ grows to size $\Omega(\log(n))$ in at
 
 \paragraph{Phase II: Steady growth}
 
-Now, suppose $|A_t| \ge K\log(n)$ for sufficiently large $K$. Then we can apply Chernoff bounds to (\ref{eq:indicators}) and obtain that with probability $1 - O(1/n^4)$, the active set grows by at least a constant factor. Then, in $O(\log(n))$ rounds, the active set grows to the size $\ge 9/10 n$ with probability $1 - O(1/n^3)$. The formal statement is given below.
+Now, suppose $|A_t| \ge K\log(n)$ for sufficiently large $K$. Then we can apply Chernoff bounds to (\ref{eq:indicators}) and obtain that with probability $1 - O(1/n^4)$, the active set grows by at least a constant factor in the next step. Then, in $O(\log(n))$ rounds, the active set grows to the size $\ge 9/10 n$ with probability $1 - O(1/n^3)$. The formal statement is given below.
 
 \begin{restatable}{lemma}{PhaseTwo}
     \label{lemma:phase2}
@@ -275,7 +276,7 @@ Now, suppose $|A_t| \ge 9/10 n$. We look at $V\setminus A_t$ (i.e. set of uninfe
 
 \begin{restatable}{lemma}{PhaseThree}
     \label{lemma:phase3}
-    Let $(A_t)_{t\ge 0}$ be $2$-BIPS process. Suppose $t_2 > 0$ is such that $A_{t_2} \ge \frac{9}{10}n$. Then there exist a constant $c_3$ such that for $t_3 = t_2 + c_3\log(n)$, we have $A_{t_3} = V$ with probability $1 - O\left(\frac{1}{n^3}\right)$.
+    Let $(A_t)_{t\ge 0}$ be $2$-BIPS process. Suppose $t_2 > 0$ is such that $A_{t_2} \ge 9/10n$. Then there exist a constant $c_3$ such that for $t_3 = t_2 + c_3\log(n)$, we have $A_{t_3} = V$ with probability $1 - O\left(\frac{1}{n^3}\right)$.
 \end{restatable}
 
 
