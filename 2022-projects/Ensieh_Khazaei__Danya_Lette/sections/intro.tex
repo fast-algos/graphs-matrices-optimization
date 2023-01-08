@@ -1,0 +1,9 @@
+\section{Introduction}
+
+In their 2013 paper ``A Simple, Combinatorial Algorithm for Solving SDD Systems in Nearly-Linear Time" \cite{Kel13}, Kelner et al. proposed an algorithm for getting approximate solutions to SDD systems, that is: systems of the form $A\vec x = \vec b$, in which $A$ is symmetric and diagonally dominant. 
+
+Prior to this work, in 2004, Spielman and Teng proposed their own nearly-linear time Laplacian solver \cite{ST04}. This highly influential work is also highly complex, making it difficult to understand, analyze, and adapt to special cases. The algorithm in \cite{Kel13} is, in contrast, very simple. 
+
+In brief, the algorithm reduces SDD systems to Laplacian systems and, in the context of the electrical networks view of a Laplacian system, aims to find an approximately optimal flow vector by iteratively updating a guess of the network's flow. In each iteration, an edge is sampled from a spanning tree of the network; each edge corresponds to a cycle in the network, and the flow is updated in that iteration by enforcing a conservation of energy law on that cycle. The algorithm runs in $\mathcal O(m \log^2 n \log \log n \log(\epsilon^{-1}))$. 
+
+In these lecture notes, we present the necessary background materials in Section \ref{sec:prelim}, the algorithm itself in Section \ref{sec:algo}. We then discuss the algorithm's correctness and convergence in Section \ref{sec:conv} and, finally, present a geometrical interpretation in Section \ref{sec:geom}.
