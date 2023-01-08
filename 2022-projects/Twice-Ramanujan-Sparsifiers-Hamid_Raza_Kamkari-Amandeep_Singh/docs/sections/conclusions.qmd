@@ -1,0 +1,9 @@
+With that said, we conclude this write-up. Through this, we covered the following key points:
+
+1. Applications and background of sparsification
+2. Spectral sparsification
+3. Reduction from the sparsification problem to the matrix approximation problem
+4. The main method of twice Ramanujan sparsification
+5. Experimental details and introducing our package
+6. Drawing connections between sparsified complete graphs and expenders 
+7. measuring how good the sparsifiers are in terms of Ramanujan-like bounds.

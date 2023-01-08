@@ -1,0 +1,72 @@
+
+For any graph $G$ a sparsifier $H$ is a graph with far fewer edges that is similar to $G$ in some useful way. While $H$ is much easier to do computation on, it holds the same properties as $G$, and therefore, it is a reliable way of doing approximate computation on $G$. For example, if we are dealing with path-finding problems on a dense large graph $G$, the set of sparsifiers used in [@chew1989there] can be used because they are guaranteed to have almost the same shortest path properties as $G$.
+
+For illustration, consider the following graph $G$ with four vertices. The new graph obtained has far fewer edges but has the same set of shortest paths between any pair of vertices. This is a simple sparsifier that can be used for shortest path-finding problems and can be obtained via removing trivial edges $w(u,v)$ such that the shortest distance between $u$ and $v$ is smaller than or equal to $w(u,v)$.
+
+```{python}
+#| label: fig-shortest-path-sparsification
+#| fig-cap: "A simple illustration of a sparsifier that can help with shortest path problems."
+#| fig-subcap: 
+#|  - "The graph $G$ that we intend to sparsify."
+#|  - "The graph $H$ that is obtained by removing trivial edges."
+#| fig-size: 300
+#| layout-ncol: 2
+#| fig-show: true
+
+import networkx as nx
+import matplotlib.pyplot as plt
+
+# setup the graph
+G = nx.Graph()
+G.add_nodes_from([1, 2, 3, 4])
+G.add_edges_from([
+  (1, 2, {'w':10}),
+  (1, 3, {'w':5}),
+  (1, 4, {'w':6}), 
+  (2, 3, {'w':3}), 
+  (2, 4, {'w':2}), 
+  (3, 4, {'w':6})
+])
+# setup plotting position of all vertices
+pos={
+  1:(0,0),
+  2:(0.5,1),
+  3:(1, 0),
+  4:(0.5, 0.5)
+}
+
+# a simple networkx plotting function
+def plot_graph():
+  nx.draw_networkx(G,pos)
+  labels = nx.get_edge_attributes(G,'w')
+  nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
+  plt.axis('off')
+  plt.show()
+
+# before:
+plot_graph()
+
+# find the shortest path between any pair of vertices
+shortest_paths = dict(nx.all_pairs_dijkstra_path(G, weight='w'))
+for v in shortest_paths:
+    for u in shortest_paths[v]:
+      # if the edge from v to u has weight greater than the shortest path
+      # between v and u, then remove it
+      if v != u and len(shortest_paths[v][u]) > 2:
+        # remove edge from v to u if it exists
+        if G.has_edge(v, u):
+          G.remove_edge(v, u)
+
+# after:
+plot_graph()
+
+```
+
+On the other hand, [@benczur1996approximating] for example introduces the cut-sparsifiers which are a class of sparsifiers that have almost identical cut weights for any set $S \subset V$ meaning that $E_G(S, \bar{S}) \approx E_H(S, \bar{S})$.
+In this write-up, we cover spectral graph sparsifiers which are a certain class of sparsifiers that have a tight connection with expander graphs and can approximate the Laplacian of a graph with high accuracy. These sparsifiers preserve random walk properties as well and can be used as a substitute for original graphs in many applications such as recently in Graph Neural Networks (GNNs) [@li2020sgcn].
+
+Because of the close connection between graph spectral connectivity and edge connectivity introduced by Cheeger [@cheeger1970lower], spectral sparsifiers were introduced by [@spielman2004nearly] and  [@spielman2011spectral] as an important tool. Conventionally, these graphs are constructed using randomized algorithms where we pick a certain edge of an original graph with a probability and sample edges until we obtain a good approximation. For example, if an edge is crucial to the connectivity of our graph, then it has high importance and should be picked with high probability. However, in this write-up, we will show that we can construct a sparsifier with a deterministic algorithm introduced in [@batson2009twice] that has a tight connection with the Ramanujan bounds.
+
+Furthermore, we will cover an important reduction from the graph sparsification problem to a matrix approximation problem which has been further exploder in many follow-up papers [@tat2015constructing] and [@lee2017sdp]. Moreover, this will give us the first deterministic algorithm for obtaining sparsifiers with a linear number of edges. That said, we have implemented the algorithm in Python and have tested it on a few graphs for illustration purposes and our package is available in our [Github repository](https://github.com/HamidrezaKmK/twice-ramanujan-sparsifiers). 
+
+Finally, we will focus our attention on running the algorithm on complete graphs. The sparsifier obtained from the complete graph will have high connectivity which resembles similarities with the expander graphs. Although the graph obtained from the algorithm is not regular, we will show that it has a lot of expander-like properties and we will draw a close connection with Ramanujan graphs.

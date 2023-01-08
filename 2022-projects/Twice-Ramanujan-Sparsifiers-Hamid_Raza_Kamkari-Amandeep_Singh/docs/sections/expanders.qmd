@@ -1,0 +1,156 @@
+Now that we have illustrated the algorithm in its entirety, we will consider the case of running this sparsifier on the complete graph, after all, the whole reason behind this naming is its resemblance to the Ramanujan expanders. But first, let's recap expanders and some of their properties and then we will see how the sparsifier shares a lot of these properties.
+
+### Expander Graphs
+
+In literature, expander graphs are regular graphs that have high connectivity; in other words, any random walk on such a graph expands fast. In many applications like connected computing elements or communication networks, such highly connected components are required, but it is always desirable that high connectivity is achieved with sparse constructions. For example, the complete graphs are an extreme case of highly connected graphs but are not sparse. Strictly defined, the expanders are the family of graphs that keep on expanding with high connectivity but with a sparse number of edges. 
+
+Different definitions of expanders are defined using metrics such as vertex expansion, edge expansion and spectral expansion; we will only consider the case of spectral expansion here. A definition of $(d, \epsilon)$-spectral expanders with a tight connection to the sparsifiers is given below:
+
+::: {#def-spectral-expander}
+A $d$-regular graph $G$ is a $(d, \epsilon)$-spectral expander if it approximate the complete graph $K_n$ in a spectral sense, in other words,
+$$(1 - \epsilon) L_{K_n} \preceq \frac{n}{d} L_G \preceq (1 + \epsilon) L_{K_n}$$
+:::
+
+#### Expander Mixing Properties
+
+A well-known theorem in the literature is the expander mixing lemma, which states that the edges of a spectral expander are distributed uniformly across the graph. This is a very important property of the expanders, as it allows us to use the sparsifiers to approximate the complete graph. The expander mixing lemma is given below:
+
+::: {#thm-expander-mixing-lemma}
+**(Expander Mixing Lemma)** Let $G$ be a $(d, \epsilon)$-spectral expander. Then for any two disjoint sets $S$ and $T$ of vertices, we have,
+$$|E_G(S, T) - \frac{d}{n} |S| \cdot |T| | \le \epsilon \sqrt{|S| \cdot |T|}$$
+:::
+
+This means that if we multiply the edges of an expander by $n/d$ so that it becomes a sparsifier of the complete graph and call it $H$, then the following holds:
+$$|E_H(S, T) - |S| \cdot |T|| \le \epsilon \frac{n}{d} \cdot \sqrt{|S| \cdot |T|}$$
+
+That said, even though twice Ramanujan sparsifiers are not expanders (they are not regular) we have the following lemma for spectral sparsifiers that bear resemblance to the expander mixing lemma:
+
+
+::: {#thm-approx-mixing-lemma}
+Let $L_H(V,E,w)$ be a graph that  $(1+\epsilon)$ approximates the complete graph $L_G$ then for every pair of disjoint sets S and T, 
+$$
+|E(S,T)-(1+\epsilon/2)|S||T||\leq n(\epsilon/2) \sqrt{|d||n|}
+$$ 
+:::
+
+::: {.solution}
+ Through the definition we have
+$$
+  -\frac{\epsilon}{2} L_G \preceq L_H-(1+\epsilon/2)L_G \preceq \frac{\epsilon}{2} L_G
+$$
+
+ So it is possible to write it as 
+$$
+  L_H=(1+\epsilon/2)L_G+X_M
+$$
+where $X_M$ is calculated based on norms with it having max norm
+as $\frac{\epsilon}{2} ||L_G|| \leq n\epsilon/2$
+Now consider $x$ and $y$ as characteristic vectors of set $S$ and $T$ respectively. As we know
+$-E(S,T) = x^TL_Hy$
+we will get the weight crossing the two sets. And we consider with a complete graph, the weight is uniformly distributed
+ $$x^TL_Gy= -|S||T|$$
+ Substituting back
+ $$x^TL_Hy = (1+\frac{\epsilon}{2}x^TL_Gy+x^TX_my)$$
+$$x^TL_Hy = (1+\frac{\epsilon}{2}|S||T|+x^TX_my)$$
+$$-(E(S,T) -(1+\frac{\epsilon}{2}|S||T|)= x^TX_my)$$
+Taking modulus on both sides 
+$$|E(S,T) -(1+\frac{\epsilon}{2})|S||T||= |x^TX_my|$$
+Consider RHS and apply the Cauchy-Schwarz inequality
+$$|x^TX_my|\leq||X_m||\:||x||\:||y||\leq n\frac{\epsilon}{2}\sqrt{|S||T|}$$
+Substituting back
+$$|E(S,T) -(1+\frac{\epsilon}{2})| \leq n\frac{\epsilon}{2}\sqrt{|S||T|}$$
+:::
+
+That said, the twice Ramanujan can be a good approximate for the complete graph and any vertex set will expand. Now let's move on to Ramanujan bounds.
+
+### Ramanujan Bounds
+
+For expanders, we know that the higher $d$ the more freedom we have to choose more dense graphs that give us better approximations resulting in lower values of $\epsilon$. That said, given a specific value of $d$, there exist some lower bounds on the accuracy metric $\epsilon$. Intuitively, the lower the value of $d$, the worst the accuracy gets and $\epsilon$ should increase. The Alan-Bopanna lemma bridges that gap between these two concepts and states a lower limit for the second eigenvalue for the Laplacians of $d$-regular graphs:
+$$
+    \lambda_i \geq 2\sqrt{d-1} − o_n(1),
+$$
+and a connected $d$-regular graph obtaining this bound is called a Ramanujan graph. Alternatively, the lemma can produce a bound on the accuracy metric $\epsilon$ as follows:
+$$\frac{1 + \epsilon}{1 - \epsilon} \ge 1 + \frac{4}{\sqrt{d}} + o_n(1/d)$$
+Therefore, Ramanujan graphs are the best-known expanders for a given value of $d$. Following the theme of drawing connections between sparsification and expanders, we can also prove a lower bound for the accuracy metric $\epsilon$. With this bound, we can get a sense of how well a sparsification algorithm acts.
+
+::: {#thm-ramanujan-sparsifier-bounds}
+If $H$ is a graph that $\epsilon$-approximates the graph $G$ such that $L_H \approx_\epsilon L_G$, then we have,
+$$\frac{1 + \epsilon}{1 - \epsilon} \ge 1 + \frac{2}{\sqrt{d}} - \mathcal{O}\left( \frac{\sqrt{d}}{n} \right)$$
+if $H$ contains a vertex of degree $d$.
+:::
+
+::: {.solution}
+  The key aspect of the proof is the fact that if we consider the Rayleigh coefficient ratio of $L_H$ for two different vectors, which are orthogonal to all 1 vector, it can be at max $\kappa = \frac{1 + \epsilon}{1 - \epsilon}$ due to sparsifier definition.
+
+  Now for the construction, consider the d-degree vertex, let it be $v_0$, and its neighbors are $v_1 ....v_n$. Now let the weight of the edge connecting that neighbor to the $v_0$ be $w_i$ and the weight to all the rest of vertices excluding  $v_0$ neighbors be 
+  $\delta_i$.
+
+  So if we define the characteristic vectors
+
+$$ x(v_i)=\begin {cases} 
+      1 & v_i\in v_0 \\
+      \frac{1}{\sqrt{d}} & v_i\in {v_1,...v_d} \\
+      0 & v_i\notin {v_0,v_1...v_d} 
+   \end{cases}
+$$
+
+$$ y(v_i)=\begin {cases} 
+      1 & v_i\in v_0 \\
+      -\frac{1}{\sqrt{d}} & v_i\in {v_1,...v_d} \\
+      0 & v_i\notin {v_0,v_1...v_d} 
+   \end{cases}
+$$
+Now taking quadratic forms concerning these and using the edge definition of laplacian
+$$
+x^TL_Hx = \sum^{d}_{i=1}w_i(1-1/\sqrt(d))^2+\sum^d_{i=1}\delta_i(1/\sqrt(d)-0)^2 
+$$
+$$
+ = \sum^{d}_{i=1}w_i+\sum^{d}_{i=1}\frac{\delta_i+w_i}{d}-2\sum^d_{i=1}\frac{w_i}{\sqrt{d}} 
+$$
+
+Similarly for y
+$$
+y^TL_Hy = \sum^{d}_{i=1}w_i+\sum^{d}_{i=1}\frac{\delta_i+w_i}{d}+2\sum^d_{i=1}\frac{w_i}{\sqrt{d}} 
+$$
+Now taking ratio
+$$\frac{y^TL_Hy}{x^TL_Hx}=\frac{1+\frac{1}{\sqrt{d}}\frac{2\sum^d_{i=1}w_i}{\sum^{d}_{i=1}w_i+\sum^{d}_{i=1}\frac{\delta_i+w_i}{d}}}{1-\frac{1}{\sqrt{d}}\frac{2\sum^d_{i=1}w_i}{\sum^{d}_{i=1}w_i+\sum^{d}_{i=1}\frac{\delta_i+w_i}{d}}}$$
+
+Now consider the lower bound for L_H defined earlier. Now consider a vertex and define a characteristic vector concerning its neighbors, i.e. only the position corresponding to these neighbors be 1 and the rest 0. The quadratic form, which will be the weighted degree of the graph, will be bounded between n $n\kappa$. So using this
+$$
+\frac{2\sum^d_{i=1}w_i}{\sum^{d}_{i=1}w_i+\sum^{d}_{i=1}\frac{\delta_i+w_i}{d}}= \frac{2}{1+\frac{\sum^{d}_{i=1}\frac{\delta_i+w_i}{d}}{\sum^d_{i=1}w_i}} \geq \frac{2}{1+\kappa}
+$$
+thus
+$$\frac{y^TL_Hy}{x^TL_Hx}\geq \frac{1+\frac{1}{\sqrt{d}}\frac{2}{1+\kappa}}{1-\frac{1}{\sqrt{d}}\frac{2}{1+\kappa}}
+$$
+Since the L_H's quadratic form bound between the lowest possible value n and highest possible value $n\kappa$ is only true for vectors orthogonal to all single constant vectors. So transforming variables to such space
+$$
+||x^*|| = ||x||^2-(<x,1/\sqrt{n}>)^2 = 2-\frac{(1-\sqrt{d})^2}{n}
+$$
+$$
+||y^*|| = ||y||^2-(<y,1/\sqrt{n}>)^2 = 2-\frac{(1-\sqrt{d})^2}{n}
+$$
+
+taking ratio 
+$$\frac{||x^*||}{||y^*||} = 1- \frac{4\sqrt{d}}{2-\frac{(1-\sqrt{d})^2}{n}}
+$$
+$$
+\frac{||x^*||}{||y^*||} = 1- O(\frac{\sqrt{d}}{n})
+$$
+Changing variables for quadratic form ratio
+
+$$\frac{y^TL_Hy}{x^TL_Hx}\frac{||x^*||}{||y^*||}\geq \frac{1+\frac{1}{\sqrt{d}}\frac{2}{1+\kappa}}{1-\frac{1}{\sqrt{d}}\frac{2}{1+\kappa}}(1- O(\frac{\sqrt{d}}{n}))
+$$
+maximum value for LHS due to lower bound is $\kappa$
+$$\kappa\geq \frac{1+\frac{1}{\sqrt{d}}\frac{2}{1+\kappa}}{1-\frac{1}{\sqrt{d}}\frac{2}{1+\kappa}}(1- O(\frac{\sqrt{d}}{n}))
+$$
+$$\frac{y^TL_Hy}{x^TL_Hx}\frac{||x^*||}{||y^*||}\geq \frac{1+\frac{1}{\sqrt{d}}\frac{2}{1+\kappa}}{1-\frac{1}{\sqrt{d}}\frac{2}{1+\kappa}}(1- O(\frac{\sqrt{d}}{n}))
+$$
+which finally transforms to
+$$
+\kappa \geq 1+2/\sqrt{d}-O(\sqrt{d}/n)
+$$
+:::
+
+That said, the graphs obtained from the twice Ramanujan algorithm contain $dn$ edges, which means that using the pigeonhole principle at least one vertex with a degree at most $d$ exists. Therefore, any sparsifier should comply with the bound provided by @thm-ramanujan-sparsifier-bounds. At the same time, this bound is somewhat tight as we know that the algorithm produces the following ratio:
+$$\frac{1 + \epsilon}{1 - \epsilon} = \frac{1 + d + 2 \sqrt{d}}{1 + d - 2 \sqrt{d}} =1 + 4\frac{\sqrt{d}}{1 + d - 2\sqrt{d}} \approx 1 + \frac{4}{\sqrt{d}}$$
+In addition, Ramanujan graphs in the expander regime have $\frac{dn}{2}$ edges while this sparsifier has $dn$ edges, hence, the naming convention is set like that.
