@@ -1,0 +1,116 @@
+% !TEX root = fastpacbayes-with-supplement.tex
+% !TEX root = fastpacbayes.tex
+
+%\usepackage{amsaddr}
+\usepackage[utf8]{inputenc} 
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb,bm, cases, mathtools, thmtools}
+\usepackage{verbatim}
+\usepackage{graphicx}\graphicspath{{figures/}}
+\usepackage{multicol}
+\usepackage{tabularx}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage{mathrsfs} 
+\usepackage{url}
+\usepackage{enumitem}
+\usepackage{bbm}
+
+\usepackage{pifont}
+\usepackage{amssymb}
+
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+
+\usepackage{subcaption}
+%\usepackage{subfigure}
+\usepackage{chngpage}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{color}
+%\usepackage{subcaption}
+\usepackage{wrapfig}
+\usepackage{xspace}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usepackage{tcolorbox}
+
+
+\usepackage{natbib}
+%\usepackage[%
+%    minnames=4,maxnames=99,maxcitenames=4,
+%    style=numeric-comp,
+%    doi=true,url=false,
+%    firstinits=true,hyperref,natbib,backend=bibtex]{biblatex}
+%\renewbibmacro{in:}{%
+%  \ifentrytype{article}{}{\printtext{\bibstring{in}\intitlepunct}}}
+%%\bibliography{biblio}
+%\bibliography{bib/gp,bib/bnn,bib/gan,bib/vi,bib/misc,bib/bayesian,bib/nn,bib/generalization,bib/rl,bib/logic,bib/cv,bib/nlp,bib/matrix}
+
+\usepackage[colorlinks,citecolor=blue,urlcolor=blue,linkcolor=RawSienna]{hyperref}
+%\usepackage{hypernat}
+\usepackage{datetime}
+
+%% change up the fonts for fun.
+%\usepackage[OT1]{eulervm} 
+%\usepackage{palatino}
+
+\DeclareMathAlphabet\EuRoman{U}{eur}{m}{n}
+\SetMathAlphabet\EuRoman{bold}{U}{eur}{b}{n}
+\newcommand{\eurom}{\EuRoman}
+
+%% hide equation numbers for unreferenced equations
+%\mathtoolsset{showonlyrefs}
+
+
+%% nicer way of making \ref'ences to theorems, lemmas, equations, sections, etc.
+\usepackage[capitalize]{cleveref}
+
+%% add entries for anything missing.
+\crefname{lemma}{Lemma}{Lemmas}
+\crefname{corollary}{Corollary}{Corollaries}
+\crefname{theorem}{Theorem}{Theorems}
+
+%% grey out the equation numbers slightly
+\makeatletter
+\let\reftagform@=\tagform@
+\def\tagform@#1{\maketag@@@{\ignorespaces\textcolor{gray}{(#1)}\unskip\@@italiccorr}}
+\renewcommand{\eqref}[1]{\textup{\reftagform@{\ref{#1}}}}
+\makeatother
+
+%% theorem styles
+\declaretheorem[style=plain,numberwithin=section,name=Theorem]{theorem}
+\declaretheorem[style=plain,sibling=theorem,name=Lemma]{lemma}
+\declaretheorem[style=plain,sibling=theorem,name=Proposition]{proposition}
+\declaretheorem[style=plain,sibling=theorem,name=Corollary]{corollary}
+
+\declaretheorem[style=definition,sibling=theorem,name=Definition]{definition}
+\declaretheorem[style=definition,qed=$\triangleleft$,sibling=theorem,name=Example]{example}
+\declaretheorem[style=remark,qed=$\triangleleft$,sibling=theorem,name=Remark]{remark}
+%\declaretheorem[style=definition,qed=$\triangleleft$,sibling=theorem]{fact}
+
+%\numberwithin{equation}{section}
+\numberwithin{theorem}{section}
+
+\renewcommand{\appendixname}{}
+%\renewcommand{\sectionname}{\S}
+
+%%% put ruler down the side for draft, and color it gray
+%\usepackage{vruler}
+%\setvruler[10pt][1][1][4][1][20pt][20pt][0pt][\textheight]
+%\let\orgfillzeros\fillzeros 
+%\def\fillzeros[#1]#2{% 
+%  \begingroup 
+%    \color[rgb]{0.8,0.8,0.8}% 
+%    \orgfillzeros[{#1}]{#2}% 
+%  \endgroup 
+%}
