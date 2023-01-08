@@ -1,0 +1,210 @@
+\xdefinecolor{cobra}{cmyk}{0,0.20, 1.0, 0.02}
+\xdefinecolor{node}{cmyk}{0.5,0.26,0.0,0.15} 
+\xdefinecolor{curious}{cmyk}{0, 0.83, 0.80, 0.0}
+\xdefinecolor{hidden}{cmyk}{0, 0, 0, 0.35}
+
+\tikzset{hide labels/.style={every label/.append style={text opacity=0}}}
+
+\begin{figure}
+    \centering
+    \begin{minipage}{0.5\textwidth}
+    \centering
+        \begin{tikzpicture}[scale=3, rotate=270, hide labels]%[hide labels]
+
+        \begin{scope}
+            \path[draw,use Hobby shortcut,closed=true, fill=cobra, fill opacity=0.15]
+            (1.28,-0.05) .. (1.15,0.08) .. (1.02,-0.05) .. (1.15,-0.18);
+            \node[circle] (curious) at (1.25,-0.25) {$X_3$};
+
+            \path[draw,use Hobby shortcut,closed=true, fill=cobra, fill opacity=0.15]
+            (-0.23,-0.05) ..  (-0.1,-0.18) ..  (0.03,-0.05) ..  (-0.1,0.08);
+            \node[circle] (curious) at (-0.06,-0.27) {$X_0$};
+        \end{scope}
+
+        
+
+        %(-0.1,-0.05)
+    
+        \begin{scope}[every node/.style={circle, draw, inner sep=0pt,text width=2mm,fill=cobra}]
+            %%% cobra nodes    
+            \node[label=below:{\tiny $A$}] (A) at (-0.1,-0.05) {};
+            \node[label=below:{\tiny $B$}] (B) at (0.3,-0.25) {};
+            \node[label=below:{\tiny $D$}] (D) at (1.15,-0.05) {};
+
+            \node[label=below:{\tiny $2$}] (2) at (0.7,0) {};
+
+
+        \end{scope}
+        % \node[anchor=west] at ([shift=(160:0.5)]10) {$u$};
+        \begin{scope}[every node/.style={circle, draw, inner sep=0pt,text width=2mm,fill=node}]
+            %%% regular nodes
+            % \node[label=below:{\tiny $G$}] (G) at (1.8,0.5) {};
+            % \node[label=below:{\tiny $H$}] (H) at (1.9,0.15) {};
+            \node[label=below:{\tiny $1$}] (1) at (0.3,0.2) {};
+            \node[label=below:{\tiny $5$}] (5) at (0.65,0.4) {};
+            \node[label=below:{\tiny $8$}] (8) at (1.15,-0.4) {};
+            \node[label=below:{\tiny $9$}] (9) at (1.1,0.3) {};
+            \node[label=below:{\tiny $7$}] (7) at (1.0,-0.7) {};
+            \node[label=below:{\tiny $14$}] (14) at (0.95,0.7) {};
+            \node[label=below:{\tiny $C$}] (C) at (0.7,-0.4) {};
+
+            \node[label=below:{\tiny $3$}] (3) at (-0.05,-0.65) {};
+            \node[label=below:{\tiny $4$}] (4) at (0.1,0.55) {};
+            \node[label=below:{\tiny $17$}] (17) at (0.3,-0.55) {};
+
+            \node[label=below:{\tiny $6$}] (6) at (0.55,-0.8) {};
+            
+            \node[label=below:{\tiny $12$}] (12) at (-0.25,0.3) {};
+            \node[label=below:{\tiny $18$}] (18) at (-0.2,0.7) {};
+
+            \node[label=below:{\tiny $13$}] (13) at (-0.3,-0.35) {};
+            \node[label=below:{\tiny $16$}] (16) at (0.5,0.73) {};
+
+            \node[label=below:{\tiny $E$}] (E) at (1.55,0.2) {};
+            \node[label=below:{\tiny $F$}] (F) at (1.5,-0.2) {};
+            
+            \node[label=below:{\tiny $10$}] (10) at (1.4,0.55) {};
+            \node[label=below:{\tiny $11$}] (11) at (1.55,-0.55) {};
+            \node[label=below:{\tiny $15$}] (15) at (1.4,-0.85) {};
+            % \node (G) at (1.8,0.5) {};
+            % \node (H) at (1.9,0.15) {};
+            % \node (I) at (2.0,-0.35) {};
+
+
+            % \node[label=below:{\tiny $I$}] (I) at (2.0,-0.35) {};
+        \end{scope}
+
+        
+        \begin{scope}[>={Stealth[cobra]},
+                      every edge/.style={draw=cobra, thick}]
+            %%% cobra edges
+
+            % \path[->] (B) edge (2) edge (C);
+            % \path[->] (2) edge (9) edge (D);
+            % \path[->] (C) edge (D) edge (8);
+            % \path[->] (8) edge (11) edge (F);
+            % \path[->] (D) edge (E) edge (F);
+            % \path[->] (9) edge (10) edge (14);
+
+            \path[->] (A) edge (B) (B) edge (2) (2) edge (D);
+
+        \end{scope}
+
+        
+        
+        % \begin{scope}[>={Stealth[curious]},
+        %               every edge/.style={draw=curious, thick}]
+        %     %% curious arrow 
+        %     \path[->,dashed,thick] (curious) edge[in=30,out=100, looseness=1] node [above right, pos=0.25] {$s?$} (10);
+        % \end{scope}
+    \end{tikzpicture}
+
+    \subcaption{Example of a random walk.}
+    \label{fig:cobra1}
+    \end{minipage}%
+    \begin{minipage}{0.5\textwidth}
+    \centering
+        \begin{tikzpicture}[scale=3, rotate=270, hide labels]%[hide labels]
+
+        \begin{scope}
+            \path[draw,use Hobby shortcut,closed=true, fill=cobra, fill opacity=0.15]
+            (1.0,-0.9) .. (1.3,-0.05) .. (0.95,0.9) .. (0.9,-0.05);
+            \node[circle] (curious) at (1.1, -1.02) {$C_3$};
+
+            \path[draw,use Hobby shortcut,closed=true, fill=cobra, fill opacity=0.15]
+            (-0.23,-0.05) ..  (-0.1,-0.18) ..  (0.03,-0.05) ..  (-0.1,0.08);
+            \node[circle] (curious) at (-0.06,-0.27) {$C_0$};
+
+        \end{scope}
+
+        
+
+        %(-0.1,-0.05)
+    
+        \begin{scope}[every node/.style={circle, draw, inner sep=0pt,text width=2mm,fill=cobra}]
+            %%% cobra nodes    
+            \node[label=below:{\tiny $A$}] (A) at (-0.1,-0.05) {};
+            \node[label=below:{\tiny $B$}] (B) at (0.3,-0.25) {};
+            \node[label=below:{\tiny $C$}] (C) at (0.7,-0.4) {};
+            \node[label=below:{\tiny $D$}] (D) at (1.15,-0.05) {};
+            \node[label=below:{\tiny $1$}] (1) at (0.3,0.2) {};
+            \node[label=below:{\tiny $5$}] (5) at (0.65,0.4) {};
+
+            \node[label=below:{\tiny $2$}] (2) at (0.7,0) {};
+            \node[label=below:{\tiny $8$}] (8) at (1.15,-0.4) {};
+            \node[label=below:{\tiny $9$}] (9) at (1.1,0.3) {};
+            \node[label=below:{\tiny $7$}] (7) at (1.0,-0.7) {};
+            \node[label=below:{\tiny $14$}] (14) at (0.95,0.7) {};
+
+
+        \end{scope}
+        % \node[anchor=west] at ([shift=(160:0.5)]10) {$u$};
+        \begin{scope}[every node/.style={circle, draw, inner sep=0pt,text width=2mm,fill=node}]
+            %%% regular nodes
+            % \node[label=below:{\tiny $G$}] (G) at (1.8,0.5) {};
+            % \node[label=below:{\tiny $H$}] (H) at (1.9,0.15) {};
+
+            \node[label=below:{\tiny $3$}] (3) at (-0.05,-0.65) {};
+            \node[label=below:{\tiny $4$}] (4) at (0.1,0.55) {};
+            \node[label=below:{\tiny $17$}] (17) at (0.3,-0.55) {};
+
+            \node[label=below:{\tiny $6$}] (6) at (0.55,-0.8) {};
+            
+            \node[label=below:{\tiny $12$}] (12) at (-0.25,0.3) {};
+            \node[label=below:{\tiny $18$}] (18) at (-0.2,0.7) {};
+
+            \node[label=below:{\tiny $13$}] (13) at (-0.3,-0.35) {};
+            \node[label=below:{\tiny $16$}] (16) at (0.5,0.73) {};
+
+            \node[label=below:{\tiny $E$}] (E) at (1.55,0.2) {};
+            \node[label=below:{\tiny $F$}] (F) at (1.5,-0.2) {};
+            
+            \node[label=below:{\tiny $10$}] (10) at (1.4,0.55) {};
+            \node[label=below:{\tiny $11$}] (11) at (1.55,-0.55) {};
+            \node[label=below:{\tiny $15$}] (15) at (1.4,-0.85) {};
+            % \node (G) at (1.8,0.5) {};
+            % \node (H) at (1.9,0.15) {};
+            % \node (I) at (2.0,-0.35) {};
+
+
+            % \node[label=below:{\tiny $I$}] (I) at (2.0,-0.35) {};
+        \end{scope}
+
+        
+        \begin{scope}[>={Stealth[cobra]},
+                      every edge/.style={draw=cobra, thick}]
+            %%% cobra edges
+
+            % \path[->] (B) edge (2) edge (C);
+            % \path[->] (2) edge (9) edge (D);
+            % \path[->] (C) edge (D) edge (8);
+            % \path[->] (8) edge (11) edge (F);
+            % \path[->] (D) edge (E) edge (F);
+            % \path[->] (9) edge (10) edge (14);
+
+            \path[->] (A) edge (1) edge (B);
+            \path[->] (1) edge (5) edge (2);
+            \path[->] (B) edge (2) edge (C);
+            \path[->] (5) edge (14) edge (9);
+            \path[->] (2) edge (D) edge (9);
+            \path[->] (C) edge (7) edge (8);
+
+        \end{scope}
+
+        
+        
+        % \begin{scope}[>={Stealth[curious]},
+        %               every edge/.style={draw=curious, thick}]
+        %     %% curious arrow 
+        %     \path[->,dashed,thick] (curious) edge[in=30,out=100, looseness=1] node [above right, pos=0.25] {$s?$} (10);
+        % \end{scope}
+    \end{tikzpicture}
+
+    \subcaption{Example of a $2$-COBRA walk.}
+    \label{fig:cobra2}
+    \end{minipage}
+
+    
+    \caption{A comparison between a simple random walk and a $2$-COBRA walk. Figure~\ref{fig:cobra1} and figure~\ref{fig:cobra2} show a realization of a random walk and a $2$-COBRA walk respectively after three time steps. Here, $X_t$ and $C_t$ denote position of a random walk and an active set of a COBRA walk respectively at time $t$. }
+    \label{fig:cobra}
+\end{figure}
