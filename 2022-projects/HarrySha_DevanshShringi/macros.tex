@@ -1,0 +1,52 @@
+
+\usepackage{amsmath, ulem, amssymb, amsfonts, hyperref, amsthm, listings, tcolorbox, bbm, xifthen, soul, mathtools}
+\usepackage[margin=1in]{geometry}
+\usepackage[linesnumbered,lined,boxed,commentsnumbered, ruled]{algorithm2e}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    citecolor=magenta,      
+    urlcolor=cyan,
+}
+\usepackage[
+    backend=biber,
+    style=alphabetic,
+    sorting=ynt,
+    backref=true
+]{biblatex}
+\usepackage[shortlabels]{enumitem}
+\usepackage{cleveref}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{open-problem}[theorem]{Open Problem}
+
+\theoremstyle{definition}
+
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+
+\newtheorem{remark}{Remark}
+\newtheorem{question}{Question}
+
+\newcommand{\V}[1]{\mathbf{#1}\ignorespaces}
+\renewcommand\AA{\boldsymbol{\mathit{A}}}
+\newcommand\LL{\boldsymbol{\mathit{L}}}
+\newcommand\MM{\boldsymbol{\mathit{M}}}
+\newcommand\II{\boldsymbol{\mathit{I}}}
+\newcommand\JJ{\boldsymbol{\mathit{J}}}
+\newcommand\KK{\boldsymbol{\mathit{K}}}
+
+\newcommand{\ab}[1]{\langle #1 \rangle}
+\renewcommand{\subset}{\subseteq}
+\newcommand{\dsquare}{\mathbin{\raisebox{.2ex}{
+    \hspace{-.4em}$\bigcirc$\hspace{-.75em}{\rm s}\hspace{.15em}}}}
+\newcommand{\from}{\overset{R}{\leftarrow}}
+\newcommand{\1}{\mathbbm{1}}
+
+\DeclareMathOperator{\USTCON}{USTCON}
+\DeclareMathOperator{\STCON}{STCON}
