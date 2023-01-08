@@ -1,0 +1,86 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+%%%%%%%%% options for the file macros.tex
+
+\def\showauthornotes{1}
+\def\showkeys{0}
+\def\showdraftbox{0}
+\let\pref=\prettyref
+
+\input{macros}
+\allowdisplaybreaks
+
+\title{CSC2240 Class Project -- Oblivious Subspace Embeddings}
+\author{Aida Ramezani \& Marc-Etienne Brunet}
+\date{December 2022}
+
+\begin{document}
+\setlength\parindent{0pt}
+\setlength\parskip{0.5em}
+
+\maketitle
+
+\section{Introduction}
+Oblivious subspace embeddings (OSEs) have numerous applications in approximation and sketching algorithms.
+They are also interesting in their own right,
+challenging our intuitions about information compression, 
+and the geometry of high dimensional space.
+
+\subsection{Outline}
+In this project we cover the following:
+
+\begin{enumerate}
+    \item Review of the Johnson-Lindenstrauss (JL) Lemma seen in class. 
+    \item Introduction to oblivious subspace embeddings (OSEs).
+    \item Application of OSEs to linear regression.
+    \item Motivation for sparse OSEs.
+    \item Review of the trace inequalities proof from ~\cite{cohen2016nearly}.
+\end{enumerate}
+
+\subsection{Notation}
+To facilitate readability, we use the following notation throughout. 
+\begin{table}[]
+    \centering
+    \begin{tabular}{c|l}
+        $n$ & dimension in original space \\
+        $m$ & dimension of embedding \\
+        $d$ & dimension of subspace \\
+        $k$ & number of vectors preserved by JL \\
+        $\Pi$ & Embedding matrix $\in \rea^{m \times n}$
+    \end{tabular}
+    % \caption{Caption}
+    \label{tab:my_label}
+\end{table}
+
+
+\section{Review of the JL-Lemma}
+\input{review_jl.tex}
+
+\section{Oblivious Subspace Embeddings}
+\input{subspace.tex}
+
+\section{Application to linear regression}
+\subsection{Motivation and setup}
+\input{regression.tex}
+
+\subsection{OSEs for approximate regression}
+\input{regression_proof.tex}
+
+\subsection{Why do we want \textit{sparse} subspace embeddings?}
+\input{sparsity.tex}
+
+\subsection{Proof sketch of bounds}
+\input{proof.tex}
+
+
+\bibliographystyle{apalike}
+\bibliography{bibs}
+
+\newpage
+\section*{Appendix}
+\appendix
+\section{Question about Woodruff's proof}
+\label{app:question}
+\input{question.tex}
+
+\end{document}
