@@ -1,0 +1,558 @@
+\documentclass[11pt]{article}
+%%%%%%%%% options for the file macros.tex
+
+\def\showauthornotes1
+\def\showkeys{0}
+\def\showdraftbox{0}
+% \allowdisplaybreaks[1]
+
+\input{macros}
+\allowdisplaybreaks
+
+\usepackage{tikz}
+
+\usepackage[
+    backend=biber,
+% giveninits=true,
+% natbib=true,
+    style=alphabetic,
+    url=false, 
+ %   doi=true,
+    hyperref,
+    backref=true,
+    backrefstyle=none,
+    maxbibnames=10,
+    sortcites
+]{biblatex}
+\addbibresource{papers.bib}
+
+%%%%%%%%% Authornotes
+\newcommand{\Snote}{\Authornote{S}}
+
+\newenvironment{tight_enumerate}{
+\begin{enumerate}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{enumerate}}
+\newenvironment{tight_itemize}{
+\begin{itemize}
+ \setlength{\itemsep}{2pt}
+ \setlength{\parskip}{1pt}
+}{\end{itemize}}
+
+
+\renewcommand\vec{\V}
+\newcommand\itxt[1]{\intertext{\indent#1}}
+
+\addbibresource{refs.bib}
+
+
+\newcommand{\samp}[1]{\widehat{#1}}
+\newcommand{\matzero}{\bm{0}}
+\newcommand{\assign}{\leftarrow}
+\newcommand\cc{\boldsymbol{\mathit{c}}}
+\newcommand{\vstar}[2]{\ensuremath{\left(#1\right)_{#2}}}
+\newcommand\ee{\boldsymbol{\mathit{e}}}
+
+\newcommand{\csamp}{\textsc{CliqueSample }}
+\newcommand{\sparsecholesky}{\textsc{SparseCholesky }}
+\newcommand{\cholesky}{\textsc{SparseCholesky }}
+\newcommand{\exactcholesky}{\textsc{ExactCholesky }}
+\newcommand{\Exp}{\mathbb{E}}
+\newcommand{\lnorm}[1]{\ensuremath{\overline{#1}}}
+\def\defeq{\stackrel{\mathrm{def}}{=}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\newcommand{\coursenum}{{CSC 2420}}
+\newcommand{\coursename}{Paper Presentation\cite{Kyng16}}
+\newcommand{\courseprof}{Sushant Sachdeva}
+
+\lecturetitle1{Approximate Gaussian Elimination for Laplacians - Fast, Sparse and Simple }{Zhiyang Chen, Mohan Zhao}{\today}
+
+\section{Problem Statement}
+
+The problem of solving systems of linear equations $Lx = b$, where $L$ is an SDD matrix (and often a Laplacian) is a fundamental primitive 
+and arises in different applications. 
+
+A natural approach to solving systems of linear equations is Gaussian elimination, or its variant for symmetric matrices, 
+Cholesky factorization, which produces a factorization 
+$L = \mathcal{L} \mathcal{D} \mathcal{L}^\top$ where $\mathcal{L}$ is a lower-triangular system 
+and $\mathcal{D}$ is a diagonal matrix. However, $\mathcal{L}$ can be a dense matrix even when the original matrix $L$ is sparse. 
+This phenomenon is called \textit{fill-in}.
+
+For Laplacian systems, sequentially eliminating variables often produces a sequence of increasingly-dense systems, resulting in an 
+$O(n^3)$ worst-case time even for sparse $L$.
+
+This paper\cite{Kyng16} presents the first nearly linear time algorithm that generate a \textbf{sparse} approximate Cholesky decomposition 
+for (general!) Laplacian matrices, with provable approximation guarantees. It does not use any graph theoretic constructions, 
+only uses random sampling. 
+
+
+\section{Notation}
+In the rest of the note, we will use the following notation:
+\begin{tight_itemize}
+	\item $ S^{(k)} $: Schur complement at iteration $k$.
+	\item $ Cl_{k} $: Laplacian of the clique added at iteration $k$ of Cholesky Factorization.
+	\item $ (L)_{v} $: Laplacian of a graph with all edges incident on $v$. 
+	\item $ L_{(u,v)}$: Laplacian of a graph with only one edge between $u$ and $v$. $ L_{(u,v)} = b_{u,v}  b_{u,v}^\top $
+	\item For a matrix $ M $, $ \overline{M} = L^{-\frac{1}{2}}ML^{-\frac{1}{2} }$, where $ L $ is the Laplacian of the original graph.
+\end{tight_itemize}
+
+\section{Preliminaries}
+\begin{definition}
+  A symmetric matrix $L$ is called Symmetric and Diagonally Dominant
+  (SDD) if for all $i,$ $L(i,i) \ge \sum_{j \neq i} |L(i,j)|$.
+
+\end{definition}
+
+\begin{definition}
+  An SDD matrix $L$ is a Laplacian if $L(i,j) \le 0$ for $i \neq j,$ and 
+  for all $i,$ $\sum_{j} L(i,j) = 0.$ A Laplacian matrix is
+  naturally associated with a graph on its vertices, where $i,j$ are
+  adjacent if $L(i,j) \neq 0.$
+\end{definition}
+
+\begin{definition}
+Consider a connected undirected multi-graph $G = (V,E)$, let $e_i$ denote the $i^{th}$ standard basis vector. Given an edge $e = (u,v)$, we define pair vector $b_e = b_{u,v} = e_v - e_u$. Also, we define $L_{(u,v)} = b_{u,v} b_{u,v}^\top$
+\end{definition}
+
+
+\begin{definition}
+  A graph in which multiple edges may connect the same pair of vertices is called a \emph{multi-graph}. Since there can be multiple edges between the same pair of vertices, the multiplicity of edge tells the number of edges between two vertices.
+
+\end{definition}
+
+
+\section{Cholesky factorization}
+
+\subsection{Algorithm}
+We now formally introduce Cholesky factorization. Choleskey factorization is an algorithm that eventually produces a factorization 
+$L = \mathcal{L} \mathcal{D} \mathcal{L}^{\top},$ where $\mathcal{L}$
+is a lower-triangular matrix, and $\mathcal{D}$ is a diagonal
+matrix. Such a factorization allows us to solve a system $Lx = b$ by
+computing $x = L^{-1} b = (\mathcal{L}^{-1})^{\top} \mathcal{D}^{-1}
+\mathcal{L}^{-1} b$. 
+
+
+Given a Laplacian matrix $L$ and denote $L(:,i)$ as the $i$th column of L. In the first iteration, we eliminate the first variable $x_1$, and produces a new linear system $S^{(1)} x' = b'$.
+
+$$ S^{(1)} \defeq L - \frac{1}{L(1,1)}L(:,1) L(:,1)^{\top} $$
+
+Note $S^{(1)}$ is called the Schur complement of $L$ with respect to 1. Note the first row and first column of $S^{(1)}$ are all zeros, and $S^{(1)}$ and its submatrix $S^{(1)}_{2:n,2:n}$ are both Laplacians. We can write $L = S^{(1)} + \alpha_1 c_1 c_1^\top$.
+
+At the second iteration, similarly, we can perform the same factorization to $S^{(1)}$, and we get $S^{(1)} = S^{(2)} + \alpha_2 c_2 c_2^\top$ 
+
+At the $k$th iteration, we have $S^{(k)} = S^{(k-1)} + \alpha_k c_k c_k^\top$, where $$\alpha_k = S^{(k-1)}(v_k,v_k)$$, 
+$$\bm{c}_k=\frac{1}{\alpha_k}S^{(k-1)}(:,v_k)$$, and 
+
+$$S^{(k)} =S^{(k-1)}-\alpha_k\bm{c}_k\bm{c}_k^{T}$$
+
+At each step of the algorithm, we substract 
+a rank one matrix from the current matrix, obtaining its Schur complement. The iteration stops when $\alpha_k = 0$. 
+
+In the end, we have $L = \sum_{k=1}^n \alpha_k c_k c_k^\top = \mathcal{C} \mathcal{D} \mathcal{C}^{\top}$. Define the permutation matrix $P$ by $P \ee_{i} = \ee_{v_{i}}.$
+Letting $\mathcal{L} = P^{\top}\mathcal{C},$ we have
+$L = 
+ P \mathcal{L} \mathcal{D} \mathcal{L}^{\top} P^{\top}.$
+This decomposition is known as Cholesky factorization.
+Note, $\mathcal{L}$ is lower triangular and $\mathcal{D}$ is diagonal.
+
+
+
+\subsection{Graph interpretation}
+Cholesky factorization in fact works for all positive semi-definite matrices, however, when it is applied to Laplacians, we have a graph interpretation of schur complements at each iteration -- the clique structure of the Schur complement. 
+
+Let's consider the first step of Cholesky factorization, we have $ S^{(1)} = L - \frac{1}{L(1,1)}L(:,1) L(:,1)^{\top} $. The first row and first column of $S^{(1)}$ are all zeros, and $S^{(1)}$ and its submatrix $S^{(1)}_{2:n,2:n}$ are both Laplacians. For $i \neq j$ and $i,j \neq 1$, $$S^{(1)}(i, j) = L(i,j) - \frac{1}{L(1,1)} L(1,i)L(1,j) = \underline{L(i,j) - (L)_1} + \underline{(L)_1 - 1/L(1,1) L(1,i)L(1,j)}$$.  
+
+In the corresponding graph $G$, the first iteration can be regarded as removing vertex $1$ and its incident edges (i.e. the first underline $L(i,j) - (L)_1$), and adding a clique to the neighbors of vertex $1$ (i.e. the second underline $ + (L)_1 - 1/L(1,1) L(1,i)L(1,j)$). The second iteration can be regraded as removing vertex $2$ and its incident edges from $S^{(1)}$, and adding a clique to the neighbors of vertex $2$. The rest of the iterations can be interpreted in the same way, as shown in algorithm~\ref{alg:cholesky}. 
+
+The Laplacian of the clique added can be expressed as
+
+$$ (L)_v - \frac{1}{L(v,v)} L(:, v) L(:, v)^\top = \frac{1}{2} \sum_{u_1} \sum_{u_2}\frac{w(v,u_1) w(v,u_2)}{w(v)}L_{(u_1,u_2)} = \sum_{u_1<u_2}\frac{w(v,u_1) w(v,u_2)}{w(v)}L_{(u_1,u_2)} $$
+
+
+\begin{algorithm}[H]
+
+  \caption{Cholesky Factorization}
+   \label{alg:cholesky}
+   
+  Inputs: a Laplacian $L$ 
+  
+  Outputs: $S^{(0)}, S^{(1)}, S^{(2)}, ...$ that can be further used to find the lower-triangular matrix $\mathcal{L}$ and diagonal matrix $D$
+  \begin{algorithmic}[1]
+  \State $S^{(0)}$ = $L$
+  \For{$k \gets 1, 2,..., n$}
+    \State $S^{(k)}$ = Eliminate vertex $k$  in $S^{(k-1)}$
+    \State $S^{(k)}$ = Add a clique $Cl_k$ on neighbors of vertex $k$ in $S^{(k)}$.
+  \EndFor
+  \end{algorithmic}
+  \end{algorithm}
+
+
+\subsection{Time complexity}
+In the algorithm ~\ref{alg:cholesky}, at each iteration $k$, it first removs vertex $k$ and $deg(k)$ edges, then add a clique of $deg(k)^2$ edges. So the overall time complexity is $$O(\sum_v deg(v)^2) = O(n^3)$$. 
+
+During this procedure, considering the updated graph $G_k$ at each iteration as a multi-graph, we can see the number of edges in $G_k$ is increasing at each iteration. This results in a time complexity of $O(n^3)$. Even if the original Laplacian $L$ is sparse, Choleskey factorization can still produce a dense lower-triangular matrix $\mathcal{L}$.
+
+
+\section{Approximate Cholesky Factorization}
+Key idea: Randomize over the choice of the vertex to eliminate, and draw independent sample edges to 
+approximate and replace the clique added in Choleskey Factorization.
+
+
+Algorithm ~\ref{alg:approx_cholesky} shows the procedure. At each iteration, instead of adding a clique as in Algorithm ~\ref{alg:cholesky}, we sample a vertex uniformly at random from the remaining vertices, and eliminate it from the current matrix. Then we sample a clique on the neighbors of the sampled vertex.
+
+\begin{algorithm}
+  \caption {Approximate Cholesky Factorization}
+  \label{alg:approx_cholesky}
+  Inputs: an $\rho > 0$ and a Laplacian $L$ 
+  
+  Outputs: $S^{(0)}, S^{(1)}, S^{(2)}, ...$ that can be further used to find the lower-triangular matrix $\mathcal{L}$ and diagonal matrix $D$
+  \begin{algorithmic}[0]
+  \item Replace each edge e by $\rho$ parallel edges each with weight $\frac {1}{\rho} w_e$ \Comment{Preprocessing}
+  
+  \State $\widehat{S}^{(0)}$ = $L$ with edges replaced
+
+  \For {$k \gets 1,2,...,\rho n$}
+  \State Sample a vertex $\pi (k)$ uniformly random from remaining vertices
+  \State $\widehat{S}^{(k)}$ = Eliminate vertex $k$  in $\widehat{S}^{(k-1)}$
+  \State $\widehat{Cl}_v$ = \csamp($S^{(k - 1)}, v$)
+  \State $\widehat{S}^{(k)}$ = Add $\widehat{Cl}_v$ to $\widehat{S}^{(k)}$
+  \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+\subsection{Time complexity}
+We will introduce the details of \csamp algorithm and other lemmas regarding Algorithm ~\ref{alg:approx_cholesky} later. Here will give a high level analysis of the time complexity of Algorithm ~\ref{alg:approx_cholesky}. 
+
+Assume \csamp algorithm runs in $O(deg_{S^{(k-1)}}(v))$, and returns a clique with $\leq deg_{S^{(k-1)}}(v)$ edges. Then at each iteration, it removes $deg_{S^{(k-1)}}(v)$ edges and add $\leq deg_{S^{(k-1)}}(v)$ edges. 
+
+We can conclude that, the number edges of schur complement $S^{(k)}$ is smaller than or equal to the number edges of schur complement $S^{(k-1)}$. Thus the number of edges in $S^{(k)}$ is at most $|E|$, which means Approximate Cholesky Factorization(Algorithm ~\ref{alg:approx_cholesky}) is much faster than Cholesky Factorization(Algorithm ~\ref{alg:cholesky}).
+
+
+
+
+
+\section{Clique Sampling}
+
+Algorithm ~\ref{alg:cliqueSample} gives the pseudo-code for our \csamp algorithm.
+
+From high level perspective, the algorithm \csamp produces a sparse Laplacian matrix which approximates the clique $Cl_v(S)$ 
+in the \exactcholesky algorithm. The elimination step in \sparsecholesky algorithm removes $deg_{S^{(k)}}(v)$ edges incident to vertex 
+$v$ and add a sparse Laplacian matrix given by \csamp($S$,$v$). Since \csamp($S$,$v$) only adds at most $deg_S(v)$ edges 
+to the graph, the total number of edges does not increase with each elimination step. 
+
+\begin{algorithm}
+	\caption{\csamp($S$,$v$)}
+    \label{alg:cliqueSample}
+    Inputs: a multi-graph $S$, a vertex $v$ to be eliminated
+  
+    Outputs: a sparse Laplacian matrix consisting of several i.i.d samples of edges.  
+    
+	\begin{algorithmic}[1]
+        \For{$i \leftarrow 1$ to $deg_S(v)$}
+            \State Sample one edge $(v, u_1)$ with probability $ \frac1{deg_S(v)} $.
+			\State Sample another edge $(v,u_2)$ with probability $ \frac{w(v,u_2)}{w(v)} $ 
+			\If{$ u_1 \neq u_2 $}
+%				\State Add edge $ \paren{u_1,u_2} $ to $ \widehat{C} $ with weight $ \frac{w\paren{v,u_1}w\paren{v,u_2}}{w\paren{v,u_1} + w\paren{v,u_2}} $
+				\State $ Y_{i} \gets \frac{w\paren{v,u_1}w\paren{v,u_2}}{w\paren{v,u_1} + w\paren{v,u_2}}L_{\paren{u_1,u_2}} $
+			\Else
+                \State $ Y_i = 0 $
+            \EndIf
+		\EndFor
+        \State \Return $ \widehat{Cl}_v = \sum_{i}Y_{i} $
+	\end{algorithmic}
+\end{algorithm}
+
+
+\section{Analysis of Clique Sampling}
+
+As mentioned before, algorithm \csamp samples a sparse Laplacian matrix that approximates the clique $C_v(S)$ in the \exactcholesky algorithm. In this section, our goal is to show the samples in expectation behave like the clique $C_v(S)$ and the algorithm \csamp runs in linear time.  
+
+
+\begin{lemma}
+    $\widehat{Cl}_v$ is a laplacian matrix.
+\end{lemma}
+
+\begin{proof}
+    To prove $\widehat{Cl}_v$ is a laplacian matrix, since sum of laplacian matrices is a laplacian matrix, it suffices to show $Y_i$ is either $0$ or a laplacian matrix for each $i$. Since $L_{(u_1, u_2)}$ is a laplacian matrix of an edge of weight $1$, $Y_i$ is a laplacian matrix if $u_1 \neq u_2$. If $u_1 = u_2$, then $Y_i = 0$.
+\end{proof}
+
+
+\begin{lemma}\label{lem:expcl}
+     $\mathbb{E}(\widehat{Cl_v}) = \mathbb{E}(\sum_{i}Y_{i}) = C_v(S)$. That is, the expectation of the sampled matrix $\samp{C}$ is the clique $C_v(S)$ in the \exactcholesky algorithm. 
+\end{lemma}
+
+\begin{proof}
+    The expectation of sampled matrix is equal to the sum of the expectation of each samples of edges generated after eliminating vertex $v$ from the multi-graph $S$.
+
+    Note for each sampled edge $(u_1, u_2)$, there are two possibilities that they are sampled. If $(v, u_1)$ is sampled in line 2, and $(v, u_2)$ is sampled in line 3, then the expectation of that sample is $\frac{w(v, u_2)}{w_v} \cdot \frac{w(v,u_1)w(v,u_2)}{w(v,u_1) + w(v,u_2)}$. Another case, if $(v, u_2)$ is sampled in line 2, and $(v, u_1)$ is sampled in line 3, then the expectation of that sample is $\frac{w(v, u_1)}{w_v} \cdot \frac{w(v,u_1)w(v,u_2)}{w(v,u_1) + w(v,u_2)}$. Therefore, for each sample edge $(u_1, u_2)$, its expectation the sum of both, which is $\frac{w(v,u_1)w(v,u_2)}{w(v,u_1) + w(v,u_2)}$. 
+
+
+    \begin{align*}
+    \Exp[\widehat{Cl}] &= \Exp\left[\sum_{i}Y_{i}\right] = \sum_{i}\Exp[Y_i] \\
+    &= \sum_{u_1}\sum_{u_2}\frac{w(v,u_2)}{w(v)}\frac{w(v,u_1)w(v,u_2)}{w(v,u_1) + w(v,u_2)}L_{(u_1,u_2)} \\
+    &= \sum_{u_1<u_2}\frac{w(v,u_1) w(v,u_2)}{w(v)}\frac{w(v,u_1)+w(v,u_2)}{w(v,u_1) + w(v,u_2)}L_{(u_1,u_2)} \\
+    &= \sum_{u_1<u_2}\frac{w(v,u_1) w(v,u_2)}{w(v)}L_{(u_1,u_2)} \\
+    &= Cl_v(S)
+    \end{align*}
+\end{proof} 
+
+\begin{definition}
+In rest of the notes, we will need frequently refer to the matrices normalized by $L$. We will use the following notation: Given a symmetric matrix $S$, s.t. $\ker(L) \subseteq \ker(S)$, $\lnorm{S} \defeq (L^{+})^{1/2} S  (L^{+})^{1/2}$.
+
+\end{definition}
+
+\begin{definition}
+  We say a multi-edge $e$ is $1/\rho$-bounded if $|| w(e) \lnorm{b_{e}b_{e}^{\top}} || \leq 1/\rho$. Given a Laplacian $S$ that corresponds to a multi-graph $G_S$, we say a multi-graph $S$ is $1/\rho$-bounded if all its multi-edges of $S$ are $1/\rho$-bounded. 
+
+\end{definition}
+
+
+
+
+\begin{lemma}\label{lem:bound}
+  $||\lnorm{Y_i} || \leq 1/\rho$, i.e. the norm of the sample edge in the \csamp algorithm(line 5) is $1/\rho$-bounded w.r.t. $L$. It holds for every iteration in the \sparsecholesky algorithm. 
+\end{lemma}
+
+To prove the above lemma, we need to first introduce the following lemma -- \emph{effective resistance} in Laplacians is a distance\cite{Klein93}.
+
+\begin{lemma}\label{lem:reffDist}
+    Given a connected weighted multi-graph $G$ with associated Laplacian matrix $L$, consider three distinct vertices $u,v,z \in V$.
+  \[
+  || \lnorm{L_{(u,v)}} ||
+  \leq 
+  || \lnorm{L_{(u,z)}} ||
+  +
+  || \lnorm{L_{(z,v)}} ||
+  \]
+\end{lemma}
+
+\begin{proof}
+
+
+  \begin{align*}
+    || \lnorm{L_{(u,v)}} || &= || \lnorm{b_{(u,v)} b_{(u,v)}^\top } || 
+    = || L^{-1/2} b_{u,v} b_{u,v}^\top  L^{-1/2} || \\
+    & =  || L^{-1/2} (b_{u,z} + b_{z,v}) (b_{u,z} + b_{z,v})^\top  L^{-1/2} || \\
+    & = || L^{-1/2} (b_{u,z} b_{u,z}^\top + b_{u,z} b_{z,v}^\top + b_{z,v} b_{u,z}^\top + b_{z,v} b_{z,v}^\top)  L^{-1/2} || \\
+    & = || L^{-1/2} (b_{u,z} b_{u,z}^\top) L^{-1/2} + L^{-1/2} (b_{z,v} b_{z,v}^\top) L^{-1/2} + L^{-1/2} (b_{u,z} b_{z,v}^\top) L^{-1/2} + L^{-1/2} (b_{z,v} b_{u,z}^\top) L^{-1/2} || \\
+    & \leq || \lnorm{L_{(u,z)}} || + || \lnorm{L_{(z,v)}} || + || L^{-1/2} (b_{u,z} b_{z,v}^\top + b_{z,v} b_{u,z}^\top) L^{-1/2} ||  \\
+    &\leq || \lnorm{L_{(u,z)}} || + || \lnorm{L_{(z,v)}} ||
+\end{align*}
+
+\end{proof}
+
+
+
+\begin{proof}[Proof of Lemma ~\ref{lem:bound}]
+
+We use induction to prove lemma ~\ref{lem:bound} is true for every iteration in the \sparsecholesky algorithm. 
+
+\textbf{Base step:}
+
+For $\widehat{S}^{(0)} = L$ with edges replaced, clearly every edge in $\widehat{S}^{(0)}$ is $1/\rho$-bounded. For any splitted edge $e'$ with weight $\frac{1}{\rho} w_e$, we have $|| w(e') \lnorm{b_{e} b_{e}^\top} || = \frac{1}{\rho}|| w(e) \lnorm{b_{e} b_{e}^\top} || = \leq 1/\rho$
+
+
+\textbf{Inductive step:}
+Suppose all edges in $\widehat{S}^{(k)}$ are $1/\rho$-bounded. We need to show that all edges in $\widehat{S}^{(k+1)}$ are $1/\rho$-bounded.
+
+If $u_1 = u_2$ and $Y_i = 0$, clearly the lemma holds.
+
+If $u_1 \neq u_2$, then $Y_i = \frac{w(v,u_1)w(v,u_2)}{w(v,u_1) + w(v,u_2)}L_{(u_1,u_2)}$. By Lemma ~\ref{lem:reffDist}, we have $||\lnorm{L_{(u_1,u_2)}}|| \leq ||\lnorm{L_{(v,u_1)}} + \lnorm{L_{(v,u_2)}} || $.
+
+\begin{align*}
+	\frac{w(v,u_{1})w(v,u_{2})}{w(v,u_{1}) + w(v,u_{2})}|| \lnorm{L_{u_{1}, u_{2}}} || &\leq \frac{w(v,u_{1})w(v,u_{2})}{w(v,u_{1}) + w(v,u_{2})}(|| \lnorm{L_{v, u_{1}}} || + || \lnorm{L_{v, u_{2}}}|| ) \\ 
+	&= \frac{w(v,u_{2})}{w(v,u_{1}) + w(v,u_{2})}(w(v,u_{1}) || \lnorm{L_{v, u_{1}}} ||) \notag \\ &{}+ \frac{w(v,u_{1})}{w(v,u_{1}) + w(v,u_{2}})(w(v,u_{2})|| \lnorm{L_{v, u_{2}}} ||) \\
+	&\leq \frac{w(v,u_{2})}{w(v,u_{1}) + w(v,u_{2})}\frac{1}{\rho} + \frac{w(v,u_{1})}{w(v,u_{1}) + w(v,u_{2})}\frac{1}{\rho} \\
+	&= \frac{1}{\rho},
+\end{align*}
+
+All edges added in \csamp algorithm are $1/\rho$-bounded; thus, all edges in $\widehat{S}^{(k+1)}$ are $1/\rho$-bounded. 
+
+According to \textbf{Base step} and \textbf{Inductive step}, we have proved that every edge in $\widehat{S}^{(i)}$ is $1/\rho$-bounded, and it holds for every iteration in the \sparsecholesky algorithm.
+
+\end{proof}
+
+
+
+
+
+
+
+%%% Below is Mohan's part
+
+\section{Analysis of Approximate Cholesky Factorization}
+
+In this section, we will show the 
+approximation guarantee of the SparseCholesky algorithm.
+
+\begin{theorem}\label{error}
+  Given a connected undirected multi-graph
+  $G =(V,E)$, with positive edges weights 
+  $w : E \to \rea_{+}$, and associated Laplacian $L$,
+  and scalars $\delta >1$, $0<\eps\leq1/2$,
+  the algorithm $\cholesky(L,\eps,\delta)$
+  returns an approximate sparse Cholesky decomposition
+  $(P,\mathcal{L},\mathcal{D})$ s.t. 
+  with probability at least $1-2/n^{\delta}$,
+  \begin{align}
+    \label{eq:lapErrorBounds}
+   (1-\eps) L
+   \preceq
+   P \mathcal{L} \mathcal{D} \mathcal{L}^{\top} P^{\top} 
+   \preceq
+   (1+\eps) L   .
+  \end{align}
+  The expected number of non-zero entries in $\mathcal{L}$ is $O(\frac{\delta^2}{\eps^2}
+  m\log^{3} n)$.
+  The algorithm runs in expected time $O(\frac{\delta^2 }{\eps^2}
+  m\log^{3} n)$.
+\end{theorem}
+
+In order to prove this theorem, we will use the following results.
+\begin{definition}
+   A matrix martingale $\{Y_k \in \mathcal{R}^{n \times n}\}_{k \geq 0}$ is a sequence of matrix such that
+$Y_0=0$. ($E|_{k-1}[Y_k]=Y_{k-1}$). 
+\end{definition}
+\begin{lemma}
+$\{\widehat{L}^{(k)}\}$ is a matrix martingale, and $ L^{(n)}-L_0= L^{(n)}-L
+    =\sum_{i=1}^{n-1} \sum_{e} X^{(i)}_e$.
+\end{lemma}
+\begin{proof}
+\begin{align*}
+    \widehat{L}^{(k)}-\widehat{L}^{(k-1)} &= \widehat{S}^{(k)}-\widehat{S}^{(k-1)} + c_k c^T_k \\
+    &= -(\widehat{S}^{(k-1)})_{\pi(k)}+ \widehat{Cl_k}+
+    c_k c^T_k \\
+    &=- c_k x^T_k - {Cl}_k+\widehat{Cl_k}+c_k c^T_k \\
+    &=- Cl_k+\widehat{Cl}_k,
+\end{align*}
+Then, according to lemma \ref{lem:expcl}, we have $\{\widehat{L}^{(k)}\}$ is a matrix martingale. Since the expected value of $L^{(k)}$ is $L^{(k-1)}$, defining  $X^{(k)}_e=Y^{(k)}_e-Y^{(k-1)}_e$, where $e$ denotes the $e$th sample of $X^{(k)}_e$, we can rewrite 
+$L^{(n)}-L$ as 
+\begin{align*}
+    L^{(n)}-L_0= L^{(n)}-L
+    =\sum_{i=1}^{n-1} \sum_{e} X^{(i)}_e.
+\end{align*}
+\end{proof}
+In practice, we normalize the martingale by L,
+thus we consider $\lnorm{L^{(n)}}-\lnorm{L_0}
+    =\sum_{i=1}^{n-1} \sum_{e} \lnorm{X^{(i)}_e}$.
+\begin{lemma}\label{lem:4.3}
+    Suppose that we have  $Z=\sum_{i=1}^{n-1} \sum_{e} X^{(i)}_e$, a martingale of $d \times d$ matrices satisfying
+    \begin{itemize}
+        \item The $l2$ norm of every sample $Z_e^{(i)}$ is bounded by $\sigma_1$.
+        \item For every $i$, we have $\norm{\sum_{e} E[(Z_e^{(i)})^2]} \leq \sigma^2_2$
+        \item $\forall$ $\epsilon > 0$, we have 
+        Pr[$Z \npreceq \epsilon I] \leq exp(-\epsilon^2 /4 \sigma ^2)$,
+        where $\sigma^2 =\max{ \{ \sigma^2_3,
+        \frac{\epsilon}{2}\sigma_1,\frac{4\epsilon}{5}\sigma_2} \}$.
+    \end{itemize}
+\end{lemma}
+The proof of this lemma is introduced in \cite{Kyng16}.
+
+In order to use the above lemma, we require that $\norm{\lnorm{L^{(i)}}}$ is bounded, or that the probability of $\norm{\lnorm{L^{(i)}}}$ grows large is small.
+We introduce the $\epsilon$-truncated martingale, that is, considering the event
+$A_h = \bigg[\forall 1 \leq j <h. \sum_{i=1}^{j} \sum_{e} Z^{(i)}_e \preceq \epsilon I\bigg]$, where $h \in \{1,\ldots, k+1 \}$,
+we define 
+\begin{align*}
+    \tilde{Z}= \sum_{i=1}^{k} (\mathbbm{1}_{A_h} \sum_{e} Z^{(i)}_e ).
+\end{align*}
+It can be shown that the associated $\epsilon$-truncated martingale $\tilde{Z}$
+is also a bags-of-dice martingale,
+and
+\begin{align*}
+    Pr[ \epsilon I \npreceq Z \ \text{or}  \ Z \npreceq \epsilon I] \leq Pr[ \epsilon I \npreceq \tilde{Z} \ \text{or} \  \tilde{Z} \npreceq \epsilon I].
+\end{align*}
+Thus, we need to prove the concentration of the truncated martingale. 
+
+\begin{lemma}\label{lem:4.6}
+Given an integer $1 \leq k \leq n-1$, conditional on the choices of the SparseCholesky algorithm until step $k-1$,
+the following statements hold.
+     \begin{itemize}
+     \item conditional on $\pi(k)$, $E_{Y_e}[\mathbbm{1}_{A_h} \lnorm{X_e}]=0$
+     \item $\norm{\mathbbm{1}_{A_h} \lnorm{X_e}} \leq$ $1/ \rho$ holds always.
+     \item Conditional on $\pi(k)$, $\sum_{e} E_{Y_e}[\mathbbm{1}_{A_h} \lnorm{X_e}] \preceq \mathbbm{1}_{A_h} \frac{1}{\rho} \lnorm{C_v(S)}$.
+     \item $\norm{\mathbbm{1}_{A_h} \lnorm{C_{\pi(k)}(\widehat{S}^{(k-1)})}} \leq 1+\epsilon$.
+     \item $E[{\mathbbm{1}_{A_h} \lnorm{C_{\pi(k)}(\widehat{S}^{(k-1)})}}] \preceq \frac{2(1+\epsilon)}
+     {n+1-k} I$.
+     \end{itemize}
+\end{lemma}
+We prove the theorem \ref{error} as follows:
+\begin{proof}
+    \begin{align*}
+    &Pr[(1-\eps) L
+   \preceq
+   L^{(n)}
+   \preceq
+   (1+\eps) L ] \\
+   =& 1 -
+   Pr[(1-\eps) L
+   \npreceq
+   L^{(n)} \ \text{or} \ L^{(n)} 
+   \npreceq
+   (1+\eps) L ] \\
+   =& 1 -
+   Pr[-Z
+   \npreceq
+   \epsilon I \ \text{or} \ Z
+   \npreceq
+   \epsilon I ] \\
+   \geq& 1-Pr[-\tilde{Z}
+   \npreceq
+   \epsilon I \ \text{or} \ \tilde{Z}
+   \npreceq
+   \epsilon I ] \\
+   \geq& 1-Pr[-\tilde{Z}
+   \npreceq
+   \epsilon I] - Pr[ \tilde{Z}
+   \npreceq
+   \epsilon I ]
+\end{align*}
+To bound this probability, we need to use lemma \ref{lem:4.3}.
+Noted that we have
+$E_{Y_e}[\mathbbm{1}_{A_k} \lnorm{X^{(k)}_e}]=0$
+and $\norm{\mathbbm{1}_{A_k} \lnorm{X^{(k)}_e}} \leq$ $1/ \rho$.
+If we set $\sigma_1 = 1/ \rho $ and $\sigma_2 = \sqrt{3/(2 \rho) }$ in lemma \ref{lem:4.3}, 
+we obtain
+\begin{align*}
+    &E[\sum_{e} E(\norm{\mathbbm{1}_{A_k} \lnorm{X^{(k)}_e}})^2 ] \\
+    &\preceq E[\frac{1}{\rho}\norm{\mathbbm{1}_{A_h} \frac{1}{\rho} \lnorm{C_{\pi(k)}(S)}}] \\
+    &\preceq \frac{2(1+\epsilon)}{\rho (n+1-k)} I\\
+    &\preceq \frac{3}{\rho (n+1-k)} I.
+\end{align*}
+By letting $\sigma^2_3 = \frac{3 \ln{n}}{\rho} \geq \sum_{k=1}^{n-1} \frac{3}{\rho (n+1-k)} $ and using lemma \ref{lem:4.3}, we have
+$\sigma^2 =\max{ \{ \sigma^2_3,
+        \frac{\epsilon}{2}\sigma_1,\frac{4\epsilon}{5}\sigma_2} \}$.
+Then $\sigma^2 <= \frac{\epsilon^2}{4(1+\delta)\ln{n}}$ can
+be achieved by choosing some $\rho$.
+
+Finally, 
+\begin{align*}
+    Pr[-\tilde{Z} \npreceq \epsilon I] + Pr[ \tilde{Z} \npreceq \epsilon I ] &\leq 2n \exp{(-\epsilon^2/4\sigma^2)} \\
+    &=2n \exp{(-(1+\delta)\ln{n})}\\
+    &=2n^{-\delta}.
+\end{align*}
+This completes the proof.
+\end{proof}
+
+\section{Conclusion}
+In this report, we presented the paper \cite{Kyng16} which designs the first nearly linear time solver for Laplacian system, and does not use any graph theoretic constructions. We described the algorithm and showed the guarantees for the approximate Cholesky Factorization by introducing the concentration bounds for a class of matrix martingales, as developed in the paper.
+
+\begin{thebibliography}{9}
+\bibitem{Klein93}
+Klein, Douglas J., and Milan Randić. "Resistance distance." Journal of mathematical chemistry 12.1 (1993): 81-95.
+
+\bibitem{Kyng16}
+Kyng, Rasmus, and Sushant Sachdeva. "Approximate gaussian elimination for laplacians-fast, sparse, and simple." 2016 IEEE 57th Annual Symposium on Foundations of Computer Science (FOCS). IEEE, 2016.
+
+
+\end{thebibliography}
+
+
+
+
+\end{document}
